@@ -1,0 +1,6 @@
+# Backend secrets and binaries
+.env
+*.exe
+server.exe
+bin/
+pkg/
