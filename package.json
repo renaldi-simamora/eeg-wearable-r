@@ -1,0 +1,12 @@
+{
+  "name": "eeg-wearable-platform",
+  "version": "1.0.0",
+  "description": "IoT Wearable EEG Biosignal Platform",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:backend": "cd backend && .\\server.exe",
+    "dev:backend": "cd backend && go run ./cmd/server"
+  }
+}

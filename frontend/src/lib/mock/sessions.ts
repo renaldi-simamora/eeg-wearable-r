@@ -1,0 +1,58 @@
+import { Session } from "@/types";
+
+const now = Date.now();
+
+export const mockSessions: Session[] = [
+  {
+    id: "ses-001",
+    userId: "user-demo-01",
+    deviceId: "dev-001",
+    startedAt: new Date(now - 45 * 60 * 1000).toISOString(),
+    endedAt: new Date(now - 30 * 60 * 1000).toISOString(),
+    duration: 900,
+    status: "completed",
+    deviceName: "TGAM1 Wearable Headset Alpha",
+    deviceCode: "EEG-001",
+    signalQuality: 94,
+    createdAt: new Date(now - 45 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "ses-002",
+    userId: "user-demo-01",
+    deviceId: "dev-001",
+    startedAt: new Date(now - 140 * 60 * 1000).toISOString(),
+    endedAt: new Date(now - 120 * 60 * 1000).toISOString(),
+    duration: 1200,
+    status: "completed",
+    deviceName: "TGAM1 Wearable Headset Alpha",
+    deviceCode: "EEG-001",
+    signalQuality: 88,
+    createdAt: new Date(now - 140 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "ses-003",
+    userId: "user-demo-01",
+    deviceId: "dev-003",
+    startedAt: new Date(now - 24 * 3600 * 1000).toISOString(),
+    endedAt: new Date(now - 24 * 3600 * 1000 + 480 * 1000).toISOString(),
+    duration: 480,
+    status: "completed",
+    deviceName: "TGAM1 Wearable Headset Gamma",
+    deviceCode: "EEG-003",
+    signalQuality: 68,
+    createdAt: new Date(now - 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "ses-004",
+    userId: "user-demo-01",
+    deviceId: "dev-002",
+    startedAt: new Date(now - 48 * 3600 * 1000).toISOString(),
+    endedAt: new Date(now - 48 * 3600 * 1000 + 1500 * 1000).toISOString(),
+    duration: 1500,
+    status: "completed",
+    deviceName: "TGAM1 Wearable Headset Beta",
+    deviceCode: "EEG-002",
+    signalQuality: 92,
+    createdAt: new Date(now - 48 * 3600 * 1000).toISOString(),
+  },
+];

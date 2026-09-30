@@ -1,0 +1,40 @@
+import { Device } from "@/types";
+
+export const mockDevices: Device[] = [
+  {
+    id: "dev-001",
+    deviceCode: "EEG-001",
+    name: "TGAM1 Wearable Headset Alpha",
+    status: "connected",
+    batteryLevel: 88,
+    signalQuality: 94,
+    firmwareVersion: "v1.2.0-esp32",
+    lastSeen: new Date().toISOString(),
+    createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "dev-002",
+    deviceCode: "EEG-002",
+    name: "TGAM1 Wearable Headset Beta",
+    status: "disconnected",
+    batteryLevel: 62,
+    signalQuality: 0,
+    firmwareVersion: "v1.1.4-esp32",
+    lastSeen: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 120 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "dev-003",
+    deviceCode: "EEG-003",
+    name: "TGAM1 Wearable Headset Gamma",
+    status: "warning",
+    batteryLevel: 18,
+    signalQuality: 42,
+    firmwareVersion: "v1.2.0-esp32",
+    lastSeen: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+  },
+];
