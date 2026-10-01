@@ -18,6 +18,18 @@ export interface AuthResult {
   user: User;
 }
 
+function setAuthTokenCookie(token: string) {
+  if (typeof document !== "undefined") {
+    document.cookie = `eeg_auth_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
+  }
+}
+
+function clearAuthTokenCookie() {
+  if (typeof document !== "undefined") {
+    document.cookie = "eeg_auth_token=; path=/; max-age=0; SameSite=Lax";
+  }
+}
+
 export const authService = {
   async register(payload: RegisterDTO): Promise<AuthResult> {
     try {
@@ -28,6 +40,7 @@ export const authService = {
       if (res && res.token) {
         localStorage.setItem("eeg_auth_token", res.token);
         localStorage.setItem("eeg_user", JSON.stringify(res.user));
+        setAuthTokenCookie(res.token);
       }
       return res;
     } catch (err: any) {
@@ -48,6 +61,7 @@ export const authService = {
         };
         localStorage.setItem("eeg_auth_token", mockResult.token);
         localStorage.setItem("eeg_user", JSON.stringify(mockResult.user));
+        setAuthTokenCookie(mockResult.token);
         return mockResult;
       }
       throw err;
@@ -63,6 +77,7 @@ export const authService = {
       if (res && res.token) {
         localStorage.setItem("eeg_auth_token", res.token);
         localStorage.setItem("eeg_user", JSON.stringify(res.user));
+        setAuthTokenCookie(res.token);
       }
       return res;
     } catch (err: any) {
@@ -82,10 +97,24 @@ export const authService = {
         };
         localStorage.setItem("eeg_auth_token", mockResult.token);
         localStorage.setItem("eeg_user", JSON.stringify(mockResult.user));
+        setAuthTokenCookie(mockResult.token);
         return mockResult;
       }
       throw err;
     }
+  },
+
+  async loginWithGoogle(credential: string): Promise<AuthResult> {
+    const res = await apiClient<AuthResult>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential }),
+    });
+    if (res && res.token) {
+      localStorage.setItem("eeg_auth_token", res.token);
+      localStorage.setItem("eeg_user", JSON.stringify(res.user));
+      setAuthTokenCookie(res.token);
+    }
+    return res;
   },
 
   async logout(): Promise<void> {
@@ -98,6 +127,7 @@ export const authService = {
         localStorage.removeItem("eeg_auth_token");
         localStorage.removeItem("eeg_user");
       }
+      clearAuthTokenCookie();
     }
   },
 

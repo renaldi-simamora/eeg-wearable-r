@@ -47,9 +47,16 @@ export async function apiClient<T>(
       if (res.status === 401 && typeof window !== "undefined") {
         // Handle unauthorized token expiry
         // Do not redirect on public routes
-        if (!window.location.pathname.startsWith("/login") && window.location.pathname !== "/") {
+        if (
+          !window.location.pathname.startsWith("/login") &&
+          !window.location.pathname.startsWith("/register") &&
+          window.location.pathname !== "/"
+        ) {
           localStorage.removeItem("eeg_auth_token");
           localStorage.removeItem("eeg_user");
+          document.cookie = "eeg_auth_token=; path=/; max-age=0; SameSite=Lax";
+          const currentPath = window.location.pathname + window.location.search;
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         }
       }
       throw new ApiError(data.error || `HTTP error ${res.status}`, res.status);

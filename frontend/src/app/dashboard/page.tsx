@@ -22,12 +22,12 @@ import {
   Activity,
   Radio,
   Clock,
-  Brain,
   Plus,
   Play,
-  ArrowRight,
   Cpu,
   RefreshCw,
+  ArrowRight,
+  BatteryCharging,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("dev-001");
 
   // Fetch dashboard summary
-  const { data: summary, isLoading, refetch } = useQuery({
+  const { data: summary, refetch } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: () => dashboardService.getSummary(),
   });
@@ -52,7 +52,7 @@ export default function DashboardPage() {
   // Mutation to start new session
   const startSessionMutation = useMutation({
     mutationFn: (deviceId: string) => sessionService.createSession({ deviceId }),
-    onSuccess: (newSession) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       setIsStartModalOpen(false);
@@ -65,18 +65,19 @@ export default function DashboardPage() {
   };
 
   const activeDevice = summary?.activeDevice;
+  const connectedDevicesCount = (devices || []).filter((d) => d.status === "connected").length || 1;
 
   return (
-    <AppShell title="Research Dashboard">
+    <AppShell title="Platform Dashboard">
       <div className="space-y-6">
         {/* 1. Header with greeting and Start New Session Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.04]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-              Good afternoon, {user?.name || "Researcher"}
+              Welcome back, {user?.name || "Dr. Renaldi"}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Your EEG platform is ready. Monitor real-time telemetry and manage acquisition sessions.
+              Here's the current status of your EEG monitoring platform.
             </p>
           </div>
 
@@ -103,111 +104,108 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 2. Top Summary KPI Cards (Cards 1-4) */}
+        {/* 2. Top Summary KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <SummaryCard
-            title="Device Status"
-            value={summary?.deviceStatus || "Connected"}
-            subtext={activeDevice ? `${activeDevice.name} (${activeDevice.deviceCode})` : "TGAM1 Headset Alpha"}
+            title="DEVICE STATUS"
+            value="Ready"
+            subtext={activeDevice ? `${activeDevice.name} (Demo)` : "TGAM1 Headset Alpha"}
             icon={Cpu}
             variant="blue"
-            badgeText="Online • 2.4 GHz"
+            badgeText="Demo • Standby"
           />
 
           <SummaryCard
-            title="Signal Quality"
-            value={summary?.signalQuality || "Good"}
-            subtext={`${summary?.signalQualityValue || 94}% Impedance contact stability`}
+            title="RECORDING STATUS"
+            value="Standby"
+            subtext="Waiting for acquisition"
             icon={Radio}
-            variant="emerald"
-            badgeText="FP1 Dry Electrode"
+            variant="blue"
+            badgeText="FP1 Monopolar"
           />
 
           <SummaryCard
-            title="Latest Session"
-            value={summary?.latestSessionDuration || "15m 00s"}
-            subtext={`Total archived: ${summary?.totalSessions || 4} experimental runs`}
+            title="TOTAL SESSIONS"
+            value={`${summary?.totalSessions || 0}`}
+            subtext={summary?.recentSessions?.[0] ? `Latest: ${summary.recentSessions[0].deviceCode}` : "Not started yet"}
             icon={Clock}
             variant="amber"
-            badgeText="Recorded"
+            badgeText="Archived"
           />
 
           <SummaryCard
-            title="Latest Classification"
-            value="Not available yet"
-            subtext="Awaiting ML inference pipeline"
-            icon={Brain}
-            variant="slate"
-            badgeText="Future Phase"
+            title="SIGNAL STATUS"
+            value="Standby"
+            subtext="Waiting for acquisition session"
+            icon={Activity}
+            variant="blue"
+            badgeText="Waiting"
           />
         </div>
 
-        {/* 3. Middle Section: Live EEG Preview & Brainwave Overview */}
+        {/* 3. Main Split Section: Live Preview & Sessions (Left) vs Diagnostics (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Large Panel: Live EEG Preview */}
+          {/* Left Column (8 cols): Real-time Preview & Sessions Table */}
           <div className="lg:col-span-8 space-y-6">
             <LiveEEGPreview
               deviceName={activeDevice?.name}
               deviceCode={activeDevice?.deviceCode}
             />
 
-            {/* Recent Sessions Table */}
             <RecentSessionsTable
               sessions={summary?.recentSessions || []}
             />
           </div>
 
-          {/* Right Column: Brainwave Spectrum, Device Health & Quick Actions */}
+          {/* Right Column (4 cols): Hardware Node, Brainwave Spectrum & Diagnostics */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Brainwave Overview Card */}
+            {/* Connected Hardware Node Card */}
             <Card>
-              <CardHeader className="py-4">
-                <div>
-                  <CardTitle className="text-sm font-semibold text-white">
-                    Brainwave Spectrum Overview
+              <CardHeader className="py-3.5 px-5">
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+                    Connected Wearable Node
                   </CardTitle>
-                  <p className="text-[11px] text-slate-500">
-                    Estimated EEG power spectrum distribution
-                  </p>
+                  <Link href="/devices" className="text-[11px] text-blue-400 hover:text-blue-300 font-medium">
+                    Manage
+                  </Link>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 pt-1">
-                <FrequencyBandsChart features={summary?.brainwaveOverview} />
+              <CardContent className="p-4 pt-1 space-y-3">
+                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-semibold text-white text-xs block">
+                        {activeDevice?.name || "TGAM1 Headset Alpha"}
+                      </span>
+                      <span className="text-[10px] font-mono text-cyan-400 block mt-0.5">
+                        {activeDevice?.deviceCode || "EEG-001"} • FW {activeDevice?.firmwareVersion || "v2.1.0"}
+                      </span>
+                    </div>
+                    <Badge variant="success" size="sm">
+                      Connected
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/[0.04]">
+                    <span className="flex items-center gap-1 font-mono">
+                      <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{activeDevice?.batteryLevel || 94}% Battery</span>
+                    </span>
+                    <span className="font-mono text-slate-500">LiPo 3.7V</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Session Summary Card */}
+            {/* Brainwave Spectrum Overview */}
             <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-semibold text-white">
-                  Acquisition Run Summary
+              <CardHeader className="py-3.5 px-5">
+                <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+                  Brainwave Spectrum Overview
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 pt-1 space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
-                  <span className="text-slate-400">Total Recorded Sessions</span>
-                  <span className="font-semibold font-mono text-white">
-                    {summary?.totalSessions || 4}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
-                  <span className="text-slate-400">Latest Session Duration</span>
-                  <span className="font-semibold font-mono text-white">
-                    {summary?.latestSessionDuration || "15m 00s"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
-                  <span className="text-slate-400">Average Duration</span>
-                  <span className="font-semibold font-mono text-white">
-                    {summary?.averageDuration || "17m 10s"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-slate-400">Latest Signal Quality</span>
-                  <Badge variant="success" size="sm">
-                    {summary?.signalQualityValue || 94}% Good
-                  </Badge>
-                </div>
+              <CardContent className="p-4 pt-1">
+                <FrequencyBandsChart features={summary?.brainwaveOverview} />
               </CardContent>
             </Card>
 
@@ -215,41 +213,6 @@ export default function DashboardPage() {
             {summary?.deviceHealth && (
               <DeviceHealthCard health={summary.deviceHealth} />
             )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader className="py-3">
-                <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Quick Navigation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 pt-0 space-y-1.5">
-                <Link href="/live" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                    <Radio className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Open Live EEG Monitor</span>
-                  </Button>
-                </Link>
-                <Link href="/sessions" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Browse All Sessions</span>
-                  </Button>
-                </Link>
-                <Link href="/devices" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                    <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Manage Wearable Devices</span>
-                  </Button>
-                </Link>
-                <Link href="/analysis" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                    <Brain className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Inspect ML Pipeline</span>
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -263,7 +226,7 @@ export default function DashboardPage() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
               Target Wearable Device
             </label>
             <div className="space-y-2">
@@ -273,17 +236,17 @@ export default function DashboardPage() {
                   onClick={() => setSelectedDeviceId(dev.id)}
                   className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
                     selectedDeviceId === dev.id
-                      ? "border-blue-500/40 bg-blue-500/[0.06]"
+                      ? "border-blue-500/50 bg-blue-500/[0.08]"
                       : "border-white/[0.06] hover:border-white/[0.12] bg-white/[0.02]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-400">
-                      <Cpu className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300">
+                      <Cpu className="w-4 h-4 text-blue-400" />
                     </div>
                     <div>
                       <div className="font-semibold text-white">{dev.name}</div>
-                      <div className="text-[11px] font-mono text-slate-500">
+                      <div className="text-[11px] font-mono text-slate-400">
                         {dev.deviceCode} • FW: {dev.firmwareVersion}
                       </div>
                     </div>
@@ -295,7 +258,7 @@ export default function DashboardPage() {
                     >
                       {dev.status}
                     </Badge>
-                    <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                    <div className="text-[10px] text-slate-400 mt-1 font-mono">
                       Batt: {dev.batteryLevel}%
                     </div>
                   </div>
@@ -321,12 +284,14 @@ export default function DashboardPage() {
             <Button
               variant="primary"
               size="md"
-              onClick={handleStartSession}
-              isLoading={startSessionMutation.isPending}
+              onClick={() => {
+                setIsStartModalOpen(false);
+                router.push("/live");
+              }}
               className="gap-2"
             >
               <Play className="w-4 h-4" />
-              <span>Begin Session & Stream</span>
+              <span>Open Live Session</span>
             </Button>
           </div>
         </div>

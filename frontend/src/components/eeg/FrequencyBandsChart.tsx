@@ -63,6 +63,7 @@ export function FrequencyBandsChart({
   ];
 
   // Calculate sum for relative proportion
+  const hasValues = bands.some((b) => b.value > 0);
   const total = bands.reduce((acc, b) => acc + b.value, 0) || 100;
 
   return (
@@ -76,15 +77,22 @@ export function FrequencyBandsChart({
             FFT-derived power density across standard neurological sub-bands
           </p>
         </div>
-        <Badge variant="simulation" size="sm">
-          Demo data
+        <Badge variant={hasValues ? "simulation" : "neutral"} size="sm">
+          {hasValues ? "Demo data" : "Standby"}
         </Badge>
       </div>
+
+      {!hasValues && (
+        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[11px] text-slate-400 font-mono flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+          <span>Standby • Spectral powers will calculate once acquisition begins.</span>
+        </div>
+      )}
 
       {/* Progress Bars */}
       <div className="space-y-3">
         {bands.map((b) => {
-          const percentage = Math.round((b.value / total) * 100);
+          const percentage = hasValues ? Math.round((b.value / total) * 100) : 0;
           return (
             <div key={b.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
@@ -96,10 +104,10 @@ export function FrequencyBandsChart({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-semibold text-slate-300">
-                    {b.value.toFixed(1)} µV²
+                    {hasValues ? `${b.value.toFixed(1)} µV²` : "— µV²"}
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 w-8 text-right">
-                    {percentage}%
+                    {hasValues ? `${percentage}%` : "0%"}
                   </span>
                 </div>
               </div>
@@ -108,7 +116,7 @@ export function FrequencyBandsChart({
               <div className="w-full h-2 rounded-full bg-white/[0.04] overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${b.color}`}
-                  style={{ width: `${Math.min(100, Math.max(3, percentage))}%` }}
+                  style={{ width: `${hasValues ? Math.min(100, Math.max(3, percentage)) : 0}%` }}
                 />
               </div>
             </div>

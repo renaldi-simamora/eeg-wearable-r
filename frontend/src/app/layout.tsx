@@ -39,7 +39,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      <body className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-600/30 selection:text-white">
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

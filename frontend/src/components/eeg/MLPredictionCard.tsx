@@ -1,30 +1,47 @@
 "use client";
 
 import React from "react";
-import { Brain, Cpu, Sparkles, AlertCircle, ArrowUpRight } from "lucide-react";
+import { Brain, ArrowUpRight, Cpu } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 interface MLPredictionCardProps {
   className?: string;
-  isCompact?: boolean;
 }
 
-export function MLPredictionCard({ className = "", isCompact = false }: MLPredictionCardProps) {
+export function MLPredictionCard({ className = "" }: MLPredictionCardProps) {
+  const models = [
+    {
+      name: "SVM Classifier",
+      config: "RBF Kernel (C=1.0, γ=scale)",
+      status: "Pipeline Ready",
+    },
+    {
+      name: "Random Forest",
+      config: "100 Estimator Trees",
+      status: "Pipeline Ready",
+    },
+    {
+      name: "XGBoost",
+      config: "Gradient Boosted Trees",
+      status: "Pipeline Ready",
+    },
+  ];
+
   return (
-    <Card className={`border-dashed border-slate-300 bg-gradient-to-b from-slate-50/70 to-white ${className}`}>
-      <CardHeader className="py-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+    <Card className={className}>
+      <CardHeader className="py-3.5 px-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/[0.1] border border-indigo-500/[0.2] flex items-center justify-center text-indigo-400">
             <Brain className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-800">
-              Machine Learning Pipeline
+            <CardTitle className="text-sm font-semibold text-white">
+              Machine Learning Analysis
             </CardTitle>
-            <p className="text-[11px] text-slate-500">
-              Future Real-Time Inference Module
+            <p className="text-[11px] text-slate-400">
+              Pattern classification pipeline architecture
             </p>
           </div>
         </div>
@@ -33,56 +50,40 @@ export function MLPredictionCard({ className = "", isCompact = false }: MLPredic
         </Badge>
       </CardHeader>
 
-      <CardContent className="pt-2 pb-5 space-y-4">
-        {/* Academic Notice Banner */}
-        <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold block">Architecture Ready:</span>
-            <span className="text-amber-800 leading-relaxed">
-              Machine-learning classification will appear here. The classification model service will be linked in the subsequent phase.
-            </span>
-          </div>
+      <CardContent className="p-5 pt-1 space-y-3.5 text-xs">
+        {/* Academic status note */}
+        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-slate-300 leading-relaxed text-[11px]">
+          <span className="text-white font-medium block mb-0.5">Pipeline Status:</span>
+          Machine-learning classification will process extracted 5-band spectral features from the live stream once the external Python model service is integrated.
         </div>
 
-        {/* Planned Model Pipeline Slots */}
+        {/* Compact candidate models */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <div className="p-2.5 rounded-lg border border-slate-200/80 bg-white">
-            <div className="text-[11px] font-mono text-slate-400 uppercase">Model 1</div>
-            <div className="text-xs font-semibold text-slate-800 mt-0.5">SVM Classifier</div>
-            <div className="text-[11px] text-slate-500 mt-1">RBF Kernel</div>
-            <span className="inline-block mt-2 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">
-              Pending API
-            </span>
-          </div>
-
-          <div className="p-2.5 rounded-lg border border-slate-200/80 bg-white">
-            <div className="text-[11px] font-mono text-slate-400 uppercase">Model 2</div>
-            <div className="text-xs font-semibold text-slate-800 mt-0.5">Random Forest</div>
-            <div className="text-[11px] text-slate-500 mt-1">Ensemble Trees</div>
-            <span className="inline-block mt-2 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">
-              Pending API
-            </span>
-          </div>
-
-          <div className="p-2.5 rounded-lg border border-slate-200/80 bg-white">
-            <div className="text-[11px] font-mono text-slate-400 uppercase">Model 3</div>
-            <div className="text-xs font-semibold text-slate-800 mt-0.5">XGBoost</div>
-            <div className="text-[11px] text-slate-500 mt-1">Gradient Boosted</div>
-            <span className="inline-block mt-2 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">
-              Pending API
-            </span>
-          </div>
+          {models.map((m) => (
+            <div
+              key={m.name}
+              className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-white text-xs">{m.name}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono">{m.config}</p>
+              <span className="inline-block mt-1 text-[9px] font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.2 rounded border border-white/[0.06]">
+                {m.status}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* Future Contract Link */}
-        <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
-          <span className="font-mono text-[11px]">Contract: POST /api/analysis/:id</span>
+        {/* Footer Link to /analysis */}
+        <div className="pt-1 flex items-center justify-between text-slate-400 text-[11px] border-t border-white/[0.04]">
+          <span className="font-mono text-slate-500">API Contract: POST /api/analysis/:id</span>
           <Link
             href="/analysis"
-            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium"
+            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium"
           >
-            <span>View ML Pipeline</span>
+            <span>Inspect ML Pipeline</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
