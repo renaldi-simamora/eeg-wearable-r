@@ -103,6 +103,10 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type GoogleAuthRequest struct {
+	Credential string `json:"credential" binding:"required"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`

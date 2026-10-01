@@ -68,6 +68,32 @@ func (h *Handler) Login(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GoogleLogin(c *gin.Context) {
+	var req models.GoogleAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{
+			Success: false,
+			Error:   "Invalid request: credential is required",
+		})
+		return
+	}
+
+	res, err := h.service.LoginWithGoogle(req.Credential)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.APIResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Message: "Google authentication successful",
+		Data:    res,
+	})
+}
+
 func (h *Handler) Logout(c *gin.Context) {
 	// In stateless JWT, client deletes token; backend can also invalidate via blacklist if needed
 	c.JSON(http.StatusOK, models.APIResponse{
