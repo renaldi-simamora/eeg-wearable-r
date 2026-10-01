@@ -41,7 +41,7 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 	r.GET("/api/ws/eeg", hub.HandleWebSocket)
 
 	// Services & Handlers
-	authService := auth.NewService(store, cfg.JWTSecret)
+	authService := auth.NewService(store, cfg.JWTSecret, cfg.GoogleClientID)
 	authHandler := auth.NewHandler(authService)
 
 	usersService := users.NewService(store)
@@ -70,6 +70,7 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 		{
 			authGroup.POST("/register", authHandler.Register)
 			authGroup.POST("/login", authHandler.Login)
+			authGroup.POST("/google", authHandler.GoogleLogin)
 			authGroup.POST("/logout", authHandler.Logout)
 		}
 

@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	JWTSecret   string
-	CORSOrigin  string
+	Port           string
+	DatabaseURL    string
+	JWTSecret      string
+	CORSOrigin     string
+	GoogleClientID string
 }
 
 func LoadConfig() *Config {
@@ -37,10 +38,13 @@ func LoadConfig() *Config {
 		corsOrigin = "http://localhost:3000"
 	}
 
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+
 	return &Config{
-		Port:        port,
-		DatabaseURL: dbURL,
-		JWTSecret:   jwtSecret,
-		CORSOrigin:  corsOrigin,
+		Port:           port,
+		DatabaseURL:    dbURL,
+		JWTSecret:      jwtSecret,
+		CORSOrigin:     corsOrigin,
+		GoogleClientID: googleClientID,
 	}
 }
