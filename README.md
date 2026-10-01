@@ -3,16 +3,18 @@
 > **Academic Engineering Research Project**  
 > **Judul Penelitian**: *Rancang Bangun Perangkat IoT Wearable Berbasis EEG untuk Klasifikasi Pola Gelombang Otak Menggunakan Machine Learning*  
 > **Fakultas / Program Studi**: Teknik Elektro & Rekayasa Biomedis / Ilmu Komputer  
-> **Versi Rilis**: `v1.0.0-academic` | **Status**: Active Development & Hardware Integration Stage  
+> **Versi Rilis**: `v1.2.0-academic` | **Status**: Active Development & Hardware Integration Stage  
 
 ---
 
 [![Next.js 16](https://img.shields.io/badge/Frontend-Next.js%2016%20App%20Router-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/UI-React%2019-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![Go 1.22](https://img.shields.io/badge/Backend-Go%201.22%20Gin-00ADD8?style=for-the-badge&logo=go)](https://go.dev/)
-[![PostgreSQL 15](https://img.shields.io/badge/Database-PostgreSQL%2015-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![PostgreSQL 17](https://img.shields.io/badge/Database-PostgreSQL%2017-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Google OAuth](https://img.shields.io/badge/Auth-Google%20OAuth%202.0-EA4335?style=for-the-badge&logo=google)](https://cloud.google.com/)
 [![WebSockets](https://img.shields.io/badge/RealTime-Gorilla%20WebSocket-orange?style=for-the-badge)](https://github.com/gorilla/websocket)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript%205-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20Dark%20Luxury-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20v4%20Biomedical%20Dark-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-Academic%20MIT-emerald?style=for-the-badge)](LICENSE)
 
 ---
@@ -22,36 +24,46 @@
 1. [Ringkasan Eksekutif & Latar Belakang Riset](#1-ringkasan-eksekutif--latar-belakang-riset)
 2. [Arsitektur Sistem (End-to-End Architecture)](#2-arsitektur-sistem-end-to-end-architecture)
 3. [Rancang Bangun & Spesifikasi Perangkat Keras (Hardware IoT)](#3-rancang-bangun--spesifikasi-perangkat-keras-hardware-iot)
+   - [3.1 Daftar Komponen Hardware](#31-daftar-komponen-hardware)
+   - [3.2 Diagram Pinout & Wiring (ESP32 ke TGAM1)](#32-diagram-pinout--wiring-esp32-ke-tgam1)
+   - [3.3 Contoh Source Code Firmware ESP32 (Arduino C++)](#33-contoh-source-code-firmware-esp32-arduino-c)
 4. [Karakteristik & Pita Frekuensi Gelombang Otak (EEG Bands)](#4-karakteristik--pita-frekuensi-gelombang-otak-eeg-bands)
 5. [Teknologi & Tech Stack Lengkap](#5-teknologi--tech-stack-lengkap)
 6. [Struktur Direktori & Rincian Modul Proyek](#6-struktur-direktori--rincian-modul-proyek)
 7. [Panduan Instalasi & Menjalankan Proyek](#7-panduan-instalasi--menjalankan-proyek)
    - [7.1 Prasyarat Sistem](#71-prasyarat-sistem)
-   - [7.2 Konfigurasi Environment (.env)](#72-konfigurasi-environment-env)
-   - [7.3 Menjalankan Backend (Go API Gateway)](#73-menjalankan-backend-go-api-gateway)
-   - [7.4 Menjalankan Frontend (Next.js Web App)](#74-menjalankan-frontend-nextjs-web-app)
-   - [7.5 Shortcut Menjalankan Proyek via Root package.json](#75-shortcut-menjalankan-proyek-via-root-packagejson)
-   - [7.6 Menjalankan dengan Docker & Docker Compose](#76-menjalankan-dengan-docker--docker-compose)
-8. [Akun Peneliti Bawaan (Demo Credentials)](#8-akun-peneliti-bawaan-demo-credentials)
-9. [Panduan Navigasi & Fitur Antarmuka Pengguna (Web UI)](#9-panduan-navigasi--fitur-antarmuka-pengguna-web-ui)
-10. [Spesifikasi API Gateway & WebSocket](#10-spesifikasi-api-gateway--websocket)
-11. [Skema Database & Entitas Relasional (PostgreSQL)](#11-skema-database--entitas-relasional-postgresql)
-12. [Pipeline Integrasi Machine Learning (ML Contracts)](#12-pipeline-integrasi-machine-learning-ml-contracts)
-13. [Panduan Troubleshooting & FAQ](#13-panduan-troubleshooting--faq)
-14. [Roadmap Pengembangan Sistem](#14-roadmap-pengembangan-sistem)
-15. [Lisensi & Etika Penelitian](#15-lisensi--etika-penelitian)
+   - [7.2 Konfigurasi Database PostgreSQL (Lokal / pgAdmin)](#72-konfigurasi-database-postgresql-lokal--pgadmin)
+   - [7.3 Konfigurasi Environment Variables (.env)](#73-konfigurasi-environment-variables-env)
+   - [7.4 Menjalankan Backend (Go API Gateway)](#74-menjalankan-backend-go-api-gateway)
+   - [7.5 Menjalankan Frontend (Next.js Web App)](#75-menjalankan-frontend-nextjs-web-app)
+   - [7.6 Shortcut Eksekusi via Root package.json](#76-shortcut-eksekusi-via-root-packagejson)
+   - [7.7 Menjalankan via Docker & Docker Compose](#77-menjalankan-via-docker--docker-compose)
+8. [Panduan Integrasi Google OAuth 2.0 (Google Cloud Platform)](#8-panduan-integrasi-google-oauth-20-google-cloud-platform)
+9. [Sistem Otentikasi & Proteksi Route (Server-Side Middleware)](#9-sistem-otentikasi--proteksi-route-server-side-middleware)
+10. [State Machine & Alur Sesi Akuisisi Live EEG](#10-state-machine--alur-sesi-akuisisi-live-eeg)
+11. [Akun Peneliti Bawaan (Demo Credentials)](#11-akun-peneliti-bawaan-demo-credentials)
+12. [Panduan Navigasi & Fitur Antarmuka Pengguna (Web UI)](#12-panduan-navigasi--fitur-antarmuka-pengguna-web-ui)
+13. [Spesifikasi API Gateway & WebSocket Protocol](#13-spesifikasi-api-gateway--websocket-protocol)
+    - [13.1 Endpoint REST API](#131-endpoint-rest-api)
+    - [13.2 Protokol Streaming WebSocket (/ws/eeg)](#132-protokol-streaming-websocket-wseeg)
+    - [13.3 Contoh Pengujian Endpoint via cURL](#133-contoh-pengujian-endpoint-via-curl)
+14. [Skema Database & Entitas Relasional (PostgreSQL)](#14-skema-database--entitas-relasional-postgresql)
+15. [Pipeline Integrasi Machine Learning (ML Contracts)](#15-pipeline-integrasi-machine-learning-ml-contracts)
+16. [Panduan Troubleshooting & FAQ Terperinci](#16-panduan-troubleshooting--faq-terperinci)
+17. [Roadmap Pengembangan Sistem](#17-roadmap-pengembangan-sistem)
+18. [Lisensi & Etika Penelitian Biomedis](#18-lisensi--etika-penelitian-biomedis)
 
 ---
 
 ## 1. Ringkasan Eksekutif & Latar Belakang Riset
 
-**Elektroensefalografi (EEG)** konvensional berbasis laboratorium medis umumnya menggunakan perangkat multichannel stasioner berbiaya tinggi dengan elektroda gel basah (*wet electrodes*) yang memerlukan persiapan kompleks, pemasangan rumit, dan mobilitas subjek yang sangat terbatas.
+**Elektroensefalografi (EEG)** konvensional berbasis laboratorium medis umumnya menggunakan instrumen *multichannel* stasioner berbiaya puluhan hingga ratusan juta rupiah dengan elektroda pasta/gel basah (*wet electrodes*). Prosedur ini membutuhkan persiapan subjek yang lama, penataan pasta konduktif yang rentan mengering, serta membatasi mobilitas subjek di luar ruang uji terlindung (*Faraday cage*).
 
-Platform ini dikembangkan sebagai solusi terintegrasi untuk menjembatani **perangkat biosensing EEG wearable berbiaya terjangkau (wearable low-cost EEG)** dengan arsitektur komputasi modern. Platform ini mengintegrasikan:
-1. **IoT Edge Acquisition Layer**: Mengakuisisi sinyal biopotensial otak pada elektroda dahi FP1 dengan modul ASIC TGAM1 dan mikrokontroler ESP32 secara nirkabel melalui protokol Wi-Fi.
-2. **Central Go API Gateway Layer**: Gerbang backend berbasis bahasa pemrograman Go (Gin Framework) berkinerja tinggi, menyediakan autentikasi JWT terenkripsi, sinkronisasi WebSocket streaming 50–512 Hz, manajemen siklus sesi akuisisi, dan orkestrasi database.
-3. **Database & Time-Series Persistence Layer**: Penyimpanan data terstruktur PostgreSQL untuk raw voltage sinyal EEG, fitur ekstraksi daya spektral (Power Spectral Density / PSD), log sesi, inventaris perangkat, dan hasil prediksi machine learning.
-4. **Modern Web Presentation Layer**: Antarmuka berbasis Next.js 16 (App Router) dengan tema *Dark Luxury Glassmorphism*, visualisasi osciloscope real-time 60 FPS berbasis HTML5 Canvas, grafik distribusi spektral gelombang otak, dan panel kontrol hardware.
+Platform **EEG Wearable** ini dikembangkan sebagai solusi terintegrasi untuk menjembatani **perangkat biosensing EEG wearable berbiaya terjangkau (wearable low-cost EEG)** dengan arsitektur web modern dan komputasi cerdas. Sistem ini mencakup 5 pilar utama:
+1. **IoT Edge Acquisition Layer**: Mengakuisisi sinyal biopotensial otak pada elektroda dahi FP1 dengan modul ASIC TGAM1 dan mikrokontroler ESP32 secara nirkabel melalui protokol Wi-Fi 802.11 b/g/n.
+2. **Central Go API Gateway Layer**: Gerbang backend berbasis bahasa pemrograman Go (Gin Web Framework) berkinerja tinggi, menyediakan autentikasi JWT terenkripsi, integrasi Google OAuth 2.0 resmi, sinkronisasi WebSocket streaming 50–512 Hz, manajemen siklus sesi akuisisi, dan orkestrasi database.
+3. **Database & Time-Series Persistence Layer**: Penyimpanan data terstruktur PostgreSQL 17 untuk raw voltage sinyal EEG, fitur ekstraksi daya spektral (Power Spectral Density / PSD), log sesi, inventaris perangkat, dan hasil prediksi machine learning.
+4. **Modern Web Presentation Layer**: Antarmuka berbasis Next.js 16 (App Router) dengan tema *Dark Biomedical Glassmorphism*, visualisasi osiloskop real-time 60 FPS berbasis HTML5 Canvas, grafik distribusi spektral gelombang otak, panel kontrol hardware, serta pemisahan layout otentikasi split-screen modern.
 5. **Future-Ready ML Classifier Pipeline**: Kontrak terstandarisasi untuk klasifikasi pola gelombang otak (Fokus, Rileks, Drowsy, Kognisi Aktif) menggunakan algoritma Support Vector Machine (SVM), Random Forest, dan XGBoost.
 
 ---
@@ -71,7 +83,7 @@ flowchart TB
 
     subgraph BackendLayer ["2. GO BACKEND API GATEWAY (:8080)"]
         GoServer["Gin HTTP Router & API Gateway"]
-        AuthMid["JWT & Bcrypt Auth Middleware"]
+        AuthMid["JWT & Google OAuth Middleware"]
         WSHub["Gorilla WebSocket Streaming Hub\n(/ws/eeg)"]
         SessionMgr["Session & Device Manager"]
         FeatureEngine["Spectral Feature Extractor (FFT/PSD)"]
@@ -85,63 +97,173 @@ flowchart TB
     GoServer --- FallbackStore
 
     subgraph DataStorageLayer ["3. STORAGE & ML CLASSIFICATION"]
-        PostgresDB[("PostgreSQL 15 Database\n- users, devices, sessions\n- eeg_samples, brainwave_features\n- ml_predictions, ai_insights")]
+        PostgresDB[("PostgreSQL 17 Database\n- users, devices, sessions\n- eeg_samples, brainwave_features\n- ml_predictions, ai_insights")]
+        GoogleOAuthSvc["Google Identity Services API\n(OAuth 2.0 Tokeninfo Verification)"]
         MLService["Future ML Inference Service\n(Python FastAPI / Scikit-Learn)\n- SVM (RBF Kernel)\n- Random Forest Classifier\n- XGBoost Gradient Booster"]
     end
 
+    AuthMid <-->|"Verify ID Token"| GoogleOAuthSvc
     SessionMgr <-->|"SQL Query via lib/pq"| PostgresDB
     FeatureEngine -->|"Feature Vector (PSD, Band Power)"| MLService
     MLService -->|"Predicted Class & Confidence"| SessionMgr
 
     subgraph FrontendLayer ["4. PRESENTATION WEB APPLICATION (:3000)"]
+        NextMiddleware["Edge/Server Auth Middleware (middleware.ts)\n- Strict HTTP 307 Redirects\n- eeg_auth_token Cookie Sync"]
         NextClient["Next.js 16 App Router (React 19 + TypeScript)"]
         CanvasOscilloscope["High-FPS HTML5 Canvas Oscilloscope\n(60 FPS Raw Waveform Render)"]
         SpectralCharts["Frequency Bands Energy Spectrum\n(Delta, Theta, Alpha, Beta, Gamma)"]
         DeviceDiagnostics["Hardware Registry & Diagnostics Panel"]
-        AuthDashboard["Institutional Researcher Portal"]
+        AuthSplitScreen["Dedicated 2-Side Auth Layout (AuthShell)\n+ Google Sign-In One-Tap"]
     end
 
+    NextMiddleware --> NextClient
     WSHub -->|"WebSocket Stream (JSON Frame)"| NextClient
     NextClient <-->|"REST API Requests (/api/*)"| GoServer
     NextClient --- CanvasOscilloscope
     NextClient --- SpectralCharts
     NextClient --- DeviceDiagnostics
-    NextClient --- AuthDashboard
+    NextClient --- AuthSplitScreen
 ```
 
 ---
 
 ## 3. Rancang Bangun & Spesifikasi Perangkat Keras (Hardware IoT)
 
-Platform ini mengintegrasikan komponen perangkat keras medis-elektronik yang dirancang untuk kenyamanan pemakaian kepala (*headband wearable*):
+### 3.1 Daftar Komponen Hardware
 
 | Komponen | Spesifikasi Teknis | Fungsi dalam Riset |
 | :--- | :--- | :--- |
 | **Sensor Front-End** | NeuroSky TGAM1 (ThinkGear ASIC Module) | Penguat biopotensial mikrovolt (µV), konversi analog-ke-digital (ADC) 512 Hz, filter analog terintegrasi. |
-| **Elektroda Aktif** | Sintered Ag/AgCl atau Gold-Plated Dry Electrode | Ditempatkan pada lokasi **FP1 (Frontal Pole 1)** sesuai *10–20 International System*. Tanpa memerlukan gel konduktif basah. |
+| **Elektroda Aktif** | Sintered Ag/AgCl atau Gold-Plated Dry Electrode | Ditempatkan pada lokasi **FP1 (Frontal Pole 1)** sesuai *10–20 International System*. Tanpa memerlukan gel basah. |
 | **Elektroda Referensi & Ground** | Dual-contact Earclip Electrode (A1 / Mastoid) | Referensi beda potensial dan eliminasi derau interferensi tubuh (*Common Mode Rejection*). |
-| **Unit Pemroses (MCU)** | ESP-WROOM-32 (Dual-Core Tensilica Xtensa 240 MHz) | Membaca paket data UART dari pin TX TGAM1, mengurai *ThinkGear Packet*, mengelola buffer transmisi, dan mengirim data via Wi-Fi. |
+| **Unit Pemroses (MCU)** | ESP-WROOM-32 (Dual-Core Tensilica Xtensa 240 MHz) | Membaca paket data UART dari pin TX TGAM1, mengurai paket data, mengelola buffer, dan mengirim via Wi-Fi. |
 | **Protokol Serial Sensor** | UART Asynchronous (57,600 baud, 8-N-1) | Jalur data kabel langsung antara TGAM1 dan GPIO pin RX ESP32. |
 | **Transmisi Jaringan** | Wi-Fi 802.11 b/g/n (2.4 GHz) | Pengiriman data nirkabel berbasis soket TCP / HTTP REST / WebSocket ke Backend Gateway. |
-| **Catu Daya (Power Unit)** | Baterai Lithium-Polymer 3.7V 500–1000 mAh | Daya mandiri yang aman bagi subjek tanpa kontak tegangan listrik bolak-balik (AC). |
-| **Regulator Tegangan** | Low-Dropout (LDO) 3.3V Low-Noise Voltage Regulator | Menjamin tegangan 3.3V bersih bebas riak (*ripple-free*) untuk mencegah artefak daya pada sinyal EEG. |
-| **Pengisi Daya (Charger)** | Modul Pengisi Baterai TP4056 dengan Proteksi | Pengisian ulang daya Li-Po via USB-C dengan proteksi overcharge dan overdischarge. |
+| **Catu Daya (Power Unit)** | Baterai Lithium-Polymer 3.7V 500–1000 mAh | Daya mandiri yang aman bagi subjek tanpa kontak tegangan listrik bolak-balik (AC 220V). |
+| **Regulator Tegangan** | Low-Dropout (LDO) 3.3V Low-Noise (ME6211 / AMS1117) | Menjamin tegangan 3.3V bersih bebas riak (*ripple-free*) untuk mencegah artefak daya pada sinyal EEG. |
+| **Pengisi Daya (Charger)** | Modul TP4056 USB-C dengan Proteksi Baterai | Pengisian ulang daya Li-Po via USB-C dengan proteksi overcharge (4.2V) dan overdischarge (2.5V). |
 
-### Diagram Pinout Wiring (ESP32 ke TGAM1)
+---
 
+### 3.2 Diagram Pinout & Wiring (ESP32 ke TGAM1)
+
+```text
+  ┌─────────────────────────────────┐                 ┌─────────────────────────────────┐
+  │       NeuroSky TGAM1 ASIC       │                 │        ESP32 DevKit V1          │
+  │                                 │                 │                                 │
+  │                       [ VCC ] ──┼─────────────────┼── [ 3V3 Out ]                   │
+  │                       [ GND ] ──┼─────────────────┼── [ GND ]                       │
+  │                        [ TX ] ──┼─────────────────┼── [ GPIO 16 (RX2) ]             │
+  │                        [ RX ] ──┼── (Optional) ───┼── [ GPIO 17 (TX2) ]             │
+  │                                 │                 │                                 │
+  │       [ FP1 Active Lead ] ──────┼── Dahi Kiri     │                                 │
+  │       [ Ref Earclip Lead ] ─────┼── Daun Telinga  │                                 │
+  │       [ Gnd Earclip Lead ] ─────┼── Daun Telinga  │                                 │
+  └─────────────────────────────────┘                 └─────────────────────────────────┘
 ```
-  ┌─────────────────────────┐                 ┌─────────────────────────┐
-  │   NeuroSky TGAM1 ASIC   │                 │     ESP32 Dev Module    │
-  │                         │                 │                         │
-  │               [ VCC ] ──┼─────────────────┼── [ 3V3 Out ]           │
-  │               [ GND ] ──┼─────────────────┼── [ GND ]               │
-  │                [ TX ] ──┼─────────────────┼── [ GPIO 16 (RX2) ]     │
-  │                [ RX ] ──┼── (Optional) ───┼── [ GPIO 17 (TX2) ]     │
-  │                         │                 │                         │
-  │       [ FP1 Sensor ] ───┼── Dry Electrode │                         │
-  │      [ Ref Earclip ] ───┼── Ear Reference │                         │
-  │      [ Gnd Earclip ] ───┼── Ear Ground    │                         │
-  └─────────────────────────┘                 └─────────────────────────┘
+
+> [!CAUTION]
+> **Peringatan Tegangan**: Sensor TGAM1 bekerja pada tegangan kerja **3.3V DC**. Jangan menghubungkan pin VCC TGAM1 ke pin `5V` atau `VIN` ESP32 karena dapat merusak komponen ASIC sensor secara permanen.
+
+---
+
+### 3.3 Contoh Source Code Firmware ESP32 (Arduino C++)
+
+Berikut adalah referensi implementasi firmware ESP32 untuk membaca paket serial dari modul TGAM1 dan mengirimkannya ke Backend Gateway:
+
+```cpp
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// Konfigurasi Wi-Fi & Gateway API
+const char* WIFI_SSID     = "NAMA_WIFI_LABORATORIUM";
+const char* WIFI_PASSWORD = "PASSWORD_WIFI";
+const char* API_ENDPOINT  = "http://192.168.1.100:8080/api/eeg/data";
+
+// Serial 2 untuk komunikasi TGAM1 (GPIO 16 = RX, GPIO 17 = TX)
+HardwareSerial TGAM_Serial(2);
+
+// Variabel Penampung Data Biosinyal
+int rawEEG = 0;
+int poorSignalQuality = 200; // 0 = Sinyal Sempurna, 200 = Elektroda Lepas
+float deltaPower = 0.0, thetaPower = 0.0, alphaPower = 0.0, betaPower = 0.0, gammaPower = 0.0;
+
+void setup() {
+  Serial.begin(115200);
+  TGAM_Serial.begin(57600, SERIAL_8N1, 16, 17);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Menghubungkan ke Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi Terhubung! IP: " + WiFi.localIP().toString());
+}
+
+// Fungsi Parsing Paket Data ThinkGear TGAM1 (Sync Bytes: 0xAA 0xAA)
+void readTGAMPacket() {
+  if (TGAM_Serial.available() >= 3) {
+    if (TGAM_Serial.read() == 0xAA && TGAM_Serial.peek() == 0xAA) {
+      TGAM_Serial.read(); // Konsumsi sync byte kedua
+      uint8_t payloadLength = TGAM_Serial.read();
+      if (payloadLength > 169) return; // Ukuran payload tidak valid
+
+      uint8_t payload[payloadLength];
+      uint8_t checksum = 0;
+      for (int i = 0; i < payloadLength; i++) {
+        payload[i] = TGAM_Serial.read();
+        checksum += payload[i];
+      }
+      checksum = ~checksum & 0xFF;
+      uint8_t receivedChecksum = TGAM_Serial.read();
+
+      if (checksum == receivedChecksum) {
+        // Parsing Payload Kode ThinkGear
+        for (int i = 0; i < payloadLength; i++) {
+          switch (payload[i]) {
+            case 0x02: // Poor Signal Quality (0 - 200)
+              poorSignalQuality = payload[++i];
+              break;
+            case 0x80: // Raw 16-bit 512 Hz Wave Value
+              i++; // Lewati length (2 bytes)
+              rawEEG = (payload[i] << 8) | payload[i+1];
+              if (rawEEG >= 32768) rawEEG -= 65536;
+              i++;
+              break;
+          }
+        }
+      }
+    }
+  }
+}
+
+void loop() {
+  readTGAMPacket();
+
+  // Kirim telemetri periodik ke Go Gateway
+  static unsigned long lastSend = 0;
+  if (millis() - lastSend >= 100) { // Frekuensi pengiriman 10 Hz
+    lastSend = millis();
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(API_ENDPOINT);
+      http.addHeader("Content-Type", "application/json");
+
+      StaticJsonDocument<256> doc;
+      doc["session_id"] = "SESSION_UUID_DARI_WEB";
+      doc["device_id"]  = "ESP32-EEG-W01";
+      doc["raw_eeg"]    = rawEEG;
+      doc["signal_quality"] = (poorSignalQuality == 0) ? 100 : (200 - poorSignalQuality) / 2;
+
+      String requestBody;
+      serializeJson(doc, requestBody);
+      int httpCode = http.POST(requestBody);
+      http.end();
+    }
+  }
+}
 ```
 
 ---
@@ -150,7 +272,7 @@ Platform ini mengintegrasikan komponen perangkat keras medis-elektronik yang dir
 
 Sinyal EEG diurai ke dalam 5 pita spektrum utama (*frequency bands*) menggunakan transformasi Fourier (Fast Fourier Transform / FFT) atau estimasi daya spektral Welch PSD:
 
-```
+```text
 Amplitudo (µV)
    ▲
    │        DELTA                THETA               ALPHA                BETA                GAMMA
@@ -175,28 +297,30 @@ Amplitudo (µV)
 ## 5. Teknologi & Tech Stack Lengkap
 
 ### Frontend Stack (Web Client)
-- **Framework**: [Next.js 16](https://nextjs.org/) dengan App Router Architecture
-- **Bahasa Pemrograman**: [TypeScript 5](https://www.typescriptlang.org/) dengan tipe data ketat
-- **Library UI**: React 19, Tailwind CSS kustom (*Luxury Dark Theme*), Lucide React Icons
+- **Framework**: [Next.js 16](https://nextjs.org/) dengan arsitektur App Router & Server Components
+- **Bahasa Pemrograman**: [TypeScript 5](https://www.typescriptlang.org/) dengan *strict mode*
+- **Library UI**: React 19, Tailwind CSS v4 (*Biomedical Dark Theme*), Lucide React Icons
+- **Otentikasi**: `@react-oauth/google` untuk integrasi Google Sign-In tombol resmi
 - **Visualisasi Biosinyal**:
   - **HTML5 Canvas Oscilloscope**: Rendering gelombang EEG mikrovolt secara real-time 60 FPS dengan buffer peredam flicker (*anti-aliased glow trace*).
-  - **Recharts & Custom SVG**: Grafik distribusi spektral energi gelombang otak per detik.
+  - **Recharts & Custom SVG**: Visualisasi daya spektral energi gelombang otak per detik.
 - **Manajemen Formulir & Validasi**: React Hook Form dipadukan dengan skema validasi [Zod](https://zod.dev/).
 - **Data Fetching & Cache**: [TanStack React Query v5](https://tanstack.com/query) untuk polling telemetri otomatis dan invalidasi cache mutasi data.
 
 ### Backend Stack (API Gateway)
-- **Bahasa Pemrograman**: [Go (Golang) v1.22](https://go.dev/) untuk performa konkurensi goroutine tinggi dan konsumsi memori rendah.
+- **Bahasa Pemrograman**: [Go (Golang) v1.22+](https://go.dev/) untuk performa konkurensi goroutine tinggi dan konsumsi memori rendah.
 - **Web Framework**: [Gin Web Framework](https://github.com/gin-gonic/gin) dengan router HTTP ultra-cepat.
 - **Real-Time Engine**: [Gorilla WebSocket](https://github.com/gorilla/websocket) dengan sistem pub/sub client broadcast hub.
 - **Keamanan & Autentikasi**:
+  - Verifikasi Google OAuth 2.0 ID Token langsung ke server tokeninfo resmi Google.
   - JSON Web Tokens (JWT) dengan algoritma enkripsi tanda tangan HMAC-SHA256 (`github.com/golang-jwt/jwt/v5`).
   - Hashing kata sandi berbasis salt adaptif menggunakan `golang.org/x/crypto/bcrypt`.
-  - CORS Middleware terkonfigurasi dengan validasi domain asal.
+  - CORS Middleware terkonfigurasi dengan validasi domain asal (`http://localhost:3000`).
 - **Driver Database**: `github.com/lib/pq` untuk koneksi PostgreSQL murni.
 - **Graceful Fault-Tolerant Store**: Jika PostgreSQL lokal belum berjalan, backend otomatis mengaktifkan *In-Memory Synchronized Store* lengkap dengan *seeded mock devices* agar riset tetap bisa dijalankan tanpa hambatan teknis.
 
 ### Database & Infrastruktur
-- **Database Utama**: [PostgreSQL 15](https://www.postgresql.org/) dengan skema tabel terindeks untuk data deret waktu (*time-series*).
+- **Database Utama**: [PostgreSQL 17](https://www.postgresql.org/) dengan skema tabel terindeks untuk data deret waktu (*time-series*).
 - **Kontainerisasi**: Docker Engine & Docker Compose untuk orkestrasi otomatis satu perintah (*multi-container setup*).
 
 ---
@@ -205,7 +329,7 @@ Amplitudo (µV)
 
 Berikut adalah hierarki lengkap dari seluruh file dan folder dalam repositori:
 
-```
+```text
 eeg-wearable-r/
 ├── README.md                      # Dokumentasi komprehensif proyek (File ini)
 ├── docker-compose.yml             # Orkestrasi Docker untuk PostgreSQL, Backend, & Frontend
@@ -224,10 +348,10 @@ eeg-wearable-r/
 │   │   └── server/
 │   │       └── main.go            # Entry point utama aplikasi Go
 │   ├── config/
-│   │   └── config.go              # Loader environment variables (Port, DB URL, JWT)
+│   │   └── config.go              # Loader environment variables (Port, DB URL, JWT, Google ID)
 │   ├── internal/                  # Paket privat logika internal server
 │   │   ├── analysis/              # Handler & logika model klasifikasi ML
-│   │   ├── auth/                  # Layanan registrasi, login, & token JWT
+│   │   ├── auth/                  # Layanan registrasi, login, JWT & Google OAuth verification
 │   │   ├── dashboard/             # Agregasi data metrik & kartu ringkasan dashboard
 │   │   ├── database/              # Abstraksi store (PostgreSQL & In-Memory Fallback)
 │   │   │   ├── init.go            # Inisialisasi koneksi database
@@ -249,7 +373,7 @@ eeg-wearable-r/
 │
 └── frontend/                      # Aplikasi Web Antarmuka Pengguna (Next.js 16)
     ├── .env.example               # Template environment URL API & WebSocket
-    ├── .env.local                 # Konfigurasi endpoint frontend aktif
+    ├── .env.local                 # Konfigurasi endpoint frontend & Google Client ID aktif
     ├── Dockerfile                 # Konfigurasi kontainerisasi Next.js
     ├── next.config.ts             # Konfigurasi Next.js Compiler & Transpilation
     ├── package.json               # Dependensi modul Node.js & pustaka visualisasi
@@ -257,14 +381,15 @@ eeg-wearable-r/
     ├── tsconfig.json              # Konfigurasi TypeScript & path aliases (@/*)
     ├── public/                    # Aset statis publik (favicon, logo, icons)
     └── src/
+        ├── middleware.ts          # Edge/Server Route Protection Middleware (HTTP 307 Redirects)
         ├── app/                   # Rute halaman Next.js (App Router)
         │   ├── layout.tsx         # Root Layout, font Geist, metadata, AuthProvider
         │   ├── globals.css        # Variabel warna kustom & utility glassmorphism
-        │   ├── page.tsx           # Academic Landing Page (Dark luxury & interactive)
-        │   ├── login/page.tsx     # Halaman Login institusional 2-kolom
-        │   ├── register/page.tsx  # Halaman Onboarding peneliti baru
-        │   ├── dashboard/page.tsx # Pusat kontrol & ringkasan operasional riset
-        │   ├── live/page.tsx      # Real-time oscilloscope monitor (Canvas 60 FPS)
+        │   ├── page.tsx           # Academic Landing Page (Interactive Hero, dock, & equalizer)
+        │   ├── login/page.tsx     # Halaman Login split-screen dengan Google OAuth & redirect handling
+        │   ├── register/page.tsx  # Halaman Registrasi peneliti dengan password strength meter
+        │   ├── dashboard/page.tsx # Pusat kontrol & ringkasan operasional riset (Standby default)
+        │   ├── live/page.tsx      # Real-time oscilloscope monitor dengan explicit state machine
         │   ├── sessions/          # Riwayat data akuisisi sinyal
         │   │   ├── page.tsx       # Arsip tabel sesi dengan pencarian & filter
         │   │   └── [id]/page.tsx  # Detail inspeksi sesi: voltase mentah & spektrum
@@ -273,19 +398,22 @@ eeg-wearable-r/
         │   ├── settings/page.tsx  # Pengaturan profil peneliti, telemetri, timer
         │   └── about/page.tsx     # Latar belakang saintifik & metodologi riset
         ├── components/            # Komponen antarmuka yang dapat digunakan kembali
-        │   ├── ui/                # Atoms: Button, Card, Badge, Input, Modal
-        │   ├── dashboard/         # Molecules: SummaryCard, LiveEEGPreview, Tables
-        │   └── eeg/               # Biosignal Components: Waveform, Bands, MLCard
+        │   ├── ui/                # Atoms: Button, Card, Badge, Input, Modal, Select, StatusIndicator
+        │   ├── layout/            # Layouts: AppShell (Dashboard layout), AuthShell (Auth 2-side layout), Navbar, Footer
+        │   ├── dashboard/         # Molecules: SummaryCard, LiveEEGPreview (Standby), RecentSessionsTable
+        │   └── eeg/               # Biosignal Components: WaveformChart (Standby overlay), FrequencyBandsChart, MLPredictionCard
+        ├── hooks/
+        │   └── useEEGStream.ts    # Custom hook dengan explicit session state machine (READY -> ACQUIRING -> etc.)
         ├── providers/
-        │   └── AuthProvider.tsx   # React Context untuk status autentikasi global
-        ├── services/              # Modul klien HTTP (Axios / Fetch Wrappers)
-        │   ├── api.ts             # Axios instance dengan injector Bearer Token
-        │   ├── auth.service.ts    # Panggilan API autentikasi
+        │   └── AuthProvider.tsx   # React Context untuk status autentikasi global & cookie synchronization
+        ├── services/              # Modul klien HTTP (Fetch Wrappers dengan Auto-Bearer)
+        │   ├── api.ts             # Central client dengan 401 auto-logout handler
+        │   ├── auth.service.ts    # Registrasi, Login, Google OAuth, & Cookie helper
         │   ├── dashboard.service.ts
         │   ├── device.service.ts
         │   └── session.service.ts
         └── types/
-            └── index.ts           # Deklarasi tipe TypeScript untuk User, Session, Device
+            └── index.ts           # Deklarasi tipe TypeScript untuk User, Session, Device, EEG
 ```
 
 ---
@@ -297,12 +425,35 @@ Sistem ini dirancang sangat fleksibel dan dapat dijalankan secara lokal di Windo
 ### 7.1 Prasyarat Sistem
 - **Node.js**: Versi `v18.17.0` atau yang lebih baru (disarankan LTS v20+).
 - **npm**: Versi `v9.0.0` atau lebih tinggi.
-- **Go**: Versi `1.21+` (Hanya diperlukan jika ingin mengompilasi ulang source code Go). Jika menggunakan binary bawaan Windows `backend/server.exe`, instalasi Go tidak diwajibkan.
-- **PostgreSQL**: Versi 14 atau 15 (Opsional: backend memiliki memori fallback otomatis jika PostgreSQL belum terinstal).
+- **Go**: Versi `1.22+` (Hanya diperlukan jika ingin mengompilasi ulang source code Go). Jika menggunakan binary bawaan Windows `backend/server.exe`, instalasi Go tidak diwajibkan.
+- **PostgreSQL**: Versi 14, 15, atau 17 (Sudah terpasang di komputer lokal).
 
 ---
 
-### 7.2 Konfigurasi Environment (.env)
+### 7.2 Konfigurasi Database PostgreSQL (Lokal / pgAdmin)
+
+Backend secara otomatis mengaplikasikan skema migrasi SQL (`backend/migrations/000001_init_schema.sql`) saat pertama kali terhubung ke database. Anda hanya perlu memastikan database kosong bernama `eeg_db` telah dibuat di PostgreSQL:
+
+#### Opsi A: Membuat Database via pgAdmin 4
+1. Buka aplikasi **pgAdmin 4**.
+2. Masukkan master password PostgreSQL Anda.
+3. Klik kanan pada folder **Databases** → Pilih **Create** → **Database...**.
+4. Masukkan Database name: `eeg_db`.
+5. Klik tombol **Save**.
+
+#### Opsi B: Membuat Database via Command Line (psql)
+```sql
+psql -U postgres
+CREATE DATABASE eeg_db;
+\q
+```
+
+> [!NOTE]
+> **Fakta Penting Seputar pgAdmin**: Menutup aplikasi pgAdmin **TIDAK AKAN** mematikan database Anda. PostgreSQL berjalan sebagai layanan latar belakang Windows (**Windows Service: postgresql-x64-17**) pada port `5432`. pgAdmin hanyalah viewer visual, sehingga Anda aman menutup pgAdmin kapan saja saat aplikasi web sedang berjalan.
+
+---
+
+### 7.3 Konfigurasi Environment Variables (.env)
 
 #### A. Konfigurasi Backend (`backend/.env`)
 Salin file template pada folder backend:
@@ -311,13 +462,15 @@ cd backend
 copy .env.example .env     # Windows Command Prompt / PowerShell
 # atau: cp .env.example .env (Linux / macOS)
 ```
-Isi default konfigurasi:
+Sesuaikan isi file `backend/.env`:
 ```env
 PORT=8080
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/eeg_db?sslmode=disable
+DATABASE_URL=postgres://postgres:password_postgres_anda@localhost:5432/eeg_db?sslmode=disable
 JWT_SECRET=eeg-platform-secure-jwt-academic-secret-key-32chars
 CORS_ORIGIN=http://localhost:3000
+GOOGLE_CLIENT_ID=524835681476-cnvohi484a5tk54koattq2sd4rbl3u9f.apps.googleusercontent.com
 ```
+*(Ganti `password_postgres_anda` dengan kata sandi akun postgres lokal Anda)*.
 
 #### B. Konfigurasi Frontend (`frontend/.env.local`)
 Salin file template pada folder frontend:
@@ -326,65 +479,69 @@ cd frontend
 copy .env.example .env.local    # Windows
 # atau: cp .env.example .env.local (Linux / macOS)
 ```
-Isi konfigurasi:
+Sesuaikan isi file `frontend/.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws/eeg
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=524835681476-cnvohi484a5tk54koattq2sd4rbl3u9f.apps.googleusercontent.com
 ```
 
 ---
 
-### 7.3 Menjalankan Backend (Go API Gateway)
+### 7.4 Menjalankan Backend (Go API Gateway)
 
 > [!IMPORTANT]
-> **Penting Mengenai Backend**: Backend dibangun menggunakan bahasa pemrograman **Go (Golang)**, **BUKAN Node.js**. Jangan menjalankan perintah `npm run dev` di dalam folder `backend`. Gunakan salah satu dari 2 opsi di bawah ini:
+> Backend dibangun menggunakan bahasa pemrograman **Go (Golang)**, **BUKAN Node.js**. Jangan menjalankan perintah `npm run dev` di dalam folder `backend`. Gunakan salah satu opsi di bawah ini:
 
 #### Opsi 1: Menjalankan Pre-Compiled Binary (Paling Cepat untuk Windows)
-Tanpa perlu instalasi compiler Go di sistem komputer:
 ```powershell
-cd c:\Users\Renaldi\Documents\eeg-wearable-r\backend
+cd backend
 .\server.exe
 ```
 
 #### Opsi 2: Menjalankan dari Source Code (Jika Go Terinstal)
 ```bash
-cd c:\Users\Renaldi\Documents\eeg-wearable-r\backend
+cd backend
 go run ./cmd/server
 ```
 
-**Output Terminal yang Berhasil:**
+**Output Terminal Backend yang Berhasil:**
 ```text
 =================================================================
   EEG Wearable Platform - Go Backend API Gateway
   Academic Project: Rancang Bangun Perangkat IoT Wearable Berbasis EEG
 =================================================================
-[DATABASE] Connecting to PostgreSQL at postgres://postgres:postgres@localhost:5432/eeg_db?sslmode=disable...
-[DATABASE] Note: Initializing in-memory fallback data store with seeded research devices.
+[DATABASE] Connecting to PostgreSQL at postgres://postgres:***@localhost:5432/eeg_db?sslmode=disable...
+[DATABASE] Successfully connected to PostgreSQL database.
+[DATABASE] Schema migrations applied successfully.
 [GIN-debug] GET    /health
 [GIN-debug] GET    /ws/eeg
+[GIN-debug] POST   /api/auth/register
 [GIN-debug] POST   /api/auth/login
+[GIN-debug] POST   /api/auth/google
+[GIN-debug] POST   /api/auth/logout
 [GIN-debug] GET    /api/devices
 [SERVER] Starting HTTP & WebSocket server on :8080
 ```
-Backend kini aktif dan melayani koneksi di **`http://localhost:8080`**.
+Backend kini aktif melayani koneksi di **`http://localhost:8080`**.
 
 ---
 
-### 7.4 Menjalankan Frontend (Next.js Web App)
+### 7.5 Menjalankan Frontend (Next.js Web App)
 
 Buka jendela terminal baru:
 ```bash
-cd c:\Users\Renaldi\Documents\eeg-wearable-r\frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-**Output Terminal yang Berhasil:**
+**Output Terminal Frontend yang Berhasil:**
 ```text
 ▲ Next.js 16.3.7 (Turbopack)
 - Local:        http://localhost:3000
 - Environments: .env.local
-✓ Ready in 1400ms
+✓ Ready in 1.4s
 ```
 
 Buka peramban (browser) dan akses alamat:
@@ -392,43 +549,164 @@ Buka peramban (browser) dan akses alamat:
 
 ---
 
-### 7.5 Shortcut Menjalankan Proyek via Root `package.json`
+### 7.6 Shortcut Eksekusi via Root `package.json`
 
-Untuk kenyamanan alur kerja pengembangan, file `package.json` pada direktori root telah dikonfigurasi dengan perintah praktis:
+Pada direktori root repositori, telah tersedia skrip pintas:
 
 | Perintah Terminal | Tindakan yang Dijalankan |
 | :--- | :--- |
 | `npm run dev` | Menjalankan server frontend Next.js di port 3000. |
-| `npm run dev:frontend` | Membuka direktori `frontend` dan menjalankan Next.js. |
-| `npm run build:frontend` | Melakukan kompilasi bundel produksi untuk frontend Next.js. |
+| `npm run dev:frontend` | Berpindah ke folder `frontend` dan menjalankan Next.js dev server. |
+| `npm run build:frontend` | Melakukan kompilasi bundel produksi frontend Next.js. |
 | `npm run start:backend` | Menjalankan server executable backend Go (`backend/server.exe`). |
-| `npm run dev:backend` | Mengompilasi dan menjalankan source code Go (`go run ./cmd/server`). |
+| `npm run dev:backend` | Mengompilasi dan mengeksekusi kode Go dari source (`go run ./cmd/server`). |
 
 ---
 
-### 7.6 Menjalankan dengan Docker & Docker Compose
+### 7.7 Menjalankan via Docker & Docker Compose
 
-Jika komputer Anda telah terpasang **Docker Desktop**, Anda dapat mengaktifkan seluruh ekosistem (Database PostgreSQL, Go Gateway, dan Next.js) dengan satu perintah:
+Bila di komputer Anda telah terpasang **Docker Desktop**, Anda dapat menjalankan PostgreSQL, Go Backend, dan Next.js secara simultan dengan satu perintah:
 
 ```bash
 docker compose up --build
 ```
-
-Layanan yang otomatis aktif:
-- **PostgreSQL Database**: `localhost:5432` (User: `postgres`, Password: `postgrespassword`, DB: `eeg_db`)
-- **Backend API Gateway**: `http://localhost:8080`
-- **Frontend Web Dashboard**: `http://localhost:3000`
-
-Untuk menghentikan kontainer:
-```bash
-docker compose down
-```
+- Frontend: `http://localhost:3000`
+- Backend Gateway: `http://localhost:8080`
+- Database: `localhost:5432`
 
 ---
 
-## 8. Akun Peneliti Bawaan (Demo Credentials)
+## 8. Panduan Integrasi Google OAuth 2.0 (Google Cloud Platform)
 
-Untuk memfasilitasi pengujian cepat tanpa harus mengonfigurasi database fisik terlebih dahulu, sistem telah dilengkapi dengan profil akun peneliti bawaan:
+Platform ini mendukung otentikasi resmi satu ketukan (**Sign in with Google**) yang terintegrasi langsung dengan database PostgreSQL melalui endpoint backend `POST /api/auth/google`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Peneliti (Browser)
+    participant FE as Next.js 16 Web Client
+    participant Google as Google Identity Services
+    participant BE as Go Backend API Gateway
+    participant DB as PostgreSQL Database
+
+    User->>FE: Klik tombol "Sign in with Google"
+    FE->>Google: Membuka Google One-Tap / Popup
+    User->>Google: Memilih Akun Google & Memberi Izin
+    Google-->>FE: Mengembalikan ID Token (JWT Google)
+    FE->>BE: POST /api/auth/google { id_token }
+    BE->>Google: Verifikasi token ke oauth2.googleapis.com/tokeninfo
+    Google-->>BE: Profil Pengguna (email, name, sub)
+    BE->>DB: Query / Upsert User berdasarkan email
+    DB-->>BE: Data Entitas User
+    BE-->>FE: Token JWT Sesi Akademik & User Object
+    FE->>User: Set Cookie eeg_auth_token & Redirect ke Dashboard
+```
+
+### Langkah Konfigurasi Google Cloud Console:
+1. **Buat / Pilih Project**:
+   - Masuk ke [Google Cloud Console](https://console.cloud.google.com/).
+   - Buat project baru bernama `EEG Wearable Platform` (atau nama pilihan Anda).
+2. **Setup Branding (Layar Persetujuan OAuth)**:
+   - Masuk ke **Google Auth Platform** → **Branding**.
+   - Isi **App name**: `EEG Wearable Platform`.
+   - Isi **User support email** & **Developer contact information** dengan alamat email Anda.
+   - Klik **Save**.
+3. **Tambahkan Test Users (Audience)**:
+   - Selama aplikasi berstatus *Testing*, masuk ke menu **Audience** (Test users).
+   - Klik **+ Add Users** dan masukkan alamat email Gmail yang akan digunakan untuk pengujian login.
+4. **Buat OAuth Client ID**:
+   - Masuk ke menu **Clients** → klik **+ Create Client**.
+   - Pilih Application type: **Web application**.
+   - Masukkan **Authorized JavaScript origins**:
+     - `http://localhost:3000`
+     - `http://localhost`
+   - Masukkan **Authorized redirect URIs**:
+     - `http://localhost:3000`
+   - Klik **Create**. Salin **Client ID** yang muncul.
+5. **Pasang Client ID ke Proyek**:
+   - Masukkan ke `frontend/.env.local`: `NEXT_PUBLIC_GOOGLE_CLIENT_ID=<CLIENT_ID_ANDA>`
+   - Masukkan ke `backend/.env`: `GOOGLE_CLIENT_ID=<CLIENT_ID_ANDA>`
+   - Restart server backend & frontend.
+
+---
+
+## 9. Sistem Otentikasi & Proteksi Route (Server-Side Middleware)
+
+Sistem mengadopsi prinsip **Zero Trust Architecture** untuk rute aplikasi internal.
+
+### Karakteristik Proteksi:
+1. **Edge/Server Middleware ([`src/middleware.ts`](file:///c:/Users/Renaldi/Documents/eeg-wearable-r/frontend/src/middleware.ts))**:
+   - Memeriksa HTTP Cookie `eeg_auth_token` di tingkat server Next.js sebelum halaman dirender ke klien.
+   - **Akses Langsung Tanpa Login**: Jika pengguna yang belum login membuka `/dashboard`, `/live`, `/sessions`, `/analysis`, `/devices`, atau `/settings`, server langsung mengembalikan respon **HTTP 307 Temporary Redirect** ke `/login?redirect=<url_asal>`. Konten dasbor tidak akan pernah sempat muncul di browser (*no content flash*).
+   - **Pengguna Sudah Login**: Jika pengguna yang telah memiliki token aktif membuka `/login` atau `/register`, server otomatis mengalihkannya ke `/dashboard`.
+2. **Preservasi URL Asal (`?redirect=...`)**:
+   - Jika pengguna awalnya mencoba mengakses `/sessions/123` lalu diarahkan ke login, setelah login berhasil mereka akan diarahkan langsung ke `/sessions/123`, bukan dipaksa kembali ke dasbor.
+3. **Dedicated Split-Screen Auth UI ([`AuthShell.tsx`](file:///c:/Users/Renaldi/Documents/eeg-wearable-r/frontend/src/components/layout/AuthShell.tsx))**:
+   - Halaman login dan register menggunakan layout terpisah dengan sisi kiri visual branding teknologi biosinyal EEG dan sisi kanan formulir kredensial.
+   - Layout otentikasi tidak memuat header atau sidebar teknis dasbor.
+4. **Log Out Menyeluruh (Left Sidebar Button)**:
+   - Tombol **Sign Out** tersedia langsung di bagian bawah sidebar kiri (desktop dan drawer mobile).
+   - Mengklik Sign Out akan:
+     1. Menghapus cookie `eeg_auth_token` secara tuntas (`max-age=0` & tanggal kedaluwarsa lampau).
+     2. Menghapus seluruh data sesi pada `localStorage` dan `sessionStorage`.
+     3. Mengarahkan kembali ke **Landing Page publik (`/`)** dengan *hard navigation* sehingga seluruh state in-memory bersih kembali.
+
+---
+
+## 10. State Machine & Alur Sesi Akuisisi Live EEG
+
+Halaman Live EEG (`/live`) dirancang dengan **Finite State Machine (FSM)** yang tegas dan aman untuk mencegah akuisisi data berjalan liar tanpa kehendak peneliti.
+
+### State Machine Diagram:
+
+```text
+    ┌──────────────┐
+    │    READY     │ ◀─── (Buka /live pertama kali, duration 00:00, waveform standby)
+    └──────┬───────┘
+           │ [Klik "Start Session"]
+           ▼
+    ┌──────────────┐
+    │   STARTING   │ (Inisialisasi sesi DB & handshake WebSocket / simulasi)
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐   [Klik "Pause"]    ┌──────────────┐
+    │  ACQUIRING   │ ──────────────────▶ │    PAUSED    │ (Waveform beku, timer berhenti)
+    │ (Stream on)  │ ◀────────────────── │ (Standby)    │
+    └──────┬───────┘   [Klik "Resume"]   └──────┬───────┘
+           │                                    │
+           │ [Klik "Stop Session"]              │ [Klik "Stop Session"]
+           ▼                                    ▼
+    ┌──────────────┐                     ┌──────────────┐
+    │   STOPPING   │ ──────────────────▶ │  COMPLETED   │ (Tampil ringkasan sesi)
+    └──────────────┘                     └──────┬───────┘
+                                                │ [Klik "Start New Session"]
+                                                └─────────▶ Kembali ke READY
+```
+
+### Aturan Alur Kerja:
+1. **Keadaan Awal (`READY`)**:
+   - Membuka halaman `/live` **TIDAK PERNAH** otomatis memulai akuisisi data, tidak menyalakan timer, tidak membuat rekaman di database, dan tidak menjalankan osiloskop.
+   - Kanvas osiloskop berada dalam mode standby dengan overlay: *"Ready to start EEG acquisition. Press Start Session to begin recording."*
+   - Status perangkat bertuliskan `Ready`, dan badge bertuliskan `Demo / Simulation — Ready`.
+2. **Memulai Sesi (`Start Session`)**:
+   - Peneliti memilih perangkat target dan menekan tombol **Start Session**.
+   - Sistem memvalidasi perangkat, membuat record sesi di database via API, mengaktifkan streaming telemetri, menjalankan timer sesi dari `00:00`, dan menampilkan badge merah berkedip `ACQUIRING...`.
+3. **Jeda Sesi (`Pause` & `Resume`)**:
+   - Menekan **Pause** membekukan rendering sinyal dengan indikator `PAUSED • STREAM FROZEN` dan menghentikan pertambahan durasi.
+   - Menekan **Resume** melanjutkan kembali perekaman data dan timer secara mulus.
+4. **Mengakhiri Sesi (`Stop Session`)**:
+   - Menekan **Stop Session** memfinalisasi sesi di database, menghitung total durasi rekaman dan rata-rata kualitas sinyal, serta menghentikan pemancar sinyal.
+   - Status berubah menjadi `COMPLETED` dan menampilkan **Session Summary Card** dengan tombol **View Session Details** dan **Start New Session**.
+5. **Transparansi Mode Simulasi vs Real Hardware**:
+   - Data simulasi lokal selalu diberi label eksplisit `Demo / Simulation` dan perangkat diberi label `(Demo Device)`.
+   - Sistem tidak pernah memalsukan status bahwa ada perangkat keras fisik yang terhubung jika yang berjalan adalah sinyal simulasi.
+
+---
+
+## 11. Akun Peneliti Bawaan (Demo Credentials)
+
+Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
 
 | Parameter | Kredensial Pengujian |
 | :--- | :--- |
@@ -438,27 +716,22 @@ Untuk memfasilitasi pengujian cepat tanpa harus mengonfigurasi database fisik te
 | **Institusi** | Dept. of Electrical & Biomedical Engineering |
 | **Peran (Role)** | `researcher` (Full Access) |
 
-> [!TIP]
-> Antarmuka login web pada rute `/login` memiliki tombol pintas **"Quick Fill Demo Account"** yang secara otomatis mengisikan kredensial di atas untuk mempercepat pengujian.
-
 ---
 
-## 9. Panduan Navigasi & Fitur Antarmuka Pengguna (Web UI)
+## 12. Panduan Navigasi & Fitur Antarmuka Pengguna (Web UI)
 
-Antarmuka web dirancang dengan estetika **Dark Luxury Modern**, tipografi modern, kartu kaca (*glassmorphism*), dan mikro-interaksi responsif.
-
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        STRUKTUR NAVIGASI UTAMA                         │
 ├───────────────────┬────────────────────────────────────────────────────┤
 │ RUTE PUBLIK       │ - [ / ] : Academic Landing Page & Visualizer       │
 │                   │ - [ /about ] : Landasan Teori & Metodologi Sinyal  │
-│                   │ - [ /login ] : Masuk Sistem Peneliti               │
-│                   │ - [ /register ] : Pendaftaran Peneliti Baru        │
+│                   │ - [ /login ] : Masuk Sistem (Email & Google OAuth) │
+│                   │ - [ /register ] : Pendaftaran Akun Peneliti Baru   │
 ├───────────────────┼────────────────────────────────────────────────────┤
-│ RUTE RISET &      │ - [ /dashboard ] : Panel Kontrol Utama Riset       │
-│ PENGENDALIAN      │ - [ /live ] : Real-Time Canvas Oscilloscope        │
-│ (AUTHENTICATED)   │ - [ /sessions ] : Arsip & Riwayat Perekaman Data   │
+│ RUTE RISET        │ - [ /dashboard ] : Panel Kontrol Utama Riset       │
+│ (TERPROTEKSI      │ - [ /live ] : Real-Time Canvas Oscilloscope (FSM)  │
+│ SERVER-SIDE)      │ - [ /sessions ] : Arsip & Riwayat Perekaman Data   │
 │                   │ - [ /sessions/:id ] : Analisis Sesi Mendalam       │
 │                   │ - [ /devices ] : Registry Hardware & Baterai       │
 │                   │ - [ /analysis ] : Evaluasi Model Machine Learning  │
@@ -466,82 +739,52 @@ Antarmuka web dirancang dengan estetika **Dark Luxury Modern**, tipografi modern
 └───────────────────┴────────────────────────────────────────────────────┘
 ```
 
-### 1. Landing Page (`/`)
-- **Interactive Hero**: Dilengkapi simulasi visualisasi gelombang EEG multi-pita dinamis, status koneksi telemetri, dan floating metrics.
-- **Hardware Architecture Section**: Penjelasan komprehensif alur kerja dari elektroda FP1, chip TGAM1, mikrokontroler ESP32, hingga server.
-- **Live Band Power Visualizer**: Equalizer interaktif yang menunjukkan proporsi energi Delta, Theta, Alpha, Beta, dan Gamma.
-- **Sticky Floating Action Bar**: Navigasi persisten yang tetap berada di atas layar saat pengguna menggulir ke bawah (*smooth auto-stick navigation*).
-
-### 2. Dashboard Kontrol (`/dashboard`)
-- **Key Performance Indicators (KPI)**:
-  - Total Sesi Akuisisi yang tersimpan.
-  - Perangkat Aktif & Indikator Kualitas Sinyal ($0-100\%$).
-  - Rata-rata Kepatuhan Impedansi Sensor.
-  - Status Kesiapan Model Machine Learning.
-- **Real-Time Mini Waveform Preview**: Pratinjau langsung sinyal voltase yang sedang berlangsung.
-- **Recent Sessions Table**: Ringkasan sesi rekaman terakhir beserta durasi, subjek, dan kualitas sinyal rata-rata.
-- **Hardware Status Card**: Pemantauan baterai, versi firmware, dan *last-seen heartbeat* perangkat.
-
-### 3. Live Oscilloscope Monitor (`/live`)
-- **High-FPS HTML5 Canvas Monitor**: Menampilkan aliran data tegangan mentah ($\mu\text{V}$) dengan kecepatan render 60 FPS, sumbu waktu dinamis, dan efek *phosphor-glow*.
-- **Stream Controls**: Tombol *Pause / Resume Stream*, *Record Session*, dan penanda *Event Marker*.
-- **Signal Quality Gauge**: Indikator visual real-time apakah elektroda kering telah terpasang dengan baik pada dahi tanpa noise impedansi kontak.
-
-### 4. Manajemen Sesi Akuisisi (`/sessions` & `/sessions/[id]`)
-- **Session Archive**: Daftar seluruh rekaman sinyal dengan filter tanggal, pencarian nama subjek, dan status rekaman (*completed*, *running*, *interrupted*).
-- **Session Detail Inspector**:
-  - Rekonstruksi grafik sinyal EEG penuh dari awal hingga akhir sesi.
-  - Grafik spektrum daya FFT per pita gelombang.
-  - Ekspor data mentah ke format CSV / JSON untuk analisis lanjutan di MATLAB atau Python NumPy.
-
-### 5. Manajemen Perangkat Wearable (`/devices`)
-- **Device Registry**: Inventaris semua perangkat keras EEG (contoh: `TGAM1 Wearable Headset Alpha`).
-- **Telemetry Indicators**: Tingkat daya baterai Li-Po dalam persentase, kekuatan sinyal Wi-Fi (RSSI), dan versi firmware ESP32.
-- **Hardware Spec Modal**: Dialog rincian spesifikasi mikrokontroler, baud rate UART, dan penempatan elektroda.
-
-### 6. Analisis Machine Learning (`/analysis`)
-- **Candidate Models Evaluation**:
-  - **Support Vector Machine (SVM)** dengan RBF Kernel.
-  - **Random Forest Classifier** (100 Decision Trees).
-  - **XGBoost Classifier** (Extreme Gradient Boosting).
-- **Evaluation Metrics**: Visualisasi akurasi validasi silang (*cross-validation accuracy*), skor F1, *precision*, *recall*, dan matriks konfusi (*confusion matrix*).
-
-### 7. Pengaturan Sistem (`/settings`)
-- **Researcher Profile**: Nama peneliti, email, dan institusi akademik afiliasi.
-- **Telemetry Preferences**: Penyesuaian interval broadcast WebSocket (50 Hz hingga 512 Hz).
-- **Session Configuration**: Pengaturan durasi standar perekaman otomatis (misal: 15 menit per sesi).
+### Rincian Fitur Per Halaman:
+1. **Landing Page (`/`)**:
+   - Memperkenalkan topik penelitian, spesifikasi elektroda kering FP1, arsitektur cloud, dan diagram alur sinyal.
+   - Dilengkapi visualisasi osiloskop interaktif langsung di hero section.
+2. **Dashboard (`/dashboard`)**:
+   - Menampilkan ringkasan metrik utama: Total Sesi Riset, Durasi Perekaman Kumulatif, Rata-rata Kualitas Sinyal Elektroda, dan Status Hardware Aktif.
+   - Menyediakan tabel sesi rekaman terbaru dan grafik tren harian.
+3. **Live Oscilloscope Monitor (`/live`)**:
+   - Osiloskop real-time 60 FPS berbasis HTML5 Canvas dengan kontrol start/pause/stop sesi.
+   - Menampilkan visualisasi spektrum daya gelombang otak (Delta, Theta, Alpha, Beta, Gamma) dan kartu inferensi mental state.
+4. **Data Sessions (`/sessions` & `/sessions/[id]`)**:
+   - Riwayat seluruh sesi yang pernah direkam oleh peneliti.
+   - Halaman detail sesi menyediakan pemutaran ulang sinyal voltase mentah, distribusi frekuensi rata-rata, durasi total, dan metrik kualitas kontak sensor.
+5. **Hardware Devices (`/devices`)**:
+   - Manajemen inventaris perangkat headset EEG wearable.
+   - Menampilkan status konektivitas, kapasitas baterai (%), versi firmware, dan waktu terakhir terlihat (*last seen*).
+6. **Machine Learning Analysis (`/analysis`)**:
+   - Panel evaluasi model klasifikasi gelombang otak.
+   - Menampilkan perbandingan akurasi, presisi, recall, dan F1-Score antara model SVM (RBF Kernel), Random Forest, dan XGBoost.
+7. **Researcher Settings (`/settings`)**:
+   - Pengaturan profil pengguna, institusi riset, preferensi sampling rate osiloskop, batas ambang alarm kualitas sinyal, dan durasi auto-stop sesi.
 
 ---
 
-## 10. Spesifikasi API Gateway & WebSocket
+## 13. Spesifikasi API Gateway & WebSocket Protocol
 
-Backend Go menyediakan RESTful API dan saluran streaming WebSocket yang terstandardisasi. Dokumentasi mendalam dapat dilihat pada [`docs/api.md`](docs/api.md).
-
-### Format Respon Standar (Standard JSON Envelope)
-Setiap respon HTTP selalu dibungkus dalam format yang konsisten:
-```json
-{
-  "success": true,
-  "message": "Operasi berhasil diselesaikan",
-  "data": { ... },
-  "error": ""
-}
-```
-
-### Ringkasan Endpoint REST API Utama
+### 13.1 Endpoint REST API
 
 | Metode | Jalur Endpoint | Akses | Deskripsi & Fungsi |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/health` | Publik | Health-check status server backend Go |
 | `POST` | `/api/auth/register` | Publik | Mendaftarkan akun peneliti baru |
-| `POST` | `/api/auth/login` | Publik | Otentikasi dan penerbitan Bearer JWT Token |
+| `POST` | `/api/auth/login` | Publik | Otentikasi email/password dan penerbitan JWT |
+| `POST` | `/api/auth/google` | Publik | Verifikasi Google OAuth ID Token & login instan |
 | `POST` | `/api/auth/logout` | Publik | Pembatalan status sesi otentikasi |
 | `GET` | `/api/auth/me` | Protected | Mengambil rincian akun peneliti yang sedang login |
+| `GET` | `/api/users/me` | Protected | Mengambil rincian profil pengguna aktif |
+| `PUT` | `/api/users/me` | Protected | Memperbarui nama dan institusi pengguna |
 | `GET` | `/api/devices` | Protected | Mengambil daftar seluruh perangkat EEG terdaftar |
 | `POST` | `/api/devices` | Protected | Mendaftarkan unit perangkat hardware baru |
 | `GET` | `/api/devices/:id` | Protected | Rincian telemetri dan status perangkat tertentu |
+| `PUT` | `/api/devices/:id` | Protected | Memperbarui nama/status perangkat |
+| `DELETE`| `/api/devices/:id` | Protected | Menghapus perangkat dari database |
 | `GET` | `/api/sessions` | Protected | Mengambil riwayat sesi perekaman sinyal |
 | `POST` | `/api/sessions` | Protected | Memulai sesi perekaman baru (`status: running`) |
+| `GET` | `/api/sessions/:id` | Protected | Mengambil detail spesifik sesi perekaman |
 | `POST` | `/api/sessions/:id/stop` | Protected | Menghentikan sesi perekaman dan menghitung durasi |
 | `GET` | `/api/eeg/:sessionId` | Protected | Mengambil data titik voltase sinyal EEG per sesi |
 | `POST` | `/api/eeg/data` | Protected | Mengunggah paket sampel sinyal dari mikrokontroler |
@@ -549,11 +792,12 @@ Setiap respon HTTP selalu dibungkus dalam format yang konsisten:
 | `GET` | `/api/models` | Publik | Daftar model Machine Learning dan status kesiapannya |
 | `GET` | `/api/analysis/:sessionId` | Protected | Hasil ekstraksi fitur spektral & inferensi ML sesi |
 
-### Protokol Streaming WebSocket (`/ws/eeg`)
+---
 
-Koneksi streaming dua arah untuk penyaluran sinyal mentah berkecepatan tinggi:
-- **WebSocket URL**: `ws://localhost:8080/ws/eeg`
-- **Format Paket Data (JSON Real-Time Frame)**:
+### 13.2 Protokol Streaming WebSocket (`/ws/eeg`)
+
+- **WebSocket Endpoint**: `ws://localhost:8080/ws/eeg`
+- Format paket data streaming (JSON Frame):
 ```json
 {
   "session_id": "ses-001",
@@ -561,25 +805,43 @@ Koneksi streaming dua arah untuk penyaluran sinyal mentah berkecepatan tinggi:
   "timestamp": 1727712345000,
   "raw_eeg": -12.45,
   "signal_quality": 96,
-  "bands": {
-    "delta": 24.5,
-    "theta": 18.2,
-    "alpha": 35.8,
-    "beta": 15.1,
-    "gamma": 6.4
-  },
-  "heartbeat": {
-    "battery": 88,
-    "rssi": -62
-  }
+  "delta": 24.5,
+  "theta": 18.2,
+  "alpha": 35.8,
+  "beta": 15.1,
+  "gamma": 6.4
 }
 ```
 
 ---
 
-## 11. Skema Database & Entitas Relasional (PostgreSQL)
+### 13.3 Contoh Pengujian Endpoint via cURL
 
-Skema database PostgreSQL dirancang secara modular dan dioptimalkan dengan indeks performa untuk pencarian deret waktu (*time-series indexing*).
+#### 1. Uji Health Check Backend:
+```bash
+curl -X GET http://localhost:8080/health
+```
+Respon:
+```json
+{"project":"Rancang Bangun Perangkat IoT Wearable Berbasis EEG untuk Klasifikasi Pola Gelombang Otak Menggunakan Machine Learning","service":"EEG Wearable Backend","status":"healthy"}
+```
+
+#### 2. Uji Login Peneliti:
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"researcher@biomedical.ac.id\",\"password\":\"password123\"}"
+```
+
+#### 3. Uji Pengambilan Daftar Perangkat (Dengan Bearer Token):
+```bash
+curl -X GET http://localhost:8080/api/devices \
+  -H "Authorization: Bearer <TOKEN_JWT_DARI_LOGIN>"
+```
+
+---
+
+## 14. Skema Database & Entitas Relasional (PostgreSQL)
 
 ```mermaid
 erDiagram
@@ -598,6 +860,7 @@ erDiagram
         varchar role
         varchar institution
         timestamp created_at
+        timestamp updated_at
     }
 
     DEVICES {
@@ -609,6 +872,8 @@ erDiagram
         int signal_quality
         varchar firmware_version
         timestamp last_seen
+        timestamp created_at
+        timestamp updated_at
     }
 
     SESSIONS {
@@ -619,6 +884,7 @@ erDiagram
         timestamp ended_at
         int duration
         varchar status
+        timestamp created_at
     }
 
     EEG_SAMPLES {
@@ -627,6 +893,7 @@ erDiagram
         bigint timestamp
         double raw_eeg
         int signal_quality
+        timestamp created_at
     }
 
     BRAINWAVE_FEATURES {
@@ -638,6 +905,7 @@ erDiagram
         double alpha
         double beta
         double gamma
+        timestamp created_at
     }
 
     ML_PREDICTIONS {
@@ -648,6 +916,7 @@ erDiagram
         varchar model_version
         varchar predicted_class
         double confidence
+        timestamp created_at
     }
 
     AI_INSIGHTS {
@@ -655,25 +924,15 @@ erDiagram
         varchar session_id FK
         varchar title
         text summary
+        timestamp created_at
     }
 ```
 
-### Rincian Tabel Database (`migrations/000001_init_schema.sql`):
-1. **`users`**: Menyimpan kredensial peneliti, hash kata sandi Bcrypt, email unik, dan nama departemen / institusi.
-2. **`devices`**: Menyimpan registrasi unit hardware wearable TGAM1, status koneksi (*connected*, *disconnected*, *warning*), dan telemetri baterai.
-3. **`sessions`**: Mencatat setiap sesi eksperimen biosinyal yang diawali dan diakhiri oleh peneliti.
-4. **`eeg_samples`**: Tabel penyimpanan titik data tegangan sinyal mentah ($\mu\text{V}$) dan kualitas kontak elektroda.
-5. **`brainwave_features`**: Hasil ekstraksi daya spektral 5 pita gelombang otak per jendela waktu (*windowing*).
-6. **`ml_predictions`**: Hasil inferensi kelas keadaan mental (contoh: *Focused*, *Relaxed*, *Drowsy*) beserta tingkat kepercayaan (*confidence score*).
-7. **`ai_insights`**: Catatan interpretasi otomatis mengenai variasi spektrum yang diobservasi selama sesi.
-
 ---
 
-## 12. Pipeline Integrasi Machine Learning (ML Contracts)
+## 15. Pipeline Integrasi Machine Learning (ML Contracts)
 
-Arsitektur sistem telah disiapkan untuk integrasi mulus dengan modul pemrosesan sinyal dan microservice Machine Learning (Python FastAPI):
-
-```
+```text
 [Raw Voltage Trace (µV)] 
           │
           ▼
@@ -706,50 +965,71 @@ Arsitektur sistem telah disiapkan untuk integrasi mulus dengan modul pemrosesan 
 
 ---
 
-## 13. Panduan Troubleshooting & FAQ
+## 16. Panduan Troubleshooting & FAQ Terperinci
 
-### T1: Mengapa saat menjalankan `npm run dev` di folder `backend`, terjadi error port atau server tertutup?
-**Jawaban**: Backend dibangun menggunakan **Go (Golang)**, bukan aplikasi Node.js. Perintah `npm run dev` pada root repositori sebenarnya diarahkan untuk menyalakan frontend (`cd frontend && npm run dev`).  
-Untuk menjalankan backend, masuk ke folder `backend` dan jalankan executable:
+### T1: Apakah menutup pgAdmin akan menghentikan database atau membuat backend error?
+**Jawaban**: **TIDAK berpengaruh sama sekali.** pgAdmin hanyalah aplikasi *Graphical User Interface (GUI)* untuk melihat isi tabel secara visual. Mesin database PostgreSQL yang sesungguhnya berjalan sebagai **Windows Background Service (`postgresql-x64-17`)** pada port `5432`. Backend Go terhubung langsung ke port tersebut, sehingga menutup pgAdmin tidak akan mengganggu backend atau website sedikitpun.
+
+---
+
+### T2: Mengapa saat klik "Login dengan Google" muncul nama project lama di jendela popup?
+**Jawaban**: Nama aplikasi yang muncul pada jendela popup Google ("Lanjutkan ke ...") diambil dari pengaturan **Google Auth Platform** → **Branding** (Layar Persetujuan OAuth) di Google Cloud Console. Cukup buka tab **Branding**, ubah kolom **App name** menjadi `EEG Wearable Platform`, lalu simpan.
+
+---
+
+### T3: Muncul error "OAuth access is restricted to the test users listed on your OAuth consent screen"?
+**Jawaban**: Saat aplikasi Google Cloud berstatus *Testing*, Google membatasi login hanya untuk email yang didaftarkan. Masuk ke **Google Auth Platform** → **Audience** → **Test users**, lalu klik **+ Add Users** dan masukkan alamat email Google Anda.
+
+---
+
+### T4: Bagaimana cara mematikan proses backend jika port 8080 sudah terpakai (Port Already in Use)?
+**Jawaban**: Jalankan perintah berikut di PowerShell untuk menghentikan proses backend lama yang mengunci port 8080:
 ```powershell
-cd backend
-.\server.exe
+Stop-Process -Name "server" -Force
+```
+Jika nama binary berbeda, temukan ID Proses (PID) dengan:
+```powershell
+netstat -ano | findstr :8080
+```
+Lalu matikan proses tersebut menggunakan PID yang ditemukan:
+```powershell
+taskkill /F /PID <NOMOR_PID>
 ```
 
 ---
 
-### T2: Muncul pesan error "Port 3000 is in use by process <PID>, using available port 3001 instead"?
-**Jawaban**: Ada proses server Next.js sebelumnya yang masih aktif di latar belakang. Anda dapat menghentikan proses tersebut di Windows Command Prompt / PowerShell dengan perintah:
-```powershell
-taskkill /PID <PID_TERSEBUT> /F
-# Contoh jika PID adalah 3352:
-taskkill /PID 3352 /F
-```
-Setelah itu, jalankan kembali `npm run dev` di dalam folder `frontend`.
-
----
-
-### T3: Muncul log "[DATABASE] PostgreSQL is not reachable: password authentication failed"?
-**Jawaban**: Ini adalah perilaku normal jika layanan PostgreSQL lokal Anda belum aktif atau menggunakan password yang berbeda dari konfigurasi default.  
-Sistem secara cerdas beralih ke **In-Memory Synchronized Store** dengan perangkat demo bawaan sehingga Anda tetap dapat menjalankan, menguji, dan mendemokan seluruh fitur antarmuka web tanpa hambatan instalasi database.
-
----
-
-### T4: Bagaimana cara menghubungkan hardware ESP32 fisik ke backend ini?
+### T5: Bagaimana cara mengompilasi ulang backend setelah melakukan perubahan pada file Go?
 **Jawaban**:
-1. Pastikan komputer backend dan ESP32 berada dalam jaringan Wi-Fi lokal yang sama.
-2. Pada firmware ESP32 (Arduino C++ / ESP-IDF), arahkan target alamat IP ke IP LAN komputer Anda (contoh: `http://192.168.1.100:8080/api/eeg/data` atau WebSocket `ws://192.168.1.100:8080/ws/eeg`).
-3. Kirimkan paket data serial dari TGAM1 secara berkala sesuai format JSON kontrak pada [Seksi 10](#10-spesifikasi-api-gateway--websocket).
+1. Hentikan server yang sedang berjalan:
+   ```powershell
+   Stop-Process -Name "server" -Force
+   ```
+2. Jalankan perintah kompilasi:
+   ```powershell
+   cd backend
+   go build -o server.exe .\cmd\server\main.go
+   ```
+3. Jalankan kembali binary hasil kompilasi:
+   ```powershell
+   .\server.exe
+   ```
 
 ---
 
-## 14. Roadmap Pengembangan Sistem
+### T6: Mengapa saat saya membuka `/dashboard` langsung dialihkan ke `/login`?
+**Jawaban**: Ini adalah fitur keamanan **Server-Side Route Protection (`src/middleware.ts`)**. Halaman dasbor, live, sesi, analisis, perangkat, dan pengaturan dilindungi oleh middleware. Anda harus login terlebih dahulu (menggunakan akun demo atau Google Sign-In) untuk mendapatkan cookie otentikasi `eeg_auth_token`.
+
+---
+
+## 17. Roadmap Pengembangan Sistem
 
 - [x] **Fase 1: Fondasi Arsitektur & Antarmuka Pengguna (Selesai)**
-  - Desain & implementasi Dark Luxury UI Next.js 16.
-  - Komponen Canvas Oscilloscope 60 FPS untuk rendering voltase.
+  - Desain & implementasi Dark Biomedical UI Next.js 16.
+  - Komponen Canvas Oscilloscope 60 FPS untuk rendering voltase mentah.
   - Go Gin Backend Gateway dengan autentikasi JWT dan Gorilla WebSocket Hub.
-  - In-Memory Fallback Store & skema migrasi database PostgreSQL.
+  - Integrasi resmi Google OAuth 2.0 (Google Identity Services).
+  - Server-side route protection Next.js Middleware (`src/middleware.ts`).
+  - Explicit Live EEG Session State Machine (`READY`, `STARTING`, `ACQUIRING`, `PAUSED`, `STOPPING`, `COMPLETED`).
 - [ ] **Fase 2: Integrasi Firmware ESP32 & Perakitan Hardware Wearable (Sedang Berjalan)**
   - Pembuatan casing headband 3D printed yang ergonomis untuk penempatan modul TGAM1 dan elektroda kering FP1.
   - Pengujian stabilitas transmisi Wi-Fi ESP32 pada sampling rate 512 Hz tanpa packet loss.
@@ -761,7 +1041,7 @@ Sistem secara cerdas beralih ke **In-Memory Synchronized Store** dengan perangka
 
 ---
 
-## 15. Lisensi & Etika Penelitian
+## 18. Lisensi & Etika Penelitian Biomedis
 
 Proyek ini dikembangkan di bawah naungan penelitian rekayasa biomedis dan teknologi informasi. Kode sumber didistribusikan di bawah lisensi:
 
