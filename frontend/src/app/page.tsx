@@ -60,10 +60,8 @@ export default function LandingPage() {
         const val = Number((alpha + beta + theta + noise).toFixed(2));
         const newSample = {
           timestamp: nextTime,
-          channel: "FP1",
-          rawMicrovolts: val,
-          filteredMicrovolts: Number((val * 0.95).toFixed(2)),
-          quality: 94 + Math.floor(Math.random() * 5),
+          rawEEG: val,
+          signalQuality: 94 + Math.floor(Math.random() * 5),
         };
         return [...prev.slice(1), newSample];
       });

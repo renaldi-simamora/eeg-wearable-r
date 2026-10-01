@@ -7,6 +7,9 @@ interface WaveformChartProps {
   samples: EEGSample[];
   height?: number;
   isStreaming?: boolean;
+  status?: string;
+  emptyStateMessage?: string;
+  emptyStateSubtext?: string;
   className?: string;
   voltageRange?: number; // e.g. 50 uV (+- 50uV)
 }
@@ -15,6 +18,9 @@ export function WaveformChart({
   samples,
   height = 240,
   isStreaming = false,
+  status = "ACQUIRING",
+  emptyStateMessage = "Ready to start EEG acquisition",
+  emptyStateSubtext = "Press Start Session to begin recording.",
   className = "",
   voltageRange = 50,
 }: WaveformChartProps) {
@@ -135,6 +141,10 @@ export function WaveformChart({
     }
   }, [samples, height, voltageRange]);
 
+  const isReady = status === "READY" || (samples.length < 2 && !isStreaming);
+  const isPaused = status === "PAUSED";
+  const isCompleted = status === "COMPLETED";
+
   return (
     <div className={`relative rounded-xl overflow-hidden border border-slate-800 shadow-inner ${className}`}>
       <canvas
@@ -142,6 +152,50 @@ export function WaveformChart({
         style={{ width: "100%", height: `${height}px` }}
         className="block"
       />
+
+      {/* Standby / Ready Overlay */}
+      {isReady && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px] p-6 text-center select-none pointer-events-none">
+          <div className="w-10 h-10 rounded-full bg-blue-500/[0.1] border border-blue-500/[0.2] flex items-center justify-center text-blue-400 mb-2.5">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.75}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-white tracking-tight">
+            {emptyStateMessage}
+          </span>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">
+            {emptyStateSubtext}
+          </p>
+        </div>
+      )}
+
+      {/* Paused Overlay Banner */}
+      {isPaused && (
+        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-amber-500/[0.15] border border-amber-500/[0.3] text-[10px] font-mono text-amber-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span>PAUSED • STREAM FROZEN</span>
+        </div>
+      )}
+
+      {/* Completed Overlay Banner */}
+      {isCompleted && (
+        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-500/[0.15] border border-emerald-500/[0.3] text-[10px] font-mono text-emerald-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span>SESSION COMPLETED</span>
+        </div>
+      )}
+
       {/* Real-time scanning indicator */}
       {isStreaming && (
         <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-cyan-400">

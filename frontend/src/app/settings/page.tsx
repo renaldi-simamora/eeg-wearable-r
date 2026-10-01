@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   Bell,
   Cpu,
-  Palette,
+  Radio,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -25,20 +25,22 @@ export default function SettingsPage() {
 
   // Profile form state
   const [name, setName] = useState(user?.name || "Dr. Renaldi Simamora");
-  const [email, setEmail] = useState(user?.email || "researcher@biomedical.ac.id");
+  const [email] = useState(user?.email || "researcher@biomedical.ac.id");
   const [institution, setInstitution] = useState(
     user?.institution || "Dept. of Electrical & Biomedical Engineering"
   );
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Preferences state
-  const [theme, setTheme] = useState("light");
-  const [notifications, setNotifications] = useState(true);
+  // Monitoring preferences state
   const [defaultDevice, setDefaultDevice] = useState("EEG-001");
-
-  // Session settings state
+  const [defaultChannel, setDefaultChannel] = useState("FP1");
+  const [samplingRate, setSamplingRate] = useState("512");
   const [defaultDuration, setDefaultDuration] = useState("15");
   const [autoSave, setAutoSave] = useState(true);
+
+  // Notifications state
+  const [sessionAlerts, setSessionAlerts] = useState(true);
+  const [qualityAlerts, setQualityAlerts] = useState(true);
 
   // Security password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -69,35 +71,37 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Platform Settings">
-      <div className="space-y-8 max-w-4xl">
+      <div className="space-y-6 max-w-4xl">
         {/* Header */}
-        <div className="pb-2 border-b border-slate-200">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            System & Researcher Settings
+        <div className="pb-4 border-b border-white/[0.05]">
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            Settings & Preferences
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Configure profile credentials, telemetry preferences, and experiment archiving defaults.
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+            Configure researcher profile credentials, telemetry preferences, and experiment archiving defaults.
           </p>
         </div>
 
-        {/* SECTION 1: PROFILE */}
+        {/* SECTION 1: ACCOUNT & PROFILE */}
         <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-600" />
-              <CardTitle className="text-sm font-semibold text-slate-900">
-                Researcher Profile
+          <CardHeader className="py-3.5 px-5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/[0.1] border border-blue-500/[0.2] flex items-center justify-center text-blue-400">
+                <User className="w-4 h-4" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-white">
+                Account & Researcher Profile
               </CardTitle>
             </div>
             {savedSuccess && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Profile updated</span>
               </span>
             )}
           </CardHeader>
           <form onSubmit={handleSaveProfile}>
-            <CardContent className="space-y-4">
+            <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   id="fullName"
@@ -109,21 +113,21 @@ export default function SettingsPage() {
                 <Input
                   id="email"
                   type="email"
-                  label="Academic Email"
+                  label="Institutional Email"
                   value={email}
                   disabled
-                  title="Contact administrator to change email"
+                  hint="Managed by administrator"
                 />
               </div>
 
               <Input
                 id="institution"
-                label="Institution / Department"
+                label="Institution / Laboratory"
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
               />
             </CardContent>
-            <CardFooter className="justify-end gap-2">
+            <CardFooter className="py-3 px-5 justify-end">
               <Button type="submit" variant="primary" size="sm" className="gap-1.5">
                 <Save className="w-3.5 h-3.5" />
                 <span>Save Profile</span>
@@ -132,43 +136,29 @@ export default function SettingsPage() {
           </form>
         </Card>
 
-        {/* SECTION 2: PREFERENCES */}
+        {/* SECTION 2: MONITORING & HARDWARE */}
         <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-indigo-600" />
-              <CardTitle className="text-sm font-semibold text-slate-900">
-                Preferences & Hardware Defaults
+          <CardHeader className="py-3.5 px-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/[0.1] border border-cyan-500/[0.2] flex items-center justify-center text-cyan-400">
+                <Radio className="w-4 h-4" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-white">
+                Monitoring & Acquisition Configuration
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 text-xs">
+          <CardContent className="p-5 space-y-4 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Theme selector */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 uppercase">
-                  Interface Theme
-                </label>
-                <select
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="light">Academic Light (Default)</option>
-                  <option value="dark">High-Tech Dark</option>
-                  <option value="system">System Synchronized</option>
-                </select>
-              </div>
-
               {/* Default device */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 uppercase">
-                  Default Wearable Device
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                  Default Device
                 </label>
                 <select
                   value={defaultDevice}
                   onChange={(e) => setDefaultDevice(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
                 >
                   <option value="EEG-001">TGAM1 Alpha (EEG-001)</option>
                   <option value="EEG-002">TGAM1 Beta (EEG-002)</option>
@@ -176,95 +166,137 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              {/* Notifications */}
+              {/* Default Channel */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 uppercase">
-                  Telemetry Notifications
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                  Default Montage Channel
                 </label>
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={notifications}
-                      onChange={(e) => setNotifications(e.target.checked)}
-                      className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
-                    />
-                    <span className="text-slate-700">Impedance & packet alerts</span>
-                  </label>
-                </div>
+                <select
+                  value={defaultChannel}
+                  onChange={(e) => setDefaultChannel(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                >
+                  <option value="FP1">FP1 (Left Prefrontal)</option>
+                  <option value="FP2">FP2 (Right Prefrontal)</option>
+                  <option value="Cz">Cz (Central Vertex)</option>
+                </select>
+              </div>
+
+              {/* Sampling Rate */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                  Sampling Frequency
+                </label>
+                <select
+                  value={samplingRate}
+                  onChange={(e) => setSamplingRate(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                >
+                  <option value="512">512 Hz (Hardware TGAM1)</option>
+                  <option value="256">256 Hz (Subsampled)</option>
+                  <option value="128">128 Hz (Low Power)</option>
+                </select>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* SECTION 3: SESSION SETTINGS */}
-        <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-600" />
-              <CardTitle className="text-sm font-semibold text-slate-900">
-                Acquisition Session Defaults
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/[0.04]">
+              {/* Target duration */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 uppercase">
-                  Default Target Session Duration (Minutes)
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                  Default Target Session Duration
                 </label>
                 <select
                   value={defaultDuration}
                   onChange={(e) => setDefaultDuration(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
                 >
                   <option value="5">5 Minutes (Brief Baseline)</option>
                   <option value="15">15 Minutes (Standard Protocol)</option>
                   <option value="30">30 Minutes (Cognitive Task Run)</option>
-                  <option value="60">60 Minutes (Longitudinal)</option>
+                  <option value="60">60 Minutes (Longitudinal Study)</option>
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 uppercase">
-                  Continuous Auto-Save to Database
+              {/* Auto Save */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide block mb-2">
+                  Database Continuous Persistence
                 </label>
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoSave}
-                      onChange={(e) => setAutoSave(e.target.checked)}
-                      className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
-                    />
-                    <span className="text-slate-700">
-                      Auto-commit spectral features every 10 seconds
-                    </span>
-                  </label>
-                </div>
+                <label className="flex items-center gap-2.5 cursor-pointer text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={autoSave}
+                    onChange={(e) => setAutoSave(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span>Auto-commit spectral features every 10 seconds</span>
+                </label>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* SECTION 4: SECURITY & ACCESS */}
+        {/* SECTION 3: NOTIFICATIONS & ALERTS */}
         <Card>
-          <CardHeader className="py-4">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-red-600" />
-              <CardTitle className="text-sm font-semibold text-slate-900">
-                Security & Authentication
+          <CardHeader className="py-3.5 px-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/[0.1] border border-amber-500/[0.2] flex items-center justify-center text-amber-400">
+                <Bell className="w-4 h-4" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-white">
+                Notifications & Telemetry Alerts
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5 space-y-3 text-xs">
+            <label className="flex items-center gap-3 cursor-pointer text-slate-300">
+              <input
+                type="checkbox"
+                checked={sessionAlerts}
+                onChange={(e) => setSessionAlerts(e.target.checked)}
+                className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <div>
+                <span className="font-medium text-white block">Session State Notifications</span>
+                <span className="text-[11px] text-slate-500">Notify upon session start, pause, auto-save, and completion.</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer text-slate-300 pt-1">
+              <input
+                type="checkbox"
+                checked={qualityAlerts}
+                onChange={(e) => setQualityAlerts(e.target.checked)}
+                className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <div>
+                <span className="font-medium text-white block">Signal Quality Alerts</span>
+                <span className="text-[11px] text-slate-500">Trigger alert if electrode contact impedance degrades below 75%.</span>
+              </div>
+            </label>
+          </CardContent>
+        </Card>
+
+        {/* SECTION 4: SECURITY & AUTHENTICATION */}
+        <Card>
+          <CardHeader className="py-3.5 px-5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-red-500/[0.1] border border-red-500/[0.2] flex items-center justify-center text-red-400">
+                <Shield className="w-4 h-4" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-white">
+                Security & Session Management
               </CardTitle>
             </div>
             {passwordSaved && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Password updated</span>
               </span>
             )}
           </CardHeader>
           <form onSubmit={handleSavePassword}>
-            <CardContent className="space-y-4">
+            <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   id="currentPassword"
@@ -284,7 +316,7 @@ export default function SettingsPage() {
                 />
               </div>
             </CardContent>
-            <CardFooter className="justify-between">
+            <CardFooter className="py-3 px-5 justify-between">
               <Button
                 type="button"
                 variant="danger"
