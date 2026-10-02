@@ -22,7 +22,8 @@ var upgrader = websocket.Upgrader{
 }
 
 type StreamPacket struct {
-	Type          string  `json:"type"`          // "eeg_sample" | "device_status" | "heartbeat"
+	Type          string  `json:"type"`          // "eeg_sample" | "device_status" | "heartbeat" | "session_state"
+	SessionID     string  `json:"sessionId,omitempty"`
 	Timestamp     int64   `json:"timestamp"`     // Epoch ms
 	RawEEG        float64 `json:"rawEEG"`        // Microvolts (uV)
 	SignalQuality int     `json:"signalQuality"` // 0 - 100%
@@ -33,22 +34,37 @@ type StreamPacket struct {
 	Gamma         float64 `json:"gamma"`
 	DeviceStatus  string  `json:"deviceStatus"`
 	IsSimulation  bool    `json:"isSimulation"`
+	State         string  `json:"state,omitempty"` // "READY" | "STARTING" | "ACQUIRING" | "PAUSED" | "STOPPING" | "COMPLETED"
+}
+
+type WSControlMessage struct {
+	Action       string `json:"action"` // "start" | "pause" | "resume" | "stop" | "status"
+	SessionID    string `json:"sessionId,omitempty"`
+	IsSimulation bool   `json:"isSimulation,omitempty"`
 }
 
 type Hub struct {
-	clients    map[*websocket.Conn]bool
-	broadcast  chan []byte
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	mu         sync.Mutex
+	clients         map[*websocket.Conn]bool
+	broadcast       chan []byte
+	register        chan *websocket.Conn
+	unregister      chan *websocket.Conn
+	mu              sync.RWMutex
+	isAcquiring     bool
+	isPaused        bool
+	isSimulation    bool
+	activeSessionID string
 }
 
 func NewHub() *Hub {
 	h := &Hub{
-		clients:    make(map[*websocket.Conn]bool),
-		broadcast:  make(chan []byte, 256),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
+		clients:         make(map[*websocket.Conn]bool),
+		broadcast:       make(chan []byte, 256),
+		register:        make(chan *websocket.Conn),
+		unregister:      make(chan *websocket.Conn),
+		isAcquiring:     false,
+		isPaused:        false,
+		isSimulation:    false,
+		activeSessionID: "",
 	}
 	go h.run()
 	go h.startSimulationGenerator()
@@ -87,30 +103,118 @@ func (h *Hub) run() {
 	}
 }
 
-// startSimulationGenerator generates realistic 50Hz EEG waveform simulation
-// for connected clients when no hardware ESP32 is feeding data
+// StartAcquisition transitions stream to active state
+func (h *Hub) StartAcquisition(sessionID string, isSim bool) {
+	h.mu.Lock()
+	h.isAcquiring = true
+	h.isPaused = false
+	h.isSimulation = isSim
+	h.activeSessionID = sessionID
+	h.mu.Unlock()
+
+	log.Printf("[WebSocket] Acquisition started for session %s (Simulation: %v)", sessionID, isSim)
+	h.BroadcastState("ACQUIRING", sessionID)
+}
+
+// PauseAcquisition pauses data streaming without terminating session
+func (h *Hub) PauseAcquisition() {
+	h.mu.Lock()
+	if h.isAcquiring {
+		h.isPaused = true
+	}
+	sessionID := h.activeSessionID
+	h.mu.Unlock()
+
+	log.Println("[WebSocket] Acquisition paused")
+	h.BroadcastState("PAUSED", sessionID)
+}
+
+// ResumeAcquisition resumes stream
+func (h *Hub) ResumeAcquisition() {
+	h.mu.Lock()
+	if h.isAcquiring {
+		h.isPaused = false
+	}
+	sessionID := h.activeSessionID
+	h.mu.Unlock()
+
+	log.Println("[WebSocket] Acquisition resumed")
+	h.BroadcastState("ACQUIRING", sessionID)
+}
+
+// StopAcquisition stops streaming and marks session completed
+func (h *Hub) StopAcquisition() {
+	h.mu.Lock()
+	sessionID := h.activeSessionID
+	h.isAcquiring = false
+	h.isPaused = false
+	h.isSimulation = false
+	h.activeSessionID = ""
+	h.mu.Unlock()
+
+	log.Println("[WebSocket] Acquisition stopped")
+	h.BroadcastState("COMPLETED", sessionID)
+}
+
+// BroadcastState sends session state update to all clients
+func (h *Hub) BroadcastState(state string, sessionID string) {
+	packet := StreamPacket{
+		Type:         "session_state",
+		SessionID:    sessionID,
+		Timestamp:    time.Now().UnixMilli(),
+		State:        state,
+		DeviceStatus: "connected",
+		IsSimulation: h.isSimulation,
+	}
+	bytes, err := json.Marshal(packet)
+	if err == nil {
+		h.broadcast <- bytes
+	}
+}
+
+// BroadcastSample broadcasts real hardware or ingested EEG sample
+func (h *Hub) BroadcastSample(packet StreamPacket) {
+	h.mu.RLock()
+	active := h.isAcquiring && !h.isPaused
+	h.mu.RUnlock()
+
+	if !active {
+		return
+	}
+
+	bytes, err := json.Marshal(packet)
+	if err == nil {
+		h.broadcast <- bytes
+	}
+}
+
+// startSimulationGenerator runs ONLY when explicitly acquiring in simulation mode
 func (h *Hub) startSimulationGenerator() {
-	ticker := time.NewTicker(40 * time.Millisecond) // 25 Hz packets
+	ticker := time.NewTicker(40 * time.Millisecond) // 25 Hz packet transmission
 	defer ticker.Stop()
 
 	var t float64 = 0
 
 	for range ticker.C {
-		h.mu.Lock()
+		h.mu.RLock()
+		active := h.isAcquiring && !h.isPaused && h.isSimulation
 		clientCount := len(h.clients)
-		h.mu.Unlock()
+		sessionID := h.activeSessionID
+		h.mu.RUnlock()
 
-		if clientCount == 0 {
+		// Never generate or broadcast simulated EEG data when standby/ready or no clients connected
+		if !active || clientCount == 0 {
 			continue
 		}
 
 		t += 0.04
-		// Construct realistic rhythmic EEG with Alpha (10Hz) predominance + Theta (6Hz) + micro-noise
+		// Construct realistic rhythmic EEG: Alpha (10Hz) predominance + Theta (6Hz) + micro-noise
 		signal := 22.0*math.Sin(2*math.Pi*10*t) + 14.0*math.Sin(2*math.Pi*6*t) + 8.0*math.Sin(2*math.Pi*2*t) + (rand.Float64()*4.0 - 2.0)
 		signal = math.Round(signal*100) / 100
 
 		packet := StreamPacket{
 			Type:          "eeg_sample",
+			SessionID:     sessionID,
 			Timestamp:     time.Now().UnixMilli(),
 			RawEEG:        signal,
 			SignalQuality: 92 + rand.Intn(6),
@@ -139,15 +243,29 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 
 	h.register <- conn
 
-	// Reader pump to detect disconnects
+	// Reader pump to handle client control messages and detect disconnects
 	go func() {
 		defer func() {
 			h.unregister <- conn
 		}()
 		for {
-			_, _, err := conn.ReadMessage()
+			_, msgBytes, err := conn.ReadMessage()
 			if err != nil {
 				break
+			}
+
+			var ctrl WSControlMessage
+			if err := json.Unmarshal(msgBytes, &ctrl); err == nil {
+				switch ctrl.Action {
+				case "start":
+					h.StartAcquisition(ctrl.SessionID, ctrl.IsSimulation)
+				case "pause":
+					h.PauseAcquisition()
+				case "resume":
+					h.ResumeAcquisition()
+				case "stop":
+					h.StopAcquisition()
+				}
 			}
 		}
 	}()

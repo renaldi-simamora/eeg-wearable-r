@@ -330,10 +330,24 @@ func (m *MemoryStore) GetBrainwaveFeatures(sessionID string) ([]models.Brainwave
 	return m.brainwaves[sessionID], nil
 }
 
+func (m *MemoryStore) SaveMLPrediction(pred *models.MLPrediction) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.predictions[pred.SessionID] = append(m.predictions[pred.SessionID], *pred)
+	return nil
+}
+
 func (m *MemoryStore) GetMLPredictions(sessionID string) ([]models.MLPrediction, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.predictions[sessionID], nil
+}
+
+func (m *MemoryStore) SaveAIInsight(insight *models.AIInsight) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.insights[insight.SessionID] = append(m.insights[insight.SessionID], *insight)
+	return nil
 }
 
 func (m *MemoryStore) GetAIInsights(sessionID string) ([]models.AIInsight, error) {

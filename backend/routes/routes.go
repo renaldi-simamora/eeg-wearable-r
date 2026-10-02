@@ -50,14 +50,14 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 	devicesService := devices.NewService(store)
 	devicesHandler := devices.NewHandler(devicesService)
 
-	sessionsService := sessions.NewService(store)
+	analysisService := analysis.NewService(store, cfg.MLServiceURL)
+	analysisHandler := analysis.NewHandler(analysisService)
+
+	sessionsService := sessions.NewService(store, hub, analysisService)
 	sessionsHandler := sessions.NewHandler(sessionsService)
 
-	eegService := eeg.NewService(store)
+	eegService := eeg.NewService(store, hub)
 	eegHandler := eeg.NewHandler(eegService)
-
-	analysisService := analysis.NewService(store)
-	analysisHandler := analysis.NewHandler(analysisService)
 
 	dashboardService := dashboard.NewService(store)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
@@ -103,8 +103,9 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 			protected.GET("/eeg/:sessionId", eegHandler.GetEEGData)
 			protected.POST("/eeg/data", eegHandler.PostEEGData)
 
-			// Analysis (future ML ready)
+			// Analysis & ML Classification
 			protected.GET("/analysis/:sessionId", analysisHandler.GetAnalysis)
+			protected.POST("/analysis/:sessionId/classify", analysisHandler.Classify)
 
 			// Dashboard
 			protected.GET("/dashboard/summary", dashboardHandler.GetSummary)

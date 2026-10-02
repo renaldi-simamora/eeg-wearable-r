@@ -45,7 +45,8 @@ func (s *Service) GetSummary(userID string) (*models.DashboardSummary, error) {
 	signalQuality := "No Signal"
 	signalQualityVal := 0
 	if activeDevice != nil {
-		if activeDevice.Status == "connected" {
+		switch activeDevice.Status {
+		case "connected":
 			deviceStatus = "Connected"
 			signalQualityVal = activeDevice.SignalQuality
 			if signalQualityVal >= 80 {
@@ -55,7 +56,7 @@ func (s *Service) GetSummary(userID string) (*models.DashboardSummary, error) {
 			} else {
 				signalQuality = "Poor"
 			}
-		} else if activeDevice.Status == "warning" {
+		case "warning":
 			deviceStatus = "Warning"
 			signalQuality = "Weak"
 			signalQualityVal = activeDevice.SignalQuality
@@ -92,6 +93,19 @@ func (s *Service) GetSummary(userID string) (*models.DashboardSummary, error) {
 		lastSync = activeDevice.LastSeen
 		battery = activeDevice.BatteryLevel
 	}
+	var brainwaveOverview models.BrainwaveFeature
+	latestClassification := "Not available yet"
+
+	if totalSessions > 0 {
+		features, _ := s.store.GetBrainwaveFeatures(sessions[0].ID)
+		if len(features) > 0 {
+			brainwaveOverview = features[len(features)-1]
+		}
+		predictions, _ := s.store.GetMLPredictions(sessions[0].ID)
+		if len(predictions) > 0 {
+			latestClassification = fmt.Sprintf("%s (%.0f%% conf)", predictions[0].PredictedClass, predictions[0].Confidence*100)
+		}
+	}
 
 	summary := &models.DashboardSummary{
 		DeviceStatus:          deviceStatus,
@@ -101,16 +115,10 @@ func (s *Service) GetSummary(userID string) (*models.DashboardSummary, error) {
 		LatestSessionDuration: latestDurationStr,
 		LatestDurationSeconds: latestDurationSec,
 		AverageDuration:       avgDurationStr,
-		LatestClassification:  "Not available yet", // Strictly adheres to scientific specification
+		LatestClassification:  latestClassification,
 		ActiveDevice:          activeDevice,
 		RecentSessions:        recentSessions,
-		BrainwaveOverview: models.BrainwaveFeature{
-			Delta: 16.5,
-			Theta: 22.1,
-			Alpha: 38.4,
-			Beta:  16.8,
-			Gamma: 6.2,
-		},
+		BrainwaveOverview:     brainwaveOverview,
 		DeviceHealth: models.DeviceHealthInfo{
 			EEGModuleStatus: "Operational",
 			ESP32Status:     "Online",
