@@ -140,26 +140,34 @@ export default function AnalysisPage() {
                     <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                         <span className="text-[9px] text-slate-500 block">Accuracy</span>
-                        <span className="font-semibold text-slate-400 block mt-0.5">
-                          — %
+                        <span className="font-semibold text-emerald-400 block mt-0.5">
+                          {model.metrics?.accuracy !== null && model.metrics?.accuracy !== undefined
+                            ? `${(Number(model.metrics.accuracy) * 100).toFixed(1)}%`
+                            : "— %"}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                         <span className="text-[9px] text-slate-500 block">Precision</span>
-                        <span className="font-semibold text-slate-400 block mt-0.5">
-                          — %
+                        <span className="font-semibold text-cyan-400 block mt-0.5">
+                          {model.metrics?.precision !== null && model.metrics?.precision !== undefined
+                            ? `${(Number(model.metrics.precision) * 100).toFixed(1)}%`
+                            : "— %"}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                         <span className="text-[9px] text-slate-500 block">Recall</span>
-                        <span className="font-semibold text-slate-400 block mt-0.5">
-                          — %
+                        <span className="font-semibold text-slate-300 block mt-0.5">
+                          {model.metrics?.recall !== null && model.metrics?.recall !== undefined
+                            ? `${(Number(model.metrics.recall) * 100).toFixed(1)}%`
+                            : "— %"}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                         <span className="text-[9px] text-slate-500 block">Macro F1</span>
-                        <span className="font-semibold text-slate-400 block mt-0.5">
-                          —
+                        <span className="font-semibold text-indigo-400 block mt-0.5">
+                          {model.metrics?.macroF1 !== null && model.metrics?.macroF1 !== undefined
+                            ? `${(Number(model.metrics.macroF1) * 100).toFixed(1)}%`
+                            : "—"}
                         </span>
                       </div>
                     </div>

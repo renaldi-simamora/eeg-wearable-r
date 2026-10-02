@@ -71,6 +71,7 @@ export interface MLPrediction {
   modelVersion: string;
   predictedClass: string;
   confidence: number;
+  createdAt?: string;
 }
 
 export interface AIInsight {

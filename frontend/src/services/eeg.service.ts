@@ -1,25 +1,40 @@
 import { apiClient } from "./api";
 import { EEGSample, BrainwaveFeature } from "@/types";
-import { generateMockEEGSeries, mockBrainwaveFeature } from "@/lib/mock/eeg";
 
 export interface EEGSessionData {
   sessionId: string;
   samples: EEGSample[];
   features: BrainwaveFeature[];
-  latestFeature: BrainwaveFeature;
+  latestFeature?: BrainwaveFeature;
 }
 
 export const eegService = {
   async getEEGData(sessionId: string): Promise<EEGSessionData> {
     try {
-      return await apiClient<EEGSessionData>(`/eeg/${sessionId}`);
+      const data = await apiClient<EEGSessionData>(`/eeg/${sessionId}`);
+      return {
+        sessionId: data.sessionId || sessionId,
+        samples: data.samples || [],
+        features: data.features || [],
+        latestFeature: data.latestFeature,
+      };
     } catch {
       return {
         sessionId,
-        samples: generateMockEEGSeries(80),
-        features: [mockBrainwaveFeature],
-        latestFeature: mockBrainwaveFeature,
+        samples: [],
+        features: [],
       };
     }
+  },
+
+  async postEEGData(payload: {
+    sessionId: string;
+    samples: EEGSample[];
+    features?: BrainwaveFeature;
+  }): Promise<void> {
+    await apiClient("/eeg/data", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
 };
