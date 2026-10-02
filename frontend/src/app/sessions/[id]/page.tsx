@@ -4,7 +4,7 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionService } from "@/services/session.service";
 import { eegService } from "@/services/eeg.service";
 import { analysisService } from "@/services/analysis.service";
@@ -39,6 +39,21 @@ export default function SessionDetailPage() {
   const { data: eegData } = useQuery({
     queryKey: ["eeg-data", sessionId],
     queryFn: () => eegService.getEEGData(sessionId),
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: analysisData } = useQuery({
+    queryKey: ["analysis", sessionId],
+    queryFn: () => analysisService.getAnalysis(sessionId),
+  });
+
+  const classifyMutation = useMutation({
+    mutationFn: () => analysisService.classifySession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["analysis", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
   });
 
   return (
@@ -258,8 +273,8 @@ export default function SessionDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Machine Learning Classification Placeholder */}
-            <Card className="border-dashed border-white/[0.1] bg-white/[0.01]">
+            {/* Machine Learning Classification */}
+            <Card className="border-white/[0.08] bg-white/[0.01]">
               <CardHeader className="py-3 px-5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Brain className="w-4 h-4 text-indigo-400" />
@@ -267,41 +282,88 @@ export default function SessionDetailPage() {
                     5. Machine Learning Classification
                   </CardTitle>
                 </div>
-                <Badge variant="neutral" size="sm">
-                  Future Service
+                <Badge
+                  variant={analysisData?.predictions && analysisData.predictions.length > 0 ? "success" : "neutral"}
+                  size="sm"
+                >
+                  {analysisData?.predictions && analysisData.predictions.length > 0 ? "Classified" : "Ready"}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-5 pt-1 space-y-2 text-xs">
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-slate-300 text-xs">
-                  <span className="text-amber-400 font-semibold block mb-0.5">Architecture Contract Prepared:</span>
-                  Machine-learning results will be populated here once the external Python ML inference service is linked to this session.
-                </div>
-                <div className="text-[11px] text-slate-500 font-mono pt-1">
-                  Target Service Endpoint: POST /api/analysis/{sessionId}
-                </div>
+              <CardContent className="p-5 pt-1 space-y-3 text-xs">
+                {analysisData?.predictions && analysisData.predictions.length > 0 ? (
+                  analysisData.predictions.map((pred) => (
+                    <div
+                      key={pred.id}
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 font-mono"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white text-xs">{pred.modelName}</span>
+                        <span className="text-emerald-400 font-bold">
+                          {Math.round(pred.confidence * 100)}% Confidence
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-t border-white/[0.04] text-xs">
+                        <span className="text-slate-400 font-sans">Predicted Pattern:</span>
+                        <span className="font-bold text-cyan-400 text-sm">{pred.predictedClass}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-white/[0.04]">
+                        <span>Version: {pred.modelVersion}</span>
+                        <span>{pred.createdAt ? formatDate(pred.createdAt) : "Just now"}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-slate-400 leading-relaxed">
+                      No classification prediction recorded yet for this session. Run ML classification across the recorded 5-band relative spectral power vectors using the Support Vector Machine (SVM) pipeline.
+                    </p>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => classifyMutation.mutate()}
+                      isLoading={classifyMutation.isPending}
+                      className="gap-2"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>Run ML Classification</span>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* AI Insights Placeholder */}
-            <Card className="border-dashed border-white/[0.1] bg-white/[0.01]">
+            {/* AI Insights & Synthesis */}
+            <Card className="border-white/[0.08] bg-white/[0.01]">
               <CardHeader className="py-3 px-5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-cyan-400" />
                   <CardTitle className="text-sm font-semibold text-white">
-                    6. AI Cognitive Synthesis
+                    6. AI Cognitive Synthesis & Insights
                   </CardTitle>
                 </div>
                 <Badge variant="neutral" size="sm">
-                  Placeholder
+                  {analysisData?.insights && analysisData.insights.length > 0 ? "Generated" : "Standby"}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-5 pt-1 space-y-2 text-xs">
-                <p className="text-slate-400 leading-relaxed">
-                  Automated summarization and cognitive state pattern synthesis will be generated once the AI insight service is connected to this session.
-                </p>
-                <div className="text-[11px] text-slate-500 font-mono">
-                  Schema: ai_insights (session_id, title, summary)
-                </div>
+              <CardContent className="p-5 pt-1 space-y-3 text-xs">
+                {analysisData?.insights && analysisData.insights.length > 0 ? (
+                  analysisData.insights.map((ins) => (
+                    <div
+                      key={ins.id}
+                      className="p-3.5 rounded-xl bg-cyan-500/[0.04] border border-cyan-500/[0.12] space-y-1.5"
+                    >
+                      <h5 className="font-semibold text-white text-xs">{ins.title}</h5>
+                      <p className="text-slate-300 leading-relaxed text-xs">{ins.summary}</p>
+                      <div className="text-[10px] text-slate-500 font-mono pt-1">
+                        Generated: {formatDate(ins.createdAt)}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400 leading-relaxed">
+                    Automated physiological pattern synthesis will be generated when ML classification is performed on this session.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>

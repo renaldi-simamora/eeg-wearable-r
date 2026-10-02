@@ -5,10 +5,7 @@ import { mockModelCards } from "@/lib/mock/analysis";
 export interface SessionAnalysisData {
   sessionId: string;
   status: string;
-  message: string;
-  notice: string;
-  pipelineReady: boolean;
-  futureServiceUrl: string;
+  message?: string;
   predictions: MLPrediction[];
   insights: AIInsight[];
 }
@@ -29,13 +26,19 @@ export const analysisService = {
       return {
         sessionId,
         status: "unprocessed",
-        message: "Machine-learning classification will appear here.",
-        notice: "Machine-learning results will be available after the ML service is integrated.",
-        pipelineReady: true,
-        futureServiceUrl: "http://localhost:5000/predict (Python FastAPI ML service)",
         predictions: [],
         insights: [],
       };
     }
+  },
+
+  async getAnalysis(sessionId: string): Promise<SessionAnalysisData> {
+    return this.getAnalysisBySession(sessionId);
+  },
+
+  async classifySession(sessionId: string): Promise<MLPrediction> {
+    return await apiClient<MLPrediction>(`/analysis/${sessionId}/classify`, {
+      method: "POST",
+    });
   },
 };

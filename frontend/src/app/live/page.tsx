@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { deviceService } from "@/services/device.service";
 import { sessionService } from "@/services/session.service";
+import { eegService } from "@/services/eeg.service";
 import {
   Play,
   Pause,
@@ -106,7 +107,20 @@ export default function LiveEEGPage() {
       // 1. Stop data acquisition and timers
       await stopAcquisition();
 
-      // 2. Finalize session in database if active
+      // 2. Persist recorded EEG samples and spectral features buffer to database
+      if (activeSessionId && samples.length > 0) {
+        try {
+          await eegService.postEEGData({
+            sessionId: activeSessionId,
+            samples,
+            features: bands,
+          });
+        } catch (e) {
+          console.warn("Failed to persist EEG samples buffer:", e);
+        }
+      }
+
+      // 3. Finalize session in database if active (triggers backend ML classification)
       if (activeSessionId) {
         await stopSessionMutation.mutateAsync(activeSessionId);
       }
@@ -114,6 +128,8 @@ export default function LiveEEGPage() {
       // Refresh query caches
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["eeg-data", activeSessionId] });
+      queryClient.invalidateQueries({ queryKey: ["analysis", activeSessionId] });
     } catch (err: any) {
       setActionError(err.message || "Failed to finalize recording session.");
     }

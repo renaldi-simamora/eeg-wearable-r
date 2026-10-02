@@ -12,7 +12,7 @@ const PROTECTED_PREFIXES = [
 
 const AUTH_PAGES = ["/login", "/register"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get("eeg_auth_token")?.value;
 
@@ -41,6 +41,9 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+// Keep middleware export alias for backward-compatibility if Next.js runtime checks either
+export const middleware = proxy;
 
 export const config = {
   matcher: [
