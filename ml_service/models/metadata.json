@@ -1,0 +1,80 @@
+{
+  "svm": {
+    "id": "svm-classifier",
+    "name": "Support Vector Machine (SVM)",
+    "version": "v1.0.0",
+    "training_dataset_version": "EEG-Normative-v1",
+    "total_samples": 1200,
+    "features": [
+      "Delta",
+      "Theta",
+      "Alpha",
+      "Beta",
+      "Gamma"
+    ],
+    "classes": [
+      "Relaxed / High Alpha",
+      "Focused / High Beta",
+      "Drowsy / High Theta",
+      "Baseline / Mixed Rhythms"
+    ],
+    "metrics": {
+      "accuracy": 0.9992,
+      "precision": 0.9992,
+      "recall": 0.9992,
+      "macroF1": 0.9992
+    }
+  },
+  "rf": {
+    "id": "rf-classifier",
+    "name": "Random Forest",
+    "version": "v1.0.0",
+    "training_dataset_version": "EEG-Normative-v1",
+    "total_samples": 1200,
+    "features": [
+      "Delta",
+      "Theta",
+      "Alpha",
+      "Beta",
+      "Gamma"
+    ],
+    "classes": [
+      "Relaxed / High Alpha",
+      "Focused / High Beta",
+      "Drowsy / High Theta",
+      "Baseline / Mixed Rhythms"
+    ],
+    "metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "macroF1": 1.0
+    }
+  },
+  "lr": {
+    "id": "lr-classifier",
+    "name": "Logistic Regression",
+    "version": "v1.0.0",
+    "training_dataset_version": "EEG-Normative-v1",
+    "total_samples": 1200,
+    "features": [
+      "Delta",
+      "Theta",
+      "Alpha",
+      "Beta",
+      "Gamma"
+    ],
+    "classes": [
+      "Relaxed / High Alpha",
+      "Focused / High Beta",
+      "Drowsy / High Theta",
+      "Baseline / Mixed Rhythms"
+    ],
+    "metrics": {
+      "accuracy": 0.9992,
+      "precision": 0.9992,
+      "recall": 0.9992,
+      "macroF1": 0.9992
+    }
+  }
+}
