@@ -30,8 +30,20 @@ services:
       DATABASE_URL: "postgres://postgres:postgrespassword@postgres:5432/eeg_db?sslmode=disable"
       JWT_SECRET: "eeg-platform-secure-jwt-academic-secret-key-32chars"
       CORS_ORIGIN: "http://localhost:3000"
+      ML_SERVICE_URL: "http://ml_service:5000"
     ports:
       - "8080:8080"
+    networks:
+      - eeg_network
+
+  ml_service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    container_name: eeg_ml_service
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
     networks:
       - eeg_network
 

@@ -1,12 +1,11 @@
 package eeg
 
 import (
-	"math"
-	"math/rand"
 	"net/http"
 	"time"
 
 	"eeg-backend/internal/database"
+	ws "eeg-backend/internal/websocket"
 	"eeg-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -15,10 +14,11 @@ import (
 
 type Service struct {
 	store database.Store
+	hub   *ws.Hub
 }
 
-func NewService(store database.Store) *Service {
-	return &Service{store: store}
+func NewService(store database.Store, hub *ws.Hub) *Service {
+	return &Service{store: store, hub: hub}
 }
 
 func (s *Service) GetEEGBySession(sessionID string) (map[string]interface{}, error) {
@@ -32,45 +32,22 @@ func (s *Service) GetEEGBySession(sessionID string) (map[string]interface{}, err
 		return nil, err
 	}
 
-	// If no samples recorded yet, synthesize realistic scientific baseline for preview
-	if len(samples) == 0 {
-		now := time.Now().UnixMilli()
-		for i := 0; i < 60; i++ {
-			t := float64(i) * 0.05
-			// Superposition of alpha (10Hz) and theta (6Hz) waves
-			val := 20.0*math.Sin(2*math.Pi*10*t) + 12.0*math.Sin(2*math.Pi*6*t) + (rand.Float64()*6 - 3)
-			samples = append(samples, models.EEGSample{
-				ID:            uuid.New().String(),
-				SessionID:     sessionID,
-				Timestamp:     now - int64((60-i)*50),
-				RawEEG:        math.Round(val*100) / 100,
-				SignalQuality: 92,
-				CreatedAt:     time.Now(),
-			})
-		}
+	if samples == nil {
+		samples = []models.EEGSample{}
+	}
+	if features == nil {
+		features = []models.BrainwaveFeature{}
 	}
 
 	var latestFeature *models.BrainwaveFeature
 	if len(features) > 0 {
 		latestFeature = &features[len(features)-1]
-	} else {
-		latestFeature = &models.BrainwaveFeature{
-			ID:        uuid.New().String(),
-			SessionID: sessionID,
-			Timestamp: time.Now().Unix(),
-			Delta:     14.2,
-			Theta:     18.6,
-			Alpha:     42.1,
-			Beta:      19.3,
-			Gamma:     5.8,
-			CreatedAt: time.Now(),
-		}
 	}
 
 	return map[string]interface{}{
-		"sessionId": sessionID,
-		"samples":   samples,
-		"features":  features,
+		"sessionId":     sessionID,
+		"samples":       samples,
+		"features":      features,
 		"latestFeature": latestFeature,
 	}, nil
 }
@@ -97,6 +74,34 @@ func (s *Service) SaveEEGData(req *models.PostEEGDataRequest) error {
 		if err := s.store.SaveBrainwaveFeature(req.Features); err != nil {
 			return err
 		}
+	}
+
+	// Broadcast ingested hardware samples to connected WebSocket clients in real-time
+	if s.hub != nil && len(req.Samples) > 0 {
+		latestSample := req.Samples[len(req.Samples)-1]
+		var delta, theta, alpha, beta, gamma float64
+		if req.Features != nil {
+			delta = req.Features.Delta
+			theta = req.Features.Theta
+			alpha = req.Features.Alpha
+			beta = req.Features.Beta
+			gamma = req.Features.Gamma
+		}
+
+		s.hub.BroadcastSample(ws.StreamPacket{
+			Type:          "eeg_sample",
+			SessionID:     req.SessionID,
+			Timestamp:     latestSample.Timestamp,
+			RawEEG:        latestSample.RawEEG,
+			SignalQuality: latestSample.SignalQuality,
+			Delta:         delta,
+			Theta:         theta,
+			Alpha:         alpha,
+			Beta:          beta,
+			Gamma:         gamma,
+			DeviceStatus:  "connected",
+			IsSimulation:  false, // Mark as real hardware data
+		})
 	}
 
 	return nil
@@ -147,6 +152,6 @@ func (h *Handler) PostEEGData(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "EEG samples received successfully",
+		Message: "EEG data persisted and broadcasted successfully",
 	})
 }

@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"eeg-backend/internal/analysis"
 	"eeg-backend/internal/database"
+	ws "eeg-backend/internal/websocket"
 	"eeg-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +15,17 @@ import (
 )
 
 type Service struct {
-	store database.Store
+	store       database.Store
+	hub         *ws.Hub
+	analysisSvc *analysis.Service
 }
 
-func NewService(store database.Store) *Service {
-	return &Service{store: store}
+func NewService(store database.Store, hub *ws.Hub, analysisSvc *analysis.Service) *Service {
+	return &Service{
+		store:       store,
+		hub:         hub,
+		analysisSvc: analysisSvc,
+	}
 }
 
 func (s *Service) GetAll(userID string) ([]models.Session, error) {
@@ -55,11 +63,34 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 	if err := s.store.CreateSession(ses); err != nil {
 		return nil, err
 	}
+
+	if s.hub != nil {
+		// If using demo device, set isSimulation to true
+		isSim := dev.DeviceCode == "EEG-001" || dev.Status != "connected"
+		s.hub.StartAcquisition(ses.ID, isSim)
+	}
+
 	return ses, nil
 }
 
 func (s *Service) Stop(id string) (*models.Session, error) {
-	return s.store.StopSession(id)
+	ses, err := s.store.StopSession(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.hub != nil {
+		s.hub.StopAcquisition()
+	}
+
+	// Trigger automated ML analysis if analysis service is configured
+	if s.analysisSvc != nil {
+		go func(sessID string) {
+			_, _ = s.analysisSvc.ClassifySession(sessID)
+		}(id)
+	}
+
+	return ses, nil
 }
 
 type Handler struct {
@@ -146,7 +177,7 @@ func (h *Handler) Create(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "Session started successfully",
+		Message: "Session created successfully",
 		Data:    ses,
 	})
 }
@@ -155,7 +186,7 @@ func (h *Handler) Stop(c *gin.Context) {
 	id := c.Param("id")
 	ses, err := h.service.Stop(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
+		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Success: false,
 			Error:   err.Error(),
 		})

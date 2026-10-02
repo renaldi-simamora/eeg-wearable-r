@@ -98,6 +98,9 @@ func (s *PostgresStore) GetDevices() ([]models.Device, error) {
 		}
 		devices = append(devices, d)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return devices, nil
 }
 
@@ -194,6 +197,9 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 			s.SignalQuality = int(sigQuality.Int32)
 		}
 		sessions = append(sessions, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return sessions, nil
 }
@@ -315,6 +321,9 @@ func (s *PostgresStore) GetEEGSamples(sessionID string) ([]models.EEGSample, err
 		}
 		samples = append(samples, sm)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return samples, nil
 }
 
@@ -343,6 +352,9 @@ func (s *PostgresStore) GetBrainwaveFeatures(sessionID string) ([]models.Brainwa
 		}
 		features = append(features, bf)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return features, nil
 }
 
@@ -361,6 +373,9 @@ func (s *PostgresStore) GetMLPredictions(sessionID string) ([]models.MLPredictio
 			return nil, err
 		}
 		predictions = append(predictions, ml)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return predictions, nil
 }
@@ -381,7 +396,28 @@ func (s *PostgresStore) GetAIInsights(sessionID string) ([]models.AIInsight, err
 		}
 		insights = append(insights, ai)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return insights, nil
+}
+
+func (s *PostgresStore) SaveMLPrediction(pred *models.MLPrediction) error {
+	query := `
+		INSERT INTO ml_predictions (id, session_id, timestamp, model_name, model_version, predicted_class, confidence, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	_, err := s.db.Exec(query, pred.ID, pred.SessionID, pred.Timestamp, pred.ModelName, pred.ModelVersion, pred.PredictedClass, pred.Confidence, pred.CreatedAt)
+	return err
+}
+
+func (s *PostgresStore) SaveAIInsight(insight *models.AIInsight) error {
+	query := `
+		INSERT INTO ai_insights (id, session_id, title, summary, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	_, err := s.db.Exec(query, insight.ID, insight.SessionID, insight.Title, insight.Summary, insight.CreatedAt)
+	return err
 }
 
 // SeedInitialData creates standard starter records if tables are empty

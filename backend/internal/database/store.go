@@ -31,6 +31,8 @@ type Store interface {
 	GetBrainwaveFeatures(sessionID string) ([]models.BrainwaveFeature, error)
 
 	// Analysis & Insights methods
+	SaveMLPrediction(pred *models.MLPrediction) error
 	GetMLPredictions(sessionID string) ([]models.MLPrediction, error)
+	SaveAIInsight(insight *models.AIInsight) error
 	GetAIInsights(sessionID string) ([]models.AIInsight, error)
 }

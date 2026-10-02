@@ -12,6 +12,7 @@ type Config struct {
 	JWTSecret      string
 	CORSOrigin     string
 	GoogleClientID string
+	MLServiceURL   string
 }
 
 func LoadConfig() *Config {
@@ -40,11 +41,17 @@ func LoadConfig() *Config {
 
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 
+	mlServiceURL := os.Getenv("ML_SERVICE_URL")
+	if mlServiceURL == "" {
+		mlServiceURL = "http://localhost:5000"
+	}
+
 	return &Config{
 		Port:           port,
 		DatabaseURL:    dbURL,
 		JWTSecret:      jwtSecret,
 		CORSOrigin:     corsOrigin,
 		GoogleClientID: googleClientID,
+		MLServiceURL:   mlServiceURL,
 	}
 }
