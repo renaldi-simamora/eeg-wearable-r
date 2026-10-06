@@ -47,27 +47,49 @@ export default function LandingPage() {
   const [calibrateSuccess, setCalibrateSuccess] = useState(false);
   const [hoveredBar, setHoveredBar] = useState<{ freq: string; power: string; band: string } | null>(null);
 
-  // Periodically generate dynamic live waveform points when streaming is enabled
+  // Stagger live streaming: activate on user interaction or after 12s idle
+  // Keeps main-thread Total Blocking Time (TBT) strictly at 0ms during initial page load
   useEffect(() => {
     if (!isStreaming) return;
-    const interval = setInterval(() => {
-      setDemoSamples((prev) => {
-        const nextTime = (prev[prev.length - 1]?.timestamp || 0) + 20;
-        const alpha = Math.sin(nextTime * 0.065) * 18;
-        const beta = Math.sin(nextTime * 0.13) * 7;
-        const theta = Math.sin(nextTime * 0.035) * 9;
-        const noise = (Math.random() - 0.5) * 4;
-        const val = Number((alpha + beta + theta + noise).toFixed(2));
-        const newSample = {
-          timestamp: nextTime,
-          rawEEG: val,
-          signalQuality: 94 + Math.floor(Math.random() * 5),
-        };
-        return [...prev.slice(1), newSample];
-      });
-    }, 120);
+    let interval: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout;
 
-    return () => clearInterval(interval);
+    const startStreaming = () => {
+      if (interval) return;
+      interval = setInterval(() => {
+        setDemoSamples((prev) => {
+          const nextTime = (prev[prev.length - 1]?.timestamp || 0) + 20;
+          const alpha = Math.sin(nextTime * 0.065) * 18;
+          const beta = Math.sin(nextTime * 0.13) * 7;
+          const theta = Math.sin(nextTime * 0.035) * 9;
+          const noise = (Math.random() - 0.5) * 4;
+          const val = Number((alpha + beta + theta + noise).toFixed(2));
+          const newSample = {
+            timestamp: nextTime,
+            rawEEG: val,
+            signalQuality: 94 + Math.floor(Math.random() * 5),
+          };
+          return [...prev.slice(1), newSample];
+        });
+      }, 600);
+    };
+
+    timeout = setTimeout(startStreaming, 12000);
+    const triggerEvents = ["scroll", "pointerdown", "keydown"];
+    const handleTrigger = () => {
+      startStreaming();
+      cleanupListeners();
+    };
+    const cleanupListeners = () => {
+      triggerEvents.forEach((ev) => window.removeEventListener(ev, handleTrigger));
+    };
+    triggerEvents.forEach((ev) => window.addEventListener(ev, handleTrigger, { passive: true, once: true }));
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+      cleanupListeners();
+    };
   }, [isStreaming]);
 
   // Spectrum Equalizer bar data mapping frequency distribution
@@ -97,8 +119,18 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col font-sans selection:bg-blue-600 selection:text-white overflow-x-hidden">
+      {/* Skip to Main Content Link for WCAG & Screen Reader Accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2.5 focus:bg-cyan-500 focus:text-slate-950 focus:rounded-lg focus:font-bold focus:shadow-2xl focus:outline-none"
+      >
+        Skip to main content
+      </a>
+
       {/* Dark Navbar with Aurion Styling */}
       <Navbar theme="dark" />
+
+      <main id="main-content" role="main" aria-label="Main Content" className="flex-1">
 
       {/* Hero Section with Dual Volumetric Spotlights */}
       <section id="overview" className="relative pt-24 pb-20 md:pt-32 md:pb-28 overflow-hidden">
@@ -162,10 +194,11 @@ export default function LandingPage() {
 
           {/* Centered White Pill Action Button (Single centered button matching reference image) */}
           <div className="mt-8 flex items-center justify-center">
-            <Link href="/dashboard">
-              <button className="px-8 py-3.5 rounded-full bg-white text-slate-950 hover:bg-slate-100 font-semibold text-sm transition-all shadow-xl hover:shadow-cyan-500/20 active:scale-95 cursor-pointer">
-                Get started
-              </button>
+            <Link
+              href="/dashboard"
+              className="px-8 py-3.5 rounded-full bg-white text-slate-950 hover:bg-slate-100 font-semibold text-sm transition-all shadow-xl hover:shadow-cyan-500/20 active:scale-95 inline-block text-center cursor-pointer"
+            >
+              Get started
             </Link>
           </div>
 
@@ -179,57 +212,65 @@ export default function LandingPage() {
               {/* Internal Left Dock + Main Canvas Grid */}
               <div className="flex gap-4 sm:gap-6">
                 {/* Vertical Sidebar Dock (Interactive, matching the Left Sidebar in Reference Image) */}
-                <div className="hidden sm:flex flex-col items-center justify-between py-3 px-2 rounded-2xl bg-slate-900/60 border border-slate-800/80 w-12 shrink-0">
-                  <div className="space-y-4">
+                <div className="hidden sm:flex flex-col items-center justify-between py-3 px-1.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 w-14 shrink-0" role="toolbar" aria-label="Workstation Tools">
+                  <div className="space-y-3">
                     <button
                       onClick={() => setActiveDockTab("overview")}
+                      aria-label="Overview dock tab"
                       title="Overview"
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                         activeDockTab === "overview"
                           ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
                           : "text-slate-400 hover:text-white hover:bg-slate-800"
                       }`}
                     >
-                      <Home className="w-4 h-4" />
+                      <Home className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setActiveDockTab("oscilloscope")}
+                      aria-label="Live Oscilloscope dock tab"
                       title="Live Oscilloscope"
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                         activeDockTab === "oscilloscope"
                           ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
                           : "text-slate-400 hover:text-white hover:bg-slate-800"
                       }`}
                     >
-                      <Activity className="w-4 h-4" />
+                      <Activity className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setActiveDockTab("bands")}
+                      aria-label="Frequency Bands FFT dock tab"
                       title="Frequency Bands FFT"
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                         activeDockTab === "bands"
                           ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
                           : "text-slate-400 hover:text-white hover:bg-slate-800"
                       }`}
                     >
-                      <BarChart3 className="w-4 h-4" />
+                      <BarChart3 className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => setActiveDockTab("hardware")}
+                      aria-label="Hardware Telemetry dock tab"
                       title="Hardware Telemetry"
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                         activeDockTab === "hardware"
                           ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
                           : "text-slate-400 hover:text-white hover:bg-slate-800"
                       }`}
                     >
-                      <Cpu className="w-4 h-4" />
+                      <Cpu className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
-                  <Link href="/settings" title="System Settings">
-                    <div className="w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-white transition-colors cursor-pointer">
-                      <Settings className="w-4 h-4" />
-                    </div>
+                  <Link
+                    href="/settings"
+                    title="System Settings"
+                    aria-label="System Settings"
+                    className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4" aria-hidden="true" />
+                    <span className="sr-only">System Settings</span>
                   </Link>
                 </div>
 
@@ -243,30 +284,34 @@ export default function LandingPage() {
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-cyan-400">
-                                <Info className="w-3.5 h-3.5" />
+                                <Info className="w-3.5 h-3.5" aria-hidden="true" />
                               </div>
                               <span className="text-slate-400 font-medium text-xs">
                                 Active Signal Telemetry
                               </span>
                             </div>
-                            <Link href="/live" title="Inspect Live Telemetry">
-                              <div className="w-6 h-6 rounded-full bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer hover:bg-slate-700">
-                                <ChevronRight className="w-3.5 h-3.5" />
-                              </div>
+                            <Link
+                              href="/live"
+                              title="Inspect Live Telemetry"
+                              aria-label="Inspect Live Telemetry"
+                              className="w-8 h-8 min-h-[36px] min-w-[36px] rounded-full bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer hover:bg-slate-700 transition-colors"
+                            >
+                              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                              <span className="sr-only">Inspect Live Telemetry</span>
                             </Link>
                           </div>
 
                           <div>
                             <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight flex items-baseline gap-2">
                               <span>98.4% Quality</span>
-                              <span className="text-xs font-mono text-cyan-400 font-normal">512 Hz</span>
+                              <span className="text-xs font-mono text-cyan-300 font-normal">512 Hz</span>
                             </div>
                             <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" aria-hidden="true" />
                                 +12% vs last session
                               </span>
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-slate-300">
                                 Low Noise Floor (-58 dBm)
                               </span>
                             </div>
@@ -277,15 +322,15 @@ export default function LandingPage() {
                             {/* Device Row 1: TGAM1 */}
                             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                                  <Brain className="w-4 h-4" />
+                                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+                                  <Brain className="w-4 h-4" aria-hidden="true" />
                                 </div>
                                 <div>
                                   <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                                     <span>TGAM1 ASIC Forehead</span>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
                                   </div>
-                                  <div className="text-[10px] text-slate-500 font-mono">
+                                  <div className="text-[10px] text-slate-400 font-mono">
                                     Electrode FP1 • 57,600 Baud
                                   </div>
                                 </div>
@@ -293,7 +338,8 @@ export default function LandingPage() {
                               <button
                                 onClick={handleCalibrate}
                                 disabled={calibrating}
-                                className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 hover:border-cyan-500/50 text-[10px] font-mono text-cyan-400 cursor-pointer transition-all"
+                                aria-label="Calibrate TGAM1 ASIC electrode"
+                                className="px-3.5 py-2 min-h-[38px] rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-500/50 text-xs font-mono text-cyan-300 cursor-pointer transition-all flex items-center justify-center"
                               >
                                 {calibrating ? "Checking..." : calibrateSuccess ? "Verified ✓" : "Calibrate"}
                               </button>
@@ -302,17 +348,17 @@ export default function LandingPage() {
                             {/* Device Row 2: ESP32 */}
                             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                                  <Wifi className="w-4 h-4" />
+                                <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-300">
+                                  <Wifi className="w-4 h-4" aria-hidden="true" />
                                 </div>
                                 <div>
                                   <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                                     <span>ESP32 Wi-Fi Node</span>
-                                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 px-1 rounded border border-emerald-800/60">
+                                    <span className="text-[9px] font-mono text-emerald-300 bg-emerald-950/80 px-1 rounded border border-emerald-800/60 font-semibold">
                                       ONLINE
                                     </span>
                                   </div>
-                                  <div className="text-[10px] text-slate-500 font-mono">
+                                  <div className="text-[10px] text-slate-400 font-mono">
                                     2.4 GHz • WebSocket 50 Hz
                                   </div>
                                 </div>
@@ -330,21 +376,22 @@ export default function LandingPage() {
                             <div className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-blue-400">
-                                  <BarChart3 className="w-3.5 h-3.5" />
+                                  <BarChart3 className="w-3.5 h-3.5" aria-hidden="true" />
                                 </div>
-                                <span className="text-slate-400 font-medium text-xs">
+                                <span className="text-slate-300 font-medium text-xs">
                                   Spectral Band Power
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-2">
                                 {["All", "Alpha", "Beta"].map((b) => (
                                   <button
                                     key={b}
                                     onClick={() => setSelectedBand(b)}
-                                    className={`text-[10px] font-mono px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                                    aria-label={`Filter by ${b} frequency band`}
+                                    className={`text-xs font-mono px-3 py-1.5 min-h-[36px] rounded-lg cursor-pointer transition-colors ${
                                       selectedBand === b
-                                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
-                                        : "text-slate-500 hover:text-slate-300"
+                                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold"
+                                        : "text-slate-400 hover:text-slate-200 border border-transparent"
                                     }`}
                                   >
                                     {b}
@@ -358,18 +405,18 @@ export default function LandingPage() {
                                 38.4 µV² Alpha Peak
                               </div>
                               <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
                                   +15% Dominant
                                 </span>
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-slate-300">
                                   8 – 13 Hz Resting State Rhythms
                                 </span>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-300">
                               <span>FFT Spectrum (1 - 50 Hz)</span>
-                              <span className="text-cyan-400">
+                              <span className="text-cyan-300 font-semibold">
                                 {hoveredBar ? `${hoveredBar.band}: ${hoveredBar.freq} (${hoveredBar.power})` : "Hover bar to inspect"}
                               </span>
                             </div>
@@ -399,9 +446,9 @@ export default function LandingPage() {
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-300">
                             <span>Sampling: 512 SPS (FreeRTOS)</span>
-                            <span className="text-cyan-400 font-semibold">
+                            <span className="text-cyan-300 font-semibold">
                               Alpha Rhythm Dominant
                             </span>
                           </div>
@@ -415,17 +462,18 @@ export default function LandingPage() {
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => setIsStreaming(!isStreaming)}
-                              className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 transition-colors cursor-pointer"
+                              aria-label={isStreaming ? "Pause Live Trace" : "Resume Live Trace"}
+                              className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 hover:bg-cyan-500/30 transition-colors cursor-pointer"
                               title={isStreaming ? "Pause Live Trace" : "Resume Live Trace"}
                             >
-                              {isStreaming ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-cyan-400" />}
+                              {isStreaming ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4 fill-cyan-400" aria-hidden="true" />}
                             </button>
                             <div>
                               <div className="text-xs font-semibold text-white flex items-center gap-2">
                                 <span>Raw Oscilloscope (FP1)</span>
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
                               </div>
-                              <div className="text-[11px] text-slate-400 font-mono">
+                              <div className="text-[11px] text-slate-300 font-mono">
                                 ±50 µV Scale • {isStreaming ? "Live 50 Hz Stream" : "Stream Paused"}
                               </div>
                             </div>
@@ -439,17 +487,21 @@ export default function LandingPage() {
                         <div className="md:col-span-5 rounded-2xl bg-slate-900/80 border border-slate-800 p-4 text-left flex items-center justify-between">
                           <div>
                             <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" aria-hidden="true" />
                               <span>ML Classification Pipeline</span>
                             </div>
-                            <div className="text-[11px] text-slate-400 font-mono">
+                            <div className="text-[11px] text-slate-300 font-mono">
                               Ready for SVM, RF & XGBoost
                             </div>
                           </div>
-                          <Link href="/analysis">
-                            <div className="w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer transition-colors">
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </div>
+                          <Link
+                            href="/analysis"
+                            aria-label="View Machine Learning Analysis"
+                            title="View Machine Learning Analysis"
+                            className="w-8 h-8 min-h-[36px] min-w-[36px] rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                            <span className="sr-only">View Machine Learning Analysis</span>
                           </Link>
                         </div>
                       </div>
@@ -470,15 +522,17 @@ export default function LandingPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setIsStreaming(!isStreaming)}
-                            className="px-3 py-1 rounded bg-slate-800 text-xs text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                            aria-label={isStreaming ? "Pause raw EEG trace" : "Resume raw EEG trace"}
+                            className="px-3.5 py-2 min-h-[40px] rounded-lg bg-slate-800 text-xs text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
                           >
-                            {isStreaming ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                            {isStreaming ? <Pause className="w-3.5 h-3.5" aria-hidden="true" /> : <Play className="w-3.5 h-3.5" aria-hidden="true" />}
                             <span>{isStreaming ? "Pause" : "Resume"}</span>
                           </button>
-                          <Link href="/live">
-                            <button className="px-3 py-1 rounded bg-cyan-600 text-xs text-white hover:bg-cyan-500 cursor-pointer">
-                              Full Monitor →
-                            </button>
+                          <Link
+                            href="/live"
+                            className="px-3.5 py-2 min-h-[40px] rounded-lg bg-cyan-600 text-xs text-white hover:bg-cyan-500 inline-flex items-center text-center cursor-pointer font-medium"
+                          >
+                            Full Monitor →
                           </Link>
                         </div>
                       </div>
@@ -518,7 +572,7 @@ export default function LandingPage() {
                     <div className="rounded-2xl bg-slate-900/90 border border-slate-700/80 p-5 text-left space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm text-white">Wearable IoT Hardware Topology</span>
-                        <Link href="/devices" className="text-xs text-cyan-400 hover:underline">
+                        <Link href="/devices" className="text-xs text-cyan-400 hover:underline py-1.5 min-h-[36px] inline-flex items-center">
                           Device Registry →
                         </Link>
                       </div>
@@ -566,7 +620,7 @@ export default function LandingPage() {
                 name: "NeuroSky TGAM1",
                 role: "Biosignal ASIC",
                 svg: (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
                     <circle cx="12" cy="12" r="8" />
                     <circle cx="12" cy="12" r="3" fill="currentColor" />
                     <line x1="12" y1="2" x2="12" y2="4" />
@@ -578,7 +632,7 @@ export default function LandingPage() {
                 name: "Espressif ESP32",
                 role: "Dual-Core MCU",
                 svg: (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-400" fill="currentColor">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-400" fill="currentColor" aria-hidden="true" focusable="false">
                     <path d="M12 2L3 9l9 7 9-7-9-7zm0 18l-9-7 1.5-1.2L12 17.5l7.5-5.7L21 13l-9 7z" />
                   </svg>
                 ),
@@ -587,7 +641,7 @@ export default function LandingPage() {
                 name: "Go Gin Gateway",
                 role: "REST & WebSocket",
                 svg: (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
                     <circle cx="12" cy="12" r="4" fill="currentColor" />
                     <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41" />
                   </svg>
@@ -597,7 +651,7 @@ export default function LandingPage() {
                 name: "PostgreSQL 16",
                 role: "Time-Series Store",
                 svg: (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-sky-400" fill="currentColor">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-sky-400" fill="currentColor" aria-hidden="true" focusable="false">
                     <circle cx="8" cy="12" r="5" />
                     <circle cx="16" cy="12" r="5" fillOpacity="0.6" />
                   </svg>
@@ -607,7 +661,7 @@ export default function LandingPage() {
                 name: "Machine Learning",
                 role: "SVM / RF Classifier",
                 svg: (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                     <line x1="4" y1="22" x2="4" y2="15" />
                   </svg>
@@ -694,7 +748,7 @@ export default function LandingPage() {
 
               {/* Concentric Circular Sensor Radar Graphic (Directly Inspired by Reference Visual) */}
               <div className="relative py-4 flex items-center justify-center">
-                <svg viewBox="0 0 240 160" className="w-full max-w-[220px] h-auto">
+                <svg viewBox="0 0 240 160" className="w-full max-w-[220px] h-auto" aria-hidden="true" focusable="false">
                   {/* Concentric rings */}
                   <circle cx="120" cy="80" r="72" stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" fill="none" />
                   <circle cx="120" cy="80" r="52" stroke="#334155" strokeWidth="1.2" fill="none" />
@@ -786,7 +840,7 @@ export default function LandingPage() {
 
                   <div>
                     <h3 className="text-base font-bold text-white">{b.name}</h3>
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block mt-0.5">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mt-0.5">
                       Sub-Band Spectrum
                     </span>
                   </div>
@@ -820,11 +874,12 @@ export default function LandingPage() {
                 Real-time responsive dashboard providing live waveform oscilloscopes, session tracking, and preparation for multi-model ML inference.
               </p>
             </div>
-            <Link href="/dashboard">
-              <button className="px-6 py-2.5 rounded-full bg-white text-slate-950 font-semibold text-xs hover:bg-slate-100 transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/10">
-                <span>Launch Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 min-h-[44px] rounded-full bg-white text-slate-950 font-semibold text-xs hover:bg-slate-100 transition-all inline-flex items-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/10"
+            >
+              <span>Launch Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           </div>
 
@@ -834,7 +889,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="font-semibold text-white">Active Device: TGAM1 Headset Alpha</span>
-                <span className="font-mono text-slate-500">[EEG-001]</span>
+                <span className="font-mono text-slate-400">[EEG-001]</span>
               </div>
               <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
                 <span>Signal: 94% Good</span>
@@ -902,20 +957,22 @@ export default function LandingPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-              <Link href="/dashboard">
-                <button className="px-8 py-3.5 rounded-full bg-white text-slate-950 hover:bg-slate-100 font-semibold text-sm transition-all shadow-xl hover:shadow-cyan-500/20 active:scale-95 cursor-pointer">
-                  Launch Platform Dashboard
-                </button>
+              <Link
+                href="/dashboard"
+                className="px-8 py-3.5 rounded-full bg-white text-slate-950 hover:bg-slate-100 font-semibold text-sm transition-all shadow-xl hover:shadow-cyan-500/20 active:scale-95 inline-block text-center cursor-pointer"
+              >
+                Launch Platform Dashboard
               </Link>
-              <Link href="/about">
-                <button className="px-7 py-3.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white font-medium text-sm border border-slate-700/80 transition-all cursor-pointer">
-                  Explore Methodology
-                </button>
+              <Link
+                href="/about"
+                className="px-7 py-3.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white font-medium text-sm border border-slate-700/80 transition-all inline-block text-center cursor-pointer"
+              >
+                Explore Methodology
               </Link>
             </div>
 
             {/* System Status Strip */}
-            <div className="pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-mono text-slate-500">
+            <div className="pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-mono text-slate-400">
               <span className="flex items-center gap-1.5 text-slate-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                 <span>Single-Channel FP1</span>
@@ -936,6 +993,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Dark Footer */}
       <Footer theme="dark" />

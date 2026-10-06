@@ -21,9 +21,9 @@ export function Footer({ theme = "dark" }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           {/* Col 1: System Branding & Academic Scope (5 cols) */}
           <div className="md:col-span-5 space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <Link href="/" aria-label="NeuroPulse Homepage" className="inline-flex items-center gap-2.5 group">
               <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-cyan-400 shadow-md shadow-cyan-500/10 group-hover:border-cyan-500/60 transition-colors">
-                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
                   <circle cx="12" cy="12" r="4" fill="currentColor" />
                 </svg>
@@ -83,36 +83,36 @@ export function Footer({ theme = "dark" }: FooterProps) {
 
           {/* Col 2: Platform Navigation (3 cols) */}
           <div className="md:col-span-3 space-y-3">
-            <h4
+            <p
               className={`text-xs font-semibold uppercase tracking-wider ${
-                isDark ? "text-slate-300" : "text-slate-900"
+                isDark ? "text-slate-200" : "text-slate-900"
               }`}
             >
               Navigation
-            </h4>
-            <ul className={`space-y-2 text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+            </p>
+            <ul className={`space-y-2 text-xs ${isDark ? "text-slate-300" : "text-slate-600"}`}>
               <li>
-                <Link href="/#overview" className="hover:text-cyan-400 transition-colors">
+                <Link href="/#overview" className="hover:text-cyan-300 transition-colors">
                   Overview (Home)
                 </Link>
               </li>
               <li>
-                <Link href="/#workflow" className="hover:text-cyan-400 transition-colors">
+                <Link href="/#workflow" className="hover:text-cyan-300 transition-colors">
                   System Workflow
                 </Link>
               </li>
               <li>
-                <Link href="/#bands" className="hover:text-cyan-400 transition-colors">
+                <Link href="/#bands" className="hover:text-cyan-300 transition-colors">
                   EEG Frequency Bands
                 </Link>
               </li>
               <li>
-                <Link href="/#platform" className="hover:text-cyan-400 transition-colors">
+                <Link href="/#platform" className="hover:text-cyan-300 transition-colors">
                   Research Control Center
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-cyan-400 transition-colors">
+                <Link href="/about" className="hover:text-cyan-300 transition-colors">
                   About Project & Methodology
                 </Link>
               </li>
@@ -121,13 +121,13 @@ export function Footer({ theme = "dark" }: FooterProps) {
 
           {/* Col 3: Research & Services (4 cols) */}
           <div className="md:col-span-4 space-y-3">
-            <h4
+            <p
               className={`text-xs font-semibold uppercase tracking-wider ${
-                isDark ? "text-slate-300" : "text-slate-900"
+                isDark ? "text-slate-200" : "text-slate-900"
               }`}
             >
               Research Services
-            </h4>
+            </p>
             <ul className={`space-y-2 text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>
               <li>
                 <Link href="/dashboard" className="hover:text-cyan-400 transition-colors flex items-center gap-1">

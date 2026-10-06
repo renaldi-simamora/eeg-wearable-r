@@ -114,9 +114,9 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
       <aside className="hidden lg:flex lg:flex-col w-[240px] h-full bg-[#0a0f1d] border-r border-white/[0.05] shrink-0 select-none">
         {/* Brand Header */}
         <div className="h-14 px-4 border-b border-white/[0.05] flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+          <Link href="/dashboard" aria-label="EEG Wearable Platform Dashboard" className="flex items-center gap-2.5 group">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Activity className="w-3.5 h-3.5" />
+              <Activity className="w-3.5 h-3.5" aria-hidden="true" />
             </div>
             <div>
               <span className="font-semibold text-white text-xs tracking-tight block">
@@ -223,11 +223,12 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
         <div className="h-14 px-4 border-b border-white/[0.05] flex items-center justify-between">
           <Link
             href="/dashboard"
+            aria-label="EEG Wearable Platform Dashboard"
             onClick={() => setMobileSidebarOpen(false)}
             className="flex items-center gap-2.5"
           >
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white">
-              <Activity className="w-3.5 h-3.5" />
+              <Activity className="w-3.5 h-3.5" aria-hidden="true" />
             </div>
             <span className="font-semibold text-white text-xs">
               EEG Wearable Platform
@@ -404,7 +405,7 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
 
         {/* Scrollable Page Body */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <main className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto">
+          <main id="main-content" role="main" aria-label="Dashboard Content" className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto">
             {children}
           </main>
         </div>
