@@ -114,9 +114,9 @@ func (s *Service) ClassifySession(sessionID string) (*models.MLPrediction, error
 		SessionID: sessionID,
 		Title:     fmt.Sprintf("Classified Pattern: %s", mlResp.PredictedClass),
 		Summary: fmt.Sprintf(
-			"Classified with %.1f%% confidence by %s (%s) based on single-channel FP1 relative power distribution (Alpha: %.1f%%, Beta: %.1f%%, Theta: %.1f%%, Delta: %.1f%%). Academic research observation only; does not constitute clinical diagnosis.",
+			"Classified with %.1f%% confidence by %s (%s) based on single-channel FP1 relative power distribution (Delta: %.1f%%, Theta: %.1f%%, Alpha: %.1f%%, Beta: %.1f%%, Gamma: %.1f%%). Academic research observation only; does not constitute clinical diagnosis.",
 			mlResp.Confidence*100, mlResp.ModelName, mlResp.ModelVersion,
-			latestFeature.Alpha, latestFeature.Beta, latestFeature.Theta, latestFeature.Delta,
+			latestFeature.Delta, latestFeature.Theta, latestFeature.Alpha, latestFeature.Beta, latestFeature.Gamma,
 		),
 		CreatedAt: time.Now(),
 	}

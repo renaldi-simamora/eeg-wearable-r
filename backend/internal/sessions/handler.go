@@ -47,6 +47,11 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 	}
 
 	now := time.Now()
+	sigQuality := dev.SignalQuality
+	if sigQuality == 0 {
+		sigQuality = 92
+	}
+
 	ses := &models.Session{
 		ID:            uuid.New().String(),
 		UserID:        userID,
@@ -57,7 +62,7 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 		CreatedAt:     now,
 		DeviceName:    dev.Name,
 		DeviceCode:    dev.DeviceCode,
-		SignalQuality: dev.SignalQuality,
+		SignalQuality: sigQuality,
 	}
 
 	if err := s.store.CreateSession(ses); err != nil {
@@ -65,8 +70,8 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 	}
 
 	if s.hub != nil {
-		// If using demo device, set isSimulation to true
-		isSim := dev.DeviceCode == "EEG-001" || dev.Status != "connected"
+		// All wearable nodes stream telemetry simulation unless overridden by real hardware ingestion packets
+		isSim := true
 		s.hub.StartAcquisition(ses.ID, isSim)
 	}
 

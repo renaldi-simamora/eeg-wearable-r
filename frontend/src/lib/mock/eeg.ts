@@ -1,16 +1,16 @@
 import { EEGSample, BrainwaveFeature } from "@/types";
 
-export function generateMockEEGSeries(count: number = 80): EEGSample[] {
+export function generateMockEEGSeries(count: number = 80, freq: number = 10): EEGSample[] {
   const samples: EEGSample[] = [];
   const now = Date.now();
   for (let i = 0; i < count; i++) {
     const t = i * 0.05;
-    // Synthesis of rhythmic Alpha (10Hz), Theta (6Hz), and micro-noise
-    const alphaWave = 22 * Math.sin(2 * Math.PI * 10 * t);
-    const thetaWave = 12 * Math.sin(2 * Math.PI * 6 * t);
-    const deltaWave = 8 * Math.sin(2 * Math.PI * 2 * t);
-    const noise = (Math.random() - 0.5) * 6;
-    const rawEEG = Math.round((alphaWave + thetaWave + deltaWave + noise) * 100) / 100;
+    // Synthesis based on target principal frequency
+    const primaryWave = 22 * Math.sin(2 * Math.PI * freq * t);
+    const subWave = 10 * Math.sin(2 * Math.PI * (freq * 0.5) * t);
+    const slowWave = 6 * Math.sin(2 * Math.PI * 2 * t);
+    const noise = (Math.random() - 0.5) * 5;
+    const rawEEG = Math.round((primaryWave + subWave + slowWave + noise) * 100) / 100;
 
     samples.push({
       timestamp: now - (count - i) * 50,
@@ -21,13 +21,53 @@ export function generateMockEEGSeries(count: number = 80): EEGSample[] {
   return samples;
 }
 
-export const mockBrainwaveFeature: BrainwaveFeature = {
-  delta: 16.5, // 0.5 - 4 Hz
-  theta: 22.1, // 4 - 8 Hz
-  alpha: 38.4, // 8 - 13 Hz (relaxed alertness / resting state)
-  beta: 16.8,  // 13 - 30 Hz (active thinking)
-  gamma: 6.2,  // 30 - 50 Hz (cognitive integration)
+export const mockAlphaFeature: BrainwaveFeature = {
+  delta: 13.5,
+  theta: 17.2,
+  alpha: 42.6, // Alpha dominant (relaxed wakefulness)
+  beta: 18.9,
+  gamma: 7.8,
 };
+
+export const mockBetaFeature: BrainwaveFeature = {
+  delta: 11.2,
+  theta: 15.1,
+  alpha: 20.8,
+  beta: 39.5, // Beta dominant (active cognitive focus)
+  gamma: 13.4,
+};
+
+export const mockThetaFeature: BrainwaveFeature = {
+  delta: 22.4,
+  theta: 41.8, // Theta dominant (drowsiness/meditation)
+  alpha: 19.2,
+  beta: 11.6,
+  gamma: 5.0,
+};
+
+export const mockDeltaFeature: BrainwaveFeature = {
+  delta: 44.5, // Delta dominant (deep rest)
+  theta: 23.8,
+  alpha: 15.2,
+  beta: 10.7,
+  gamma: 5.8,
+};
+
+export function getMockFeatureForSession(sessionId: string): BrainwaveFeature {
+  if (sessionId.includes("002") || sessionId.includes("focus")) {
+    return mockBetaFeature;
+  }
+  if (sessionId.includes("003") || sessionId.includes("theta") || sessionId.includes("drowsy")) {
+    return mockThetaFeature;
+  }
+  if (sessionId.includes("004") || sessionId.includes("delta") || sessionId.includes("rest")) {
+    return mockDeltaFeature;
+  }
+  return mockAlphaFeature;
+}
+
+// Backwards compatibility
+export const mockBrainwaveFeature: BrainwaveFeature = mockAlphaFeature;
 
 export const eegBandInfo = [
   {

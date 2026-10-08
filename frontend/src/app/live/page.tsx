@@ -45,6 +45,7 @@ export default function LiveEEGPage() {
     signalQuality,
     sessionSeconds,
     isStreaming,
+    isSimulation,
     connectionMode,
     startAcquisition,
     pauseAcquisition,
@@ -78,7 +79,7 @@ export default function LiveEEGPage() {
       const targetDevice = activeDevice?.id || selectedDeviceId;
       const created = await createSessionMutation.mutateAsync(targetDevice);
       setActiveSessionId(created.id);
-      await startAcquisition();
+      await startAcquisition(created.id);
 
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
@@ -135,21 +136,22 @@ export default function LiveEEGPage() {
   };
 
   const getDemoBadgeText = () => {
+    const prefix = isSimulation ? "Demo / Simulation" : "Hardware Connected";
     switch (status) {
       case "READY":
-        return "Demo / Simulation — Ready";
+        return `${prefix} — Ready`;
       case "STARTING":
-        return "Demo / Simulation — Starting";
+        return `${prefix} — Starting`;
       case "ACQUIRING":
-        return "Demo / Simulation — Running";
+        return `${prefix} — Running`;
       case "PAUSED":
-        return "Demo / Simulation — Paused";
+        return `${prefix} — Paused`;
       case "STOPPING":
-        return "Demo / Simulation — Stopping";
+        return `${prefix} — Stopping`;
       case "COMPLETED":
-        return "Demo / Simulation — Completed";
+        return `${prefix} — Completed`;
       default:
-        return "Demo / Simulation";
+        return prefix;
     }
   };
 
@@ -226,7 +228,9 @@ export default function LiveEEGPage() {
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 text-xs font-mono">
               <span className={`w-1.5 h-1.5 rounded-full ${status === "ACQUIRING" ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
               <span>
-                {activeDevice ? `${activeDevice.name} (Demo Device)` : "TGAM1 Headset (Demo Device)"}
+                {activeDevice
+                  ? `${activeDevice.name} (${isSimulation ? "Demo Mode" : "Hardware Connected"})`
+                  : `TGAM1 Headset (${isSimulation ? "Demo Mode" : "Hardware Connected"})`}
               </span>
             </div>
 
@@ -557,7 +561,7 @@ export default function LiveEEGPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 pt-1">
-                <FrequencyBandsChart features={bands} />
+                <FrequencyBandsChart features={bands} isSimulation={isSimulation} />
               </CardContent>
             </Card>
           </div>

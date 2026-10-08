@@ -1,6 +1,9 @@
 package eeg
 
 import (
+	"errors"
+	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -53,13 +56,32 @@ func (s *Service) GetEEGBySession(sessionID string) (map[string]interface{}, err
 }
 
 func (s *Service) SaveEEGData(req *models.PostEEGDataRequest) error {
-	for i := range req.Samples {
-		if req.Samples[i].ID == "" {
-			req.Samples[i].ID = uuid.New().String()
+	// If hardware node sends a generic active placeholder or empty, bind to currently active session
+	if (req.SessionID == "" || req.SessionID == "ses-active-research" || req.SessionID == "active") && s.hub != nil {
+		activeID := s.hub.GetActiveSessionID()
+		if activeID != "" {
+			req.SessionID = activeID
 		}
-		req.Samples[i].SessionID = req.SessionID
-		if req.Samples[i].CreatedAt.IsZero() {
-			req.Samples[i].CreatedAt = time.Now()
+	}
+
+	if req.SessionID == "" {
+		log.Println("[EEG VALIDATION] status: INVALID reason: sessionId is required")
+		return errors.New("sessionId is required")
+	}
+
+	// Validate raw EEG samples
+	for i := range req.Samples {
+		sm := &req.Samples[i]
+		if sm.ID == "" {
+			sm.ID = uuid.New().String()
+		}
+		sm.SessionID = req.SessionID
+		if sm.CreatedAt.IsZero() {
+			sm.CreatedAt = time.Now()
+		}
+		if math.IsNaN(sm.RawEEG) || math.IsInf(sm.RawEEG, 0) {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: rawEEG NaN or Inf in session %s, clamped to 0", req.SessionID)
+			sm.RawEEG = 0.0
 		}
 	}
 
@@ -67,11 +89,42 @@ func (s *Service) SaveEEGData(req *models.PostEEGDataRequest) error {
 		return err
 	}
 
+	// Validate brainwave spectral features
 	if req.Features != nil {
-		req.Features.ID = uuid.New().String()
-		req.Features.SessionID = req.SessionID
-		req.Features.CreatedAt = time.Now()
-		if err := s.store.SaveBrainwaveFeature(req.Features); err != nil {
+		f := req.Features
+		if math.IsNaN(f.Delta) || math.IsInf(f.Delta, 0) || f.Delta < 0 {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: delta invalid (%.2f), clamped to 0", f.Delta)
+			f.Delta = 0.0
+		}
+		if math.IsNaN(f.Theta) || math.IsInf(f.Theta, 0) || f.Theta < 0 {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: theta invalid (%.2f), clamped to 0", f.Theta)
+			f.Theta = 0.0
+		}
+		if math.IsNaN(f.Alpha) || math.IsInf(f.Alpha, 0) || f.Alpha < 0 {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: alpha invalid (%.2f), clamped to 0", f.Alpha)
+			f.Alpha = 0.0
+		}
+		if math.IsNaN(f.Beta) || math.IsInf(f.Beta, 0) || f.Beta < 0 {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: beta invalid (%.2f), clamped to 0", f.Beta)
+			f.Beta = 0.0
+		}
+		if math.IsNaN(f.Gamma) || math.IsInf(f.Gamma, 0) || f.Gamma < 0 {
+			log.Printf("[EEG VALIDATION] status: INVALID reason: gamma invalid (%.2f), clamped to 0", f.Gamma)
+			f.Gamma = 0.0
+		}
+
+		f.ID = uuid.New().String()
+		f.SessionID = req.SessionID
+		f.CreatedAt = time.Now()
+		if f.Timestamp == 0 {
+			f.Timestamp = time.Now().UnixMilli()
+		}
+
+		log.Printf("[EEG] session_id: %s timestamp: %d delta: %.1f theta: %.1f alpha: %.1f beta: %.1f gamma: %.1f",
+			req.SessionID, f.Timestamp, f.Delta, f.Theta, f.Alpha, f.Beta, f.Gamma)
+		log.Printf("[EEG VALIDATION] status: VALID session_id: %s", req.SessionID)
+
+		if err := s.store.SaveBrainwaveFeature(f); err != nil {
 			return err
 		}
 	}

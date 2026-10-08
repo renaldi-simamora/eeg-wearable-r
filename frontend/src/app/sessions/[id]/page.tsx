@@ -9,7 +9,7 @@ import { sessionService } from "@/services/session.service";
 import { eegService } from "@/services/eeg.service";
 import { analysisService } from "@/services/analysis.service";
 import { WaveformChart } from "@/components/eeg/WaveformChart";
-import { FrequencyBandsChart } from "@/components/eeg/FrequencyBandsChart";
+import { FrequencyBandsChart, calculateDominantBand } from "@/components/eeg/FrequencyBandsChart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,36 @@ export default function SessionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
+
+  // Dynamic statistical calculations from actual session samples
+  const rawValues = (eegData?.samples || [])
+    .map((s) => s.rawEEG)
+    .filter((v) => typeof v === "number" && !isNaN(v));
+
+  let meanAmpStr = "N/A";
+  let stdDevStr = "N/A";
+  let vppStr = "N/A";
+
+  if (rawValues.length > 0) {
+    const sum = rawValues.reduce((a, b) => a + b, 0);
+    const mean = sum / rawValues.length;
+    const variance =
+      rawValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / rawValues.length;
+    const stdDev = Math.sqrt(variance);
+    const min = Math.min(...rawValues);
+    const max = Math.max(...rawValues);
+    const vpp = max - min;
+
+    meanAmpStr = `${mean >= 0 ? "+" : ""}${mean.toFixed(2)} µV`;
+    stdDevStr = `${stdDev.toFixed(2)} µV`;
+    vppStr = `${vpp.toFixed(2)} µV`;
+  }
+
+  // Dominant frequency band calculated from actual session spectral features
+  const dominant = calculateDominantBand(eegData?.latestFeature);
+  const dominantBandStr = dominant
+    ? `${dominant.name} (${dominant.value.toFixed(1)}%)`
+    : "Waiting for EEG data";
 
   return (
     <AppShell title={`Session #${sessionId.slice(-6)}`}>
@@ -215,7 +245,7 @@ export default function SessionDetailPage() {
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
                   <span className="text-slate-400 font-sans">Samples Persisted</span>
-                  <span className="font-medium text-cyan-400">{eegData?.samples?.length || 80} windows</span>
+                  <span className="font-medium text-cyan-400">{eegData?.samples?.length ?? 0} windows</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-slate-400 font-sans">Impedance Stability</span>
@@ -240,7 +270,7 @@ export default function SessionDetailPage() {
                       Mean Amplitude
                     </span>
                     <span className="text-base font-bold text-white block mt-0.5">
-                      +1.42 µV
+                      {meanAmpStr}
                     </span>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
@@ -248,7 +278,7 @@ export default function SessionDetailPage() {
                       Standard Deviation
                     </span>
                     <span className="text-base font-bold text-white block mt-0.5">
-                      14.86 µV
+                      {stdDevStr}
                     </span>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
@@ -256,15 +286,15 @@ export default function SessionDetailPage() {
                       Peak-to-Peak (Vp-p)
                     </span>
                     <span className="text-base font-bold text-white block mt-0.5">
-                      68.20 µV
+                      {vppStr}
                     </span>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Dominant Band
                     </span>
-                    <span className="text-base font-bold text-emerald-400 block mt-0.5">
-                      Alpha (10.1 Hz)
+                    <span className="text-base font-bold text-cyan-400 block mt-0.5">
+                      {dominantBandStr}
                     </span>
                   </div>
                 </div>

@@ -3,6 +3,8 @@ package database
 import (
 	"errors"
 	"fmt"
+	"math"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -121,14 +123,58 @@ func (m *MemoryStore) seed() {
 			ID:        "bw-001",
 			SessionID: "ses-001",
 			Timestamp: now.Unix() - 1800,
-			Delta:     18.4,
-			Theta:     24.2,
-			Alpha:     36.8,
-			Beta:      14.5,
-			Gamma:     6.1,
+			Delta:     14.2,
+			Theta:     18.5,
+			Alpha:     42.1, // Alpha Dominant
+			Beta:      17.6,
+			Gamma:     7.6,
 			CreatedAt: now.Add(-30 * time.Minute),
 		},
 	}
+	m.brainwaves["ses-002"] = []models.BrainwaveFeature{
+		{
+			ID:        "bw-002",
+			SessionID: "ses-002",
+			Timestamp: now.Unix() - 7200,
+			Delta:     11.5,
+			Theta:     14.8,
+			Alpha:     20.4,
+			Beta:      40.5, // Beta Dominant (Active Focus)
+			Gamma:     12.8,
+			CreatedAt: now.Add(-120 * time.Minute),
+		},
+	}
+
+	// Seed EEG waveform samples for replay
+	s1Samples := make([]models.EEGSample, 60)
+	for i := 0; i < 60; i++ {
+		t := float64(i) * 0.05
+		val := 18.0*math.Sin(2*math.Pi*10.0*t) + 8.0*math.Sin(2*math.Pi*2.0*t) + (rand.Float64()*3.0 - 1.5)
+		s1Samples[i] = models.EEGSample{
+			ID:            fmt.Sprintf("s1-%d", i),
+			SessionID:     "ses-001",
+			Timestamp:     (now.Unix() - 1800) + int64(i),
+			RawEEG:        math.Round(val*100) / 100,
+			SignalQuality: 94,
+			CreatedAt:     now.Add(-30 * time.Minute),
+		}
+	}
+	m.eegSamples["ses-001"] = s1Samples
+
+	s2Samples := make([]models.EEGSample, 60)
+	for i := 0; i < 60; i++ {
+		t := float64(i) * 0.05
+		val := 19.0*math.Sin(2*math.Pi*20.0*t) + 6.0*math.Sin(2*math.Pi*4.0*t) + (rand.Float64()*3.0 - 1.5)
+		s2Samples[i] = models.EEGSample{
+			ID:            fmt.Sprintf("s2-%d", i),
+			SessionID:     "ses-002",
+			Timestamp:     (now.Unix() - 7200) + int64(i),
+			RawEEG:        math.Round(val*100) / 100,
+			SignalQuality: 88,
+			CreatedAt:     now.Add(-120 * time.Minute),
+		}
+	}
+	m.eegSamples["ses-002"] = s2Samples
 }
 
 func (m *MemoryStore) CreateUser(user *models.User) error {
