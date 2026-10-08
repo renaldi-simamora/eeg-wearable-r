@@ -167,8 +167,8 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 			Name:         name,
 			Email:        info.Email,
 			PasswordHash: "oauth2_google_" + uuid.New().String(),
-			Role:         "researcher",
-			Institution:  "Biomedical Research Center",
+			Role:         "SUPERADMIN",
+			Institution:  "ADMIN@gmail.com",
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -187,4 +187,3 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 		User:  *user,
 	}, nil
 }
-

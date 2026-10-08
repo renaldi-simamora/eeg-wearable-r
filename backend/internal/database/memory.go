@@ -39,6 +39,19 @@ func NewMemoryStore() *MemoryStore {
 func (m *MemoryStore) seed() {
 	now := time.Now()
 
+	// Seed Admin Researcher User (admin@gmail.com / admin123)
+	adminUser := &models.User{
+		ID:           "user-demo-01",
+		Name:         "Admin Researcher",
+		Email:        "admin@gmail.com",
+		PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+		Role:         "researcher",
+		Institution:  "Biomedical Engineering Laboratory",
+		CreatedAt:    now.Add(-72 * time.Hour),
+		UpdatedAt:    now,
+	}
+	m.users[adminUser.ID] = adminUser
+
 	// Seed Devices
 	devices := []models.Device{
 		{

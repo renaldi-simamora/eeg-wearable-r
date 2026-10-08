@@ -424,6 +424,33 @@ func (s *PostgresStore) SaveAIInsight(insight *models.AIInsight) error {
 
 // SeedInitialData creates standard starter records if tables are empty
 func (s *PostgresStore) SeedInitialData() {
+	// Ensure default admin user (admin@gmail.com / admin123) is always available
+	const adminHash = "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li"
+	_, _ = s.db.Exec("UPDATE users SET email = 'admin@gmail.com', password_hash = $1 WHERE email IN ('researcher@biomedical.ac.id', 'demo@research.eeg')", adminHash)
+
+	var existingUserId string
+	err := s.db.QueryRow("SELECT id FROM users WHERE email = 'admin@gmail.com'").Scan(&existingUserId)
+	if err == nil {
+		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'researcher' WHERE email = 'admin@gmail.com'", adminHash)
+	} else {
+		adminId := "user-demo-01"
+		var idTaken bool
+		_ = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", adminId).Scan(&idTaken)
+		if idTaken {
+			adminId = "user-admin-01"
+		}
+		_ = s.CreateUser(&models.User{
+			ID:           adminId,
+			Name:         "Admin Researcher",
+			Email:        "admin@gmail.com",
+			PasswordHash: adminHash,
+			Role:         "researcher",
+			Institution:  "Biomedical Engineering Laboratory",
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		})
+	}
+
 	var count int
 	_ = s.db.QueryRow("SELECT COUNT(*) FROM devices").Scan(&count)
 	if count == 0 {
@@ -479,14 +506,14 @@ func (s *PostgresStore) SeedInitialData() {
 		s1Ended := now.Add(-30 * time.Minute)
 		s2Ended := now.Add(-2 * time.Hour)
 
-		// Ensure user-demo-01 exists to satisfy foreign key constraint
+		// Ensure user-demo-01 exists to satisfy foreign key constraint and provide default admin login
 		_ = s.CreateUser(&models.User{
 			ID:           "user-demo-01",
-			Name:         "Demo Researcher",
-			Email:        "demo@research.eeg",
-			PasswordHash: "$2a$10$7EqJtq98hPqEX7fN6Y0rAOoMh88x22oD8m8vI1gG2j5w8u7k6y9qG",
+			Name:         "Admin Researcher",
+			Email:        "admin@gmail.com",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
 			Role:         "researcher",
-			Institution:  "IoT Wearable Lab",
+			Institution:  "Biomedical Engineering Laboratory",
 			CreatedAt:    now.Add(-72 * time.Hour),
 			UpdatedAt:    now,
 		})

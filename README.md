@@ -710,8 +710,8 @@ Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
 
 | Parameter | Kredensial Pengujian |
 | :--- | :--- |
-| **Email Peneliti** | `researcher@biomedical.ac.id` |
-| **Kata Sandi** | `password123` |
+| **Email Peneliti** | `admin@gmail.com` |
+| **Kata Sandi** | `admin123` |
 | **Nama Peneliti** | Dr. Renaldi Simamora |
 | **Institusi** | Dept. of Electrical & Biomedical Engineering |
 | **Peran (Role)** | `researcher` (Full Access) |
@@ -830,7 +830,7 @@ Respon:
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"researcher@biomedical.ac.id\",\"password\":\"password123\"}"
+  -d "{\"email\":\"admin@gmail.com\",\"password\":\"admin123\"}"
 ```
 
 #### 3. Uji Pengambilan Daftar Perangkat (Dengan Bearer Token):

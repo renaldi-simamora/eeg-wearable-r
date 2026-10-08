@@ -21,7 +21,7 @@ export default function SettingsPage() {
 
   // Profile form state
   const [name, setName] = useState(user?.name || "Dr. Renaldi Simamora");
-  const [email] = useState(user?.email || "researcher@biomedical.ac.id");
+  const [email] = useState(user?.email || "admin@gmail.com");
   const [institution, setInstitution] = useState(
     user?.institution || "Dept. of Electrical & Biomedical Engineering"
   );
