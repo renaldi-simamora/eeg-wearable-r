@@ -52,7 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const target = redirectUrl && redirectUrl.startsWith("/") && !redirectUrl.startsWith("/login")
         ? redirectUrl
         : "/dashboard";
-      router.push(target);
+      if (typeof window !== "undefined") {
+        window.location.replace(target);
+      } else {
+        router.push(target);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const target = redirectUrl && redirectUrl.startsWith("/") && !redirectUrl.startsWith("/login")
         ? redirectUrl
         : "/dashboard";
-      router.push(target);
+      if (typeof window !== "undefined") {
+        window.location.replace(target);
+      } else {
+        router.push(target);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const target = redirectUrl && redirectUrl.startsWith("/") && !redirectUrl.startsWith("/login")
         ? redirectUrl
         : "/dashboard";
-      router.push(target);
+      if (typeof window !== "undefined") {
+        window.location.replace(target);
+      } else {
+        router.push(target);
+      }
     } finally {
       setIsLoading(false);
     }
