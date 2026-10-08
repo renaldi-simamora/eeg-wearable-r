@@ -22,7 +22,7 @@ export function Footer({ theme = "dark" }: FooterProps) {
           {/* Col 1: System Branding & Academic Scope (5 cols) */}
           <div className="md:col-span-5 space-y-4">
             <Link href="/" aria-label="NeuroPulse Homepage" className="inline-flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-cyan-400 shadow-md shadow-cyan-500/10 group-hover:border-cyan-500/60 transition-colors">
+              <div className="w-8 h-8 rounded-lg border border-slate-800 bg-slate-900 flex items-center justify-center text-cyan-400 group-hover:border-slate-700 transition-colors">
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
                   <circle cx="12" cy="12" r="4" fill="currentColor" />
@@ -49,7 +49,7 @@ export function Footer({ theme = "dark" }: FooterProps) {
             {/* Hardware Chips */}
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono border ${
                   isDark
                     ? "bg-slate-900/90 border-slate-800 text-slate-300"
                     : "bg-slate-100 border-slate-200 text-slate-700"
@@ -59,7 +59,7 @@ export function Footer({ theme = "dark" }: FooterProps) {
                 <span>TGAM1 + ESP32</span>
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono border ${
                   isDark
                     ? "bg-slate-900/90 border-slate-800 text-slate-300"
                     : "bg-slate-100 border-slate-200 text-slate-700"
@@ -69,7 +69,7 @@ export function Footer({ theme = "dark" }: FooterProps) {
                 <span>PostgreSQL 16</span>
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono border ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono border ${
                   isDark
                     ? "bg-slate-900/90 border-slate-800 text-slate-300"
                     : "bg-slate-100 border-slate-200 text-slate-700"
