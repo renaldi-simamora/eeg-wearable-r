@@ -10,24 +10,35 @@ interface AuthShellProps {
   children: React.ReactNode;
 }
 
-// Mini SVG waveform component with zero JS overhead (instant paint, 0ms TBT)
-function MiniWaveform({ color, delay = 0 }: { color: string; delay?: number }) {
-  const points = [];
+// Mini SVG waveform component with deterministic rounded coordinates to avoid SSR float hydration mismatches
+function generateWaveformPath(delay: number = 0): string {
+  const points: string[] = [];
   for (let i = 0; i < 60; i++) {
-    points.push(Math.sin(i * 0.16 + delay) * 14 + Math.sin(i * 0.08) * 6);
+    const x = ((i / 59) * 280).toFixed(2);
+    const y = (30 + Math.sin(i * 0.16 + delay) * 14 + Math.sin(i * 0.08) * 6).toFixed(2);
+    points.push(`${x},${y}`);
   }
-  const pathD = points
-    .map((y, i) => `${(i / (points.length - 1)) * 280},${30 + y}`)
-    .join(" L ");
+  return `M ${points.join(" L ")}`;
+}
+
+const WAVEFORM_PATHS: Record<string, string> = {
+  "0": generateWaveformPath(0),
+  "1.5": generateWaveformPath(1.5),
+  "3": generateWaveformPath(3),
+};
+
+function MiniWaveform({ color, delay = 0 }: { color: string; delay?: number }) {
+  const pathD = WAVEFORM_PATHS[String(delay)] || generateWaveformPath(delay);
 
   return (
     <svg viewBox="0 0 280 60" className="w-full h-7 opacity-80" aria-hidden="true" focusable="false">
       <path
-        d={`M ${pathD}`}
+        d={pathD}
         fill="none"
         stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"
+        suppressHydrationWarning
       />
     </svg>
   );
