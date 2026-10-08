@@ -11,7 +11,7 @@ Endpoints:
 import os
 import json
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import numpy as np  # type: ignore
 import joblib  # type: ignore
 from fastapi import FastAPI, HTTPException  # type: ignore
@@ -36,7 +36,7 @@ app.add_middleware(
 )
 
 # Load models and metadata on startup
-models_cache: Dict[str, any] = {}
+models_cache: Dict[str, Any] = {}
 scaler = None
 metadata = {}
 
@@ -137,7 +137,7 @@ def predict(req: PredictionRequest):
             req.features.beta,
             req.features.gamma,
         ]
-        feat_dict = req.features.dict()
+        feat_dict = req.features.model_dump()
     elif req.raw_samples and len(req.raw_samples) > 0:
         # Conceptual FFT bandpass power calculation from raw time-series
         samples = np.array(req.raw_samples)

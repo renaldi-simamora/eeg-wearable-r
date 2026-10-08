@@ -109,7 +109,7 @@ def train_and_evaluate():
 
     for key, (name, model) in models.items():
         print(f"\nEvaluating {name} with 5-fold Stratified Cross-Validation...")
-        cv_results = cross_validate(model, X_scaled, y, cv=cv, scoring=scoring)
+        cv_results = cross_validate(model, X_scaled, y, cv=cv, scoring=scoring)  # type: ignore
         
         acc = float(np.mean(cv_results["test_accuracy"]))
         prec = float(np.mean(cv_results["test_precision_macro"]))
