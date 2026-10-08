@@ -88,7 +88,7 @@ function RegisterForm() {
     defaultValues: {
       name: "",
       email: "",
-      institution: "Biomedical Engineering Laboratory",
+      institution: "",
       password: "",
       confirmPassword: "",
     },
@@ -167,7 +167,7 @@ function RegisterForm() {
               <input
                 id="name"
                 autoComplete="name"
-                placeholder="Dr. Jane Doe"
+                placeholder=""
                 className={inputClass(!!errors.name)}
                 {...register("name")}
               />
@@ -182,7 +182,7 @@ function RegisterForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="researcher@university.ac.id"
+                placeholder=""
                 className={inputClass(!!errors.email)}
                 {...register("email")}
               />
@@ -201,7 +201,7 @@ function RegisterForm() {
             <input
               id="institution"
               autoComplete="organization"
-              placeholder="e.g. Dept. of Electrical & Biomedical Engineering"
+              placeholder=""
               className={inputClass(!!errors.institution)}
               {...register("institution")}
             />
@@ -218,7 +218,7 @@ function RegisterForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Min. 6 chars + number"
+                  placeholder=""
                   className={`${inputClass(!!errors.password)} pr-10`}
                   {...register("password")}
                 />
@@ -245,7 +245,7 @@ function RegisterForm() {
                   id="confirmPassword"
                   type={showConfirm ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Re-enter password"
+                  placeholder=""
                   className={`${inputClass(!!errors.confirmPassword)} pr-10`}
                   {...register("confirmPassword")}
                 />

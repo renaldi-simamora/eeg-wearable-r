@@ -34,9 +34,9 @@ function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "researcher@biomedical.ac.id",
-      password: "password123",
-      rememberMe: true,
+      email: "",
+      password: "",
+      rememberMe: false,
     },
   });
 
@@ -72,16 +72,6 @@ function LoginForm() {
       subtitle="Sign in to your EEG research dashboard to monitor sessions and data."
     >
       <div className="space-y-4">
-        {/* Demo credentials banner */}
-        <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-            <span className="font-mono text-[11px] font-medium text-emerald-300 uppercase tracking-wide">
-              Demo Credentials Loaded
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-300 font-mono">researcher / pass</span>
-        </div>
 
         {/* Error Notification */}
         {authError && (
@@ -114,7 +104,7 @@ function LoginForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="name@institution.ac.id"
+                placeholder=""
                 className={`w-full rounded-lg border bg-slate-950/80 px-3.5 py-2 pr-10 text-sm text-slate-100 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none ${
                   errors.email
                     ? "border-red-500/60 focus:border-red-500/80 focus:ring-2 focus:ring-red-500/20"
@@ -137,7 +127,7 @@ function LoginForm() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder=""
                 className={`w-full rounded-lg border bg-slate-950/80 px-3.5 py-2 pr-10 text-sm text-slate-100 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none ${
                   errors.password
                     ? "border-red-500/60 focus:border-red-500/80 focus:ring-2 focus:ring-red-500/20"
@@ -173,7 +163,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => {
-                alert("Demo phase: please sign in using the provided demo credentials (researcher / pass).");
+                alert("Please contact your laboratory administrator to reset your research credentials.");
               }}
               className="text-blue-400 hover:text-blue-300 font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer text-xs"
             >
