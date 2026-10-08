@@ -17,9 +17,6 @@ import {
   Plus,
   Clock,
   Radio,
-  ArrowUpDown,
-  Calendar,
-  SlidersHorizontal,
 } from "lucide-react";
 
 export default function SessionsPage() {
@@ -70,7 +67,7 @@ export default function SessionsPage() {
     <AppShell title="Recording Sessions">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               Sessions Archive
@@ -89,17 +86,17 @@ export default function SessionsPage() {
         </div>
 
         {/* Controls Bar: Search & Filters */}
-        <div className="bg-[#0c1220]/90 rounded-xl border border-white/[0.06] p-4 shadow-sm space-y-3">
+        <div className="bg-slate-900/60 rounded-xl border border-slate-800 p-4 shadow-sm space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
             {/* Search */}
             <div className="lg:col-span-5 relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search session ID, device code..."
-                className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] pl-9 pr-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 pl-9 pr-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/80 transition-colors"
               />
             </div>
 
@@ -108,7 +105,7 @@ export default function SessionsPage() {
               <select
                 value={deviceFilter}
                 onChange={(e) => setDeviceFilter(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer transition-all"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/80 cursor-pointer transition-colors"
               >
                 <option value="all">All Devices</option>
                 {(devices || []).map((d) => (
@@ -124,7 +121,7 @@ export default function SessionsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer transition-all"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/80 cursor-pointer transition-colors"
               >
                 <option value="all">All Statuses</option>
                 <option value="completed">Completed</option>
@@ -138,7 +135,7 @@ export default function SessionsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer transition-all"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/80 cursor-pointer transition-colors"
               >
                 <option value="date_desc">Newest First</option>
                 <option value="date_asc">Oldest First</option>
@@ -151,17 +148,19 @@ export default function SessionsPage() {
         {/* Sessions Table View */}
         {filteredSessions.length === 0 ? (
           <Card>
-            <CardContent className="py-16 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-slate-500 mx-auto">
-                <Clock className="w-6 h-6" />
+            <CardContent className="py-14 text-center space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                <Clock className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-semibold text-white">
-                No sessions recorded yet
-              </h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                No experimental runs match your search parameters. Start a live acquisition run to generate data.
-              </p>
-              <Link href="/live" className="inline-block pt-2">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  No sessions recorded yet
+                </h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                  No experimental runs match your search parameters. Start a live acquisition run to generate data.
+                </p>
+              </div>
+              <Link href="/live" className="inline-block pt-1">
                 <Button variant="primary" size="sm">
                   Start Live Session
                 </Button>
@@ -173,46 +172,46 @@ export default function SessionsPage() {
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-400">
-                <thead className="bg-white/[0.02] text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-white/[0.05]">
+                <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-mono font-semibold border-b border-slate-800/80">
                   <tr>
-                    <th className="py-3.5 px-6">Session ID</th>
-                    <th className="py-3.5 px-6">Device</th>
-                    <th className="py-3.5 px-6">Duration</th>
-                    <th className="py-3.5 px-6">Signal Quality</th>
-                    <th className="py-3.5 px-6">Status</th>
-                    <th className="py-3.5 px-6">Date & Time</th>
-                    <th className="py-3.5 px-6 text-right">Action</th>
+                    <th className="py-3 px-5">Session ID</th>
+                    <th className="py-3 px-5">Device</th>
+                    <th className="py-3 px-5">Duration</th>
+                    <th className="py-3 px-5">Signal Quality</th>
+                    <th className="py-3 px-5">Status</th>
+                    <th className="py-3 px-5">Date & Time</th>
+                    <th className="py-3 px-5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.03]">
+                <tbody className="divide-y divide-slate-800/60">
                   {filteredSessions.map((s) => (
-                    <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-4 px-6 font-mono font-medium text-white">
+                    <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-3.5 px-5 font-mono font-medium text-white">
                         #{s.id.slice(-6)}
                       </td>
-                      <td className="py-4 px-6">
-                        <span className="font-semibold text-slate-200 block">
+                      <td className="py-3.5 px-5">
+                        <span className="font-medium text-slate-200 block">
                           {s.deviceName || "TGAM1 Headset Alpha"}
                         </span>
-                        <span className="font-mono text-[10px] text-slate-500 block">
+                        <span className="font-mono text-[10px] text-cyan-400 block">
                           {s.deviceCode || "EEG-001"}
                         </span>
                       </td>
-                      <td className="py-4 px-6 font-mono text-slate-300">
+                      <td className="py-3.5 px-5 font-mono text-slate-300">
                         {formatDuration(s.duration)}
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3.5 px-5">
                         <span className="inline-flex items-center gap-1.5 text-emerald-400 font-mono text-xs">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                           <span>{s.signalQuality || 94}% Good</span>
                         </span>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3.5 px-5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
                             s.status === "running"
-                              ? "bg-emerald-500/[0.1] text-emerald-400 border border-emerald-500/[0.2]"
-                              : "bg-white/[0.04] text-slate-400 border border-white/[0.06]"
+                              ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/60"
+                              : "bg-slate-800 text-slate-300 border border-slate-700"
                           }`}
                         >
                           {s.status === "running" && (
@@ -221,10 +220,10 @@ export default function SessionsPage() {
                           <span>{s.status || "Completed"}</span>
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-slate-400 text-[11px]">
+                      <td className="py-3.5 px-5 text-slate-400 text-[11px] font-mono">
                         {formatDate(s.startedAt)}
                       </td>
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-3.5 px-5 text-right">
                         <Link href={`/sessions/${s.id}`}>
                           <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
                             <Eye className="w-3.5 h-3.5" />
@@ -239,7 +238,7 @@ export default function SessionsPage() {
             </div>
 
             {/* Mobile Card List View */}
-            <div className="md:hidden divide-y divide-white/[0.04]">
+            <div className="md:hidden divide-y divide-slate-800/60">
               {filteredSessions.map((s) => (
                 <div key={s.id} className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -249,8 +248,8 @@ export default function SessionsPage() {
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
                         s.status === "running"
-                          ? "bg-emerald-500/[0.1] text-emerald-400"
-                          : "bg-white/[0.04] text-slate-400"
+                          ? "bg-emerald-950/60 text-emerald-400"
+                          : "bg-slate-800 text-slate-300 border border-slate-700"
                       }`}
                     >
                       {s.status || "Completed"}
@@ -278,13 +277,13 @@ export default function SessionsPage() {
                       <span className="text-[10px] text-slate-500 block uppercase font-mono">
                         Date & Time
                       </span>
-                      <span className="text-slate-400 text-[11px]">
+                      <span className="text-slate-400 text-[11px] font-mono">
                         {formatDate(s.startedAt)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between border-t border-white/[0.04] text-xs">
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-800/60 text-xs">
                     <span className="font-mono text-emerald-400 text-xs">
                       Sig {s.signalQuality || 94}% Good
                     </span>

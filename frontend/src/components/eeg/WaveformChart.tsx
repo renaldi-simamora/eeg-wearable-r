@@ -42,8 +42,8 @@ export function WaveformChart({
     const width = rect.width;
     const h = rect.height;
 
-    // Background
-    ctx.fillStyle = "#0f172a"; // Technical slate-900 background
+    // Background: Technical dark slate background
+    ctx.fillStyle = "#090e1c";
     ctx.fillRect(0, 0, width, h);
 
     // Draw grid
@@ -89,16 +89,15 @@ export function WaveformChart({
     const plotWidth = width - plotStartX - 10;
     const step = plotWidth / (samples.length - 1);
 
-    // Draw glow layer
+    // Draw core signal line
     ctx.beginPath();
-    ctx.strokeStyle = "rgba(59, 130, 246, 0.35)"; // Blue glow
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#38bdf8"; // Technical cyan
+    ctx.lineWidth = 1.75;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
     samples.forEach((sample, i) => {
       const x = plotStartX + i * step;
-      // Clamp within voltage range
       const clampedVal = Math.max(-voltageRange, Math.min(voltageRange, sample.rawEEG));
       const y = centerY - clampedVal * scaleY;
       if (i === 0) ctx.moveTo(x, y);
@@ -106,21 +105,7 @@ export function WaveformChart({
     });
     ctx.stroke();
 
-    // Draw sharp core line
-    ctx.beginPath();
-    ctx.strokeStyle = "#38bdf8"; // Bright cyan-blue
-    ctx.lineWidth = 1.8;
-
-    samples.forEach((sample, i) => {
-      const x = plotStartX + i * step;
-      const clampedVal = Math.max(-voltageRange, Math.min(voltageRange, sample.rawEEG));
-      const y = centerY - clampedVal * scaleY;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Draw lead point
+    // Draw active lead point
     if (samples.length > 0) {
       const lastIndex = samples.length - 1;
       const lastX = plotStartX + lastIndex * step;
@@ -129,15 +114,8 @@ export function WaveformChart({
 
       ctx.beginPath();
       ctx.fillStyle = "#38bdf8";
-      ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
+      ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
       ctx.fill();
-
-      // Outer ripple
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
-      ctx.lineWidth = 1.5;
-      ctx.arc(lastX, lastY, 6.5, 0, Math.PI * 2);
-      ctx.stroke();
     }
   }, [samples, height, voltageRange]);
 
@@ -146,7 +124,7 @@ export function WaveformChart({
   const isCompleted = status === "COMPLETED";
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-slate-800 shadow-inner ${className}`}>
+    <div className={`relative rounded-xl overflow-hidden border border-slate-800 bg-[#090e1c] ${className}`}>
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: `${height}px` }}
@@ -155,10 +133,10 @@ export function WaveformChart({
 
       {/* Standby / Ready Overlay */}
       {isReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px] p-6 text-center select-none pointer-events-none">
-          <div className="w-10 h-10 rounded-full bg-blue-500/[0.1] border border-blue-500/[0.2] flex items-center justify-center text-blue-400 mb-2.5">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 p-6 text-center select-none pointer-events-none">
+          <div className="w-9 h-9 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 mb-2">
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -182,7 +160,7 @@ export function WaveformChart({
 
       {/* Paused Overlay Banner */}
       {isPaused && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-amber-500/[0.15] border border-amber-500/[0.3] text-[10px] font-mono text-amber-300">
+        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-950/60 border border-amber-800/60 text-[10px] font-mono text-amber-300">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
           <span>PAUSED • STREAM FROZEN</span>
         </div>
@@ -190,7 +168,7 @@ export function WaveformChart({
 
       {/* Completed Overlay Banner */}
       {isCompleted && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-500/[0.15] border border-emerald-500/[0.3] text-[10px] font-mono text-emerald-300">
+        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-800/60 text-[10px] font-mono text-emerald-300">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           <span>SESSION COMPLETED</span>
         </div>
@@ -198,8 +176,8 @@ export function WaveformChart({
 
       {/* Real-time scanning indicator */}
       {isStreaming && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-cyan-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-cyan-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
           <span>LIVE • 50 Hz</span>
         </div>
       )}

@@ -7,7 +7,7 @@ import { useEEGStream } from "@/hooks/useEEGStream";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Radio, Sparkles } from "lucide-react";
+import { ArrowUpRight, Radio, Activity } from "lucide-react";
 
 interface LiveEEGPreviewProps {
   deviceName?: string;
@@ -23,31 +23,30 @@ export function LiveEEGPreview({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <CardHeader className="py-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/[0.1] border border-blue-500/[0.15] flex items-center justify-center text-blue-400">
+          <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-blue-400">
             <Radio className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base font-semibold text-white">
+              <CardTitle className="text-sm font-semibold text-white">
                 Live EEG Stream Preview
               </CardTitle>
               <Badge variant="simulation" size="sm">
-                <Sparkles className="w-2.5 h-2.5 mr-1 inline" />
-                Demo / Simulation
+                Demo Mode
               </Badge>
             </div>
-            <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-              <span>{deviceName} (Demo Device)</span>
-              <span>•</span>
-              <span className="font-mono text-[11px]">{deviceCode}</span>
+            <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <span>{deviceName}</span>
+              <span className="text-slate-600">•</span>
+              <span className="font-mono text-[11px] text-cyan-400">{deviceCode}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 text-xs font-medium font-mono">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-slate-300 border border-slate-800 text-xs font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             <span>Standby • Ready</span>
           </div>
@@ -60,7 +59,7 @@ export function LiveEEGPreview({
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 sm:p-6 space-y-4">
+      <CardContent className="p-4 sm:p-5 space-y-4">
         {/* Waveform Canvas - in Standby / Ready mode */}
         <WaveformChart
           samples={samples}
@@ -73,36 +72,36 @@ export function LiveEEGPreview({
         />
 
         {/* Telemetry metadata footer */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-xs">
-          <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
             <div className="text-[10px] uppercase font-mono text-slate-500">
               Sample Rate
             </div>
-            <div className="font-semibold text-slate-200 font-mono mt-0.5">
+            <div className="font-medium text-slate-200 font-mono mt-0.5">
               512 Hz (Hardware Spec)
             </div>
           </div>
-          <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
             <div className="text-[10px] uppercase font-mono text-slate-500">
               Transmission
             </div>
-            <div className="font-semibold text-slate-200 font-mono mt-0.5">
+            <div className="font-medium text-slate-200 font-mono mt-0.5">
               50 Hz Packets
             </div>
           </div>
-          <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
             <div className="text-[10px] uppercase font-mono text-slate-500">
               Electrode
             </div>
-            <div className="font-semibold text-slate-200 mt-0.5">
+            <div className="font-medium text-slate-200 mt-0.5">
               FP1 (Dry Sensor)
             </div>
           </div>
-          <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
             <div className="text-[10px] uppercase font-mono text-slate-500">
               Channel Count
             </div>
-            <div className="font-semibold text-slate-200 font-mono mt-0.5">
+            <div className="font-medium text-slate-200 font-mono mt-0.5">
               1-Ch Monopolar
             </div>
           </div>

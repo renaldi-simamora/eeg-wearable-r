@@ -28,7 +28,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="py-3.5 px-5 flex items-center justify-between">
+      <CardHeader className="py-3.5 px-5 flex items-center justify-between border-b border-slate-800/80">
         <div>
           <CardTitle className="text-sm font-semibold text-white">
             Recent Recording Sessions
@@ -38,7 +38,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
           </p>
         </div>
         <Link href="/sessions">
-          <Button variant="ghost" size="sm" className="gap-1 text-xs text-blue-400 hover:text-blue-300">
+          <Button variant="ghost" size="sm" className="gap-1 text-xs text-cyan-400 hover:text-cyan-300">
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
@@ -48,7 +48,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left text-xs text-slate-400">
-          <thead className="bg-white/[0.02] text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-y border-white/[0.04]">
+          <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-mono font-semibold border-b border-slate-800/80">
             <tr>
               <th className="py-3 px-5">Session</th>
               <th className="py-3 px-5">Device</th>
@@ -59,9 +59,9 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
               <th className="py-3 px-5 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.03]">
+          <tbody className="divide-y divide-slate-800/60">
             {sessions.map((s) => (
-              <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+              <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
                 <td className="py-3.5 px-5 font-mono font-medium text-white">
                   #{s.id.slice(-6)}
                 </td>
@@ -69,7 +69,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
                   <span className="font-medium text-slate-200 block">
                     {s.deviceName || "TGAM1 Headset Alpha"}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-500 block">
+                  <span className="text-[10px] font-mono text-cyan-400 block">
                     {s.deviceCode || "EEG-001"}
                   </span>
                 </td>
@@ -84,10 +84,10 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
                 </td>
                 <td className="py-3.5 px-5">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
                       s.status === "running"
-                        ? "bg-emerald-500/[0.1] text-emerald-400 border border-emerald-500/[0.2]"
-                        : "bg-white/[0.04] text-slate-400 border border-white/[0.06]"
+                        ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/60"
+                        : "bg-slate-800 text-slate-300 border border-slate-700"
                     }`}
                   >
                     {s.status === "running" && (
@@ -96,7 +96,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
                     <span>{s.status || "Completed"}</span>
                   </span>
                 </td>
-                <td className="py-3.5 px-5 text-slate-400 text-[11px]">
+                <td className="py-3.5 px-5 text-slate-400 text-[11px] font-mono">
                   {formatDate(s.startedAt)}
                 </td>
                 <td className="py-3.5 px-5 text-right">
@@ -114,7 +114,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
       </div>
 
       {/* Mobile Card List View */}
-      <div className="md:hidden divide-y divide-white/[0.04]">
+      <div className="md:hidden divide-y divide-slate-800/60">
         {sessions.map((s) => (
           <div key={s.id} className="p-4 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -124,8 +124,8 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
                   s.status === "running"
-                    ? "bg-emerald-500/[0.1] text-emerald-400"
-                    : "bg-white/[0.04] text-slate-400"
+                    ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/60"
+                    : "bg-slate-800 text-slate-300 border border-slate-700"
                 }`}
               >
                 {s.status || "Completed"}
@@ -153,13 +153,13 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
                 <span className="text-[10px] text-slate-500 block uppercase font-mono">
                   Date
                 </span>
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-slate-400 text-[11px] font-mono">
                   {formatDate(s.startedAt)}
                 </span>
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-white/[0.04]">
+            <div className="pt-2 flex items-center justify-between border-t border-slate-800/60">
               <span className="text-xs text-emerald-400 font-mono">
                 Sig {s.signalQuality || 94}% Good
               </span>

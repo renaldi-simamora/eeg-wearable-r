@@ -6,17 +6,13 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   User,
-  Sliders,
-  Clock,
   Shield,
   LogOut,
   Save,
   CheckCircle2,
   Bell,
-  Cpu,
   Radio,
 } from "lucide-react";
 
@@ -73,7 +69,7 @@ export default function SettingsPage() {
     <AppShell title="Platform Settings">
       <div className="space-y-6 max-w-4xl">
         {/* Header */}
-        <div className="pb-4 border-b border-white/[0.05]">
+        <div className="pb-4 border-b border-slate-800">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Settings & Preferences
           </h2>
@@ -86,7 +82,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="py-3.5 px-5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-500/[0.1] border border-blue-500/[0.2] flex items-center justify-center text-blue-400">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
                 <User className="w-4 h-4" />
               </div>
               <CardTitle className="text-sm font-semibold text-white">
@@ -94,7 +90,7 @@ export default function SettingsPage() {
               </CardTitle>
             </div>
             {savedSuccess && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium font-mono">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Profile updated</span>
               </span>
@@ -127,7 +123,7 @@ export default function SettingsPage() {
                 onChange={(e) => setInstitution(e.target.value)}
               />
             </CardContent>
-            <CardFooter className="py-3 px-5 justify-end">
+            <CardFooter className="py-3 px-5 justify-end bg-slate-950/40 border-t border-slate-800/80 rounded-b-xl">
               <Button type="submit" variant="primary" size="sm" className="gap-1.5">
                 <Save className="w-3.5 h-3.5" />
                 <span>Save Profile</span>
@@ -140,7 +136,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="py-3.5 px-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-cyan-500/[0.1] border border-cyan-500/[0.2] flex items-center justify-center text-cyan-400">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
                 <Radio className="w-4 h-4" />
               </div>
               <CardTitle className="text-sm font-semibold text-white">
@@ -158,7 +154,7 @@ export default function SettingsPage() {
                 <select
                   value={defaultDevice}
                   onChange={(e) => setDefaultDevice(e.target.value)}
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer font-sans"
                 >
                   <option value="EEG-001">TGAM1 Alpha (EEG-001)</option>
                   <option value="EEG-002">TGAM1 Beta (EEG-002)</option>
@@ -174,7 +170,7 @@ export default function SettingsPage() {
                 <select
                   value={defaultChannel}
                   onChange={(e) => setDefaultChannel(e.target.value)}
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer font-sans"
                 >
                   <option value="FP1">FP1 (Left Prefrontal)</option>
                   <option value="FP2">FP2 (Right Prefrontal)</option>
@@ -190,7 +186,7 @@ export default function SettingsPage() {
                 <select
                   value={samplingRate}
                   onChange={(e) => setSamplingRate(e.target.value)}
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer font-sans"
                 >
                   <option value="512">512 Hz (Hardware TGAM1)</option>
                   <option value="256">256 Hz (Subsampled)</option>
@@ -199,7 +195,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/[0.04]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800/80">
               {/* Target duration */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
@@ -208,7 +204,7 @@ export default function SettingsPage() {
                 <select
                   value={defaultDuration}
                   onChange={(e) => setDefaultDuration(e.target.value)}
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#0d1526] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 cursor-pointer"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer font-sans"
                 >
                   <option value="5">5 Minutes (Brief Baseline)</option>
                   <option value="15">15 Minutes (Standard Protocol)</option>
@@ -227,7 +223,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={autoSave}
                     onChange={(e) => setAutoSave(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
                   />
                   <span>Auto-commit spectral features every 10 seconds</span>
                 </label>
@@ -240,7 +236,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="py-3.5 px-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/[0.1] border border-amber-500/[0.2] flex items-center justify-center text-amber-400">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
                 <Bell className="w-4 h-4" />
               </div>
               <CardTitle className="text-sm font-semibold text-white">
@@ -254,7 +250,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={sessionAlerts}
                 onChange={(e) => setSessionAlerts(e.target.checked)}
-                className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
               />
               <div>
                 <span className="font-medium text-white block">Session State Notifications</span>
@@ -267,7 +263,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={qualityAlerts}
                 onChange={(e) => setQualityAlerts(e.target.checked)}
-                className="w-4 h-4 rounded border-white/[0.14] bg-white/[0.03] text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
               />
               <div>
                 <span className="font-medium text-white block">Signal Quality Alerts</span>
@@ -281,7 +277,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="py-3.5 px-5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-red-500/[0.1] border border-red-500/[0.2] flex items-center justify-center text-red-400">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300">
                 <Shield className="w-4 h-4" />
               </div>
               <CardTitle className="text-sm font-semibold text-white">
@@ -289,7 +285,7 @@ export default function SettingsPage() {
               </CardTitle>
             </div>
             {passwordSaved && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium font-mono">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Password updated</span>
               </span>
@@ -316,7 +312,7 @@ export default function SettingsPage() {
                 />
               </div>
             </CardContent>
-            <CardFooter className="py-3 px-5 justify-between">
+            <CardFooter className="py-3 px-5 justify-between bg-slate-950/40 border-t border-slate-800/80 rounded-b-xl">
               <Button
                 type="button"
                 variant="danger"

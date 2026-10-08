@@ -31,9 +31,9 @@ export function MLPredictionCard({ className = "" }: MLPredictionCardProps) {
 
   return (
     <Card className={className}>
-      <CardHeader className="py-3.5 px-5 flex items-center justify-between">
+      <CardHeader className="py-3.5 px-5 flex items-center justify-between border-b border-slate-800/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/[0.1] border border-indigo-500/[0.2] flex items-center justify-center text-indigo-400">
+          <div className="w-7 h-7 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400">
             <Brain className="w-4 h-4" />
           </div>
           <div>
@@ -50,9 +50,9 @@ export function MLPredictionCard({ className = "" }: MLPredictionCardProps) {
         </Badge>
       </CardHeader>
 
-      <CardContent className="p-5 pt-1 space-y-3.5 text-xs">
+      <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
         {/* Academic status note */}
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-slate-300 leading-relaxed text-[11px]">
+        <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 leading-relaxed text-[11px]">
           <span className="text-white font-medium block mb-0.5">Pipeline Status:</span>
           Machine-learning classification will process extracted 5-band spectral features from the live stream once the external Python model service is integrated.
         </div>
@@ -62,14 +62,14 @@ export function MLPredictionCard({ className = "" }: MLPredictionCardProps) {
           {models.map((m) => (
             <div
               key={m.name}
-              className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1"
+              className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-white text-xs">{m.name}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
               </div>
               <p className="text-[10px] text-slate-400 font-mono">{m.config}</p>
-              <span className="inline-block mt-1 text-[9px] font-mono text-slate-400 bg-white/[0.04] px-1.5 py-0.2 rounded border border-white/[0.06]">
+              <span className="inline-block mt-1 text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
                 {m.status}
               </span>
             </div>
@@ -77,11 +77,11 @@ export function MLPredictionCard({ className = "" }: MLPredictionCardProps) {
         </div>
 
         {/* Footer Link to /analysis */}
-        <div className="pt-1 flex items-center justify-between text-slate-400 text-[11px] border-t border-white/[0.04]">
+        <div className="pt-2 flex items-center justify-between text-slate-400 text-[11px] border-t border-slate-800/80">
           <span className="font-mono text-slate-500">API Contract: POST /api/analysis/:id</span>
           <Link
             href="/analysis"
-            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium"
+            className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 font-medium"
           >
             <span>Inspect ML Pipeline</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

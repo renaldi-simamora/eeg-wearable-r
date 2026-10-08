@@ -23,27 +23,27 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#070b14] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 select-none cursor-pointer";
+      "inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-[#070b14] disabled:opacity-50 disabled:pointer-events-none select-none cursor-pointer";
 
     const variantStyles = {
       primary:
-        "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 focus:ring-blue-500 border border-blue-500/50",
+        "bg-blue-600 hover:bg-blue-500 text-white border border-blue-500/60 shadow-sm",
       secondary:
-        "bg-white/[0.06] hover:bg-white/[0.1] text-slate-200 border border-white/[0.08] focus:ring-slate-400",
+        "bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80",
       outline:
-        "bg-transparent hover:bg-white/[0.04] text-slate-300 border border-white/[0.1] focus:ring-blue-500 hover:border-white/[0.15]",
+        "bg-transparent hover:bg-slate-800/60 text-slate-300 border border-slate-700 hover:text-white hover:border-slate-600",
       ghost:
-        "bg-transparent hover:bg-white/[0.06] text-slate-300 focus:ring-slate-400",
+        "bg-transparent hover:bg-slate-800/60 text-slate-300 hover:text-white",
       danger:
-        "bg-red-600/90 hover:bg-red-600 text-white shadow-lg shadow-red-600/20 focus:ring-red-500 border border-red-500/50",
+        "bg-red-600 hover:bg-red-500 text-white border border-red-500/60 shadow-sm",
       dark:
-        "bg-white/[0.04] hover:bg-white/[0.08] text-white border border-white/[0.08] focus:ring-slate-600",
+        "bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 hover:text-white",
     };
 
     const sizeStyles = {
       sm: "text-xs px-3 py-1.5 gap-1.5",
       md: "text-sm px-4 py-2 gap-2",
-      lg: "text-base px-6 py-2.5 gap-2.5",
+      lg: "text-base px-5 py-2.5 gap-2.5",
       icon: "h-9 w-9 p-0",
     };
 

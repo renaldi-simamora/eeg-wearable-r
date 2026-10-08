@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { deviceService } from "@/services/device.service";
 import { Device } from "@/types";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
@@ -13,15 +13,8 @@ import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
 import {
   Cpu,
-  Wifi,
   BatteryCharging,
-  Radio,
   Plus,
-  Settings,
-  Power,
-  Info,
-  Clock,
-  CheckCircle2,
   Trash2,
 } from "lucide-react";
 
@@ -90,7 +83,7 @@ export default function DevicesPage() {
     <AppShell title="Device Management">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               Wearable Biosensor Devices
@@ -116,7 +109,7 @@ export default function DevicesPage() {
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-400">
-              <thead className="bg-white/[0.02] text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-white/[0.05]">
+              <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-800 font-mono">
                 <tr>
                   <th className="py-3.5 px-6">Device Name</th>
                   <th className="py-3.5 px-6">Device Code</th>
@@ -128,9 +121,9 @@ export default function DevicesPage() {
                   <th className="py-3.5 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.03]">
+              <tbody className="divide-y divide-slate-800/60">
                 {(devices || []).map((dev) => (
-                  <tr key={dev.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={dev.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-4 px-6 font-semibold text-white">
                       {dev.name}
                     </td>
@@ -139,12 +132,12 @@ export default function DevicesPage() {
                     </td>
                     <td className="py-4 px-6">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono capitalize ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono capitalize ${
                           dev.status === "connected"
-                            ? "bg-emerald-500/[0.1] text-emerald-400 border border-emerald-500/[0.2]"
+                            ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/60"
                             : dev.status === "warning"
-                            ? "bg-amber-500/[0.1] text-amber-400 border border-amber-500/[0.2]"
-                            : "bg-white/[0.04] text-slate-400 border border-white/[0.06]"
+                            ? "bg-amber-950/40 text-amber-400 border border-amber-800/60"
+                            : "bg-slate-900 text-slate-400 border border-slate-800"
                         }`}
                       >
                         <span
@@ -171,7 +164,7 @@ export default function DevicesPage() {
                     <td className="py-4 px-6 font-mono text-slate-400">
                       {dev.firmwareVersion}
                     </td>
-                    <td className="py-4 px-6 text-slate-400 text-[11px]">
+                    <td className="py-4 px-6 text-slate-400 text-[11px] font-mono">
                       {formatDate(dev.lastSeen)}
                     </td>
                     <td className="py-4 px-6 text-right">
@@ -185,7 +178,7 @@ export default function DevicesPage() {
                               id: dev.id,
                               status:
                                 dev.status === "connected"
-                                  ? "disconnected"
+                                   ? "disconnected"
                                   : "connected",
                             })
                           }
@@ -195,7 +188,7 @@ export default function DevicesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs text-slate-300 hover:text-white"
                           onClick={() => openDetails(dev)}
                         >
                           Details
@@ -209,12 +202,12 @@ export default function DevicesPage() {
           </div>
 
           {/* Mobile Stacked Cards View */}
-          <div className="md:hidden divide-y divide-white/[0.04]">
+          <div className="md:hidden divide-y divide-slate-800/60">
             {(devices || []).map((dev) => (
               <div key={dev.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/[0.1] border border-blue-500/[0.2] flex items-center justify-center text-blue-400">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-cyan-400">
                       <Cpu className="w-4 h-4" />
                     </div>
                     <div>
@@ -259,13 +252,13 @@ export default function DevicesPage() {
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase font-mono block">Last Seen</span>
-                    <span className="text-slate-400 text-[11px]">
+                    <span className="text-slate-400 text-[11px] font-mono">
                       {formatDate(dev.lastSeen)}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-white/[0.04] gap-2">
+                <div className="pt-2 flex items-center justify-between border-t border-slate-800/60 gap-2">
                   <Button
                     variant={dev.status === "connected" ? "outline" : "primary"}
                     size="sm"
@@ -305,26 +298,26 @@ export default function DevicesPage() {
           description={`Hardware specifications and telemetry diagnostics for ${selectedDevice.deviceCode}`}
         >
           <div className="space-y-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2.5 font-mono">
-              <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+            <div className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-2.5 font-mono">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                 <span className="text-slate-400 font-sans">EEG Front-End Module</span>
                 <span className="font-semibold text-white">NeuroSky TGAM1 ASIC</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                 <span className="text-slate-400 font-sans">Micro-controller (MCU)</span>
                 <span className="font-semibold text-slate-200">ESP32-WROOM-32 (240MHz)</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                 <span className="text-slate-400 font-sans">Wireless Connectivity</span>
                 <span className="font-semibold text-slate-200">Wi-Fi 802.11 b/g/n (2.4 GHz)</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                 <span className="text-slate-400 font-sans">Battery Capacity</span>
                 <span className="font-semibold text-emerald-400">
                   {selectedDevice.batteryLevel}% (LiPo 3.7V 500mAh)
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                 <span className="text-slate-400 font-sans">Firmware Build</span>
                 <span className="font-semibold text-slate-300">
                   {selectedDevice.firmwareVersion}
@@ -384,7 +377,7 @@ export default function DevicesPage() {
             required
           />
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-400">
+          <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80 text-xs text-slate-400">
             <span className="font-semibold text-slate-200 block mb-0.5">Provisioning Note:</span>
             <span>Once registered, the device node transmits telemetry packets over WebSocket directly to the Go backend.</span>
           </div>

@@ -9,7 +9,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "bg-[#0c1220]/80 rounded-xl border border-white/[0.06] shadow-lg shadow-black/10 transition-all",
+        "bg-slate-900/60 rounded-xl border border-slate-800 shadow-sm transition-colors",
         className
       )}
       {...props}
@@ -26,7 +26,7 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("px-6 py-4 border-b border-white/[0.04] flex items-center justify-between", className)}
+      className={cn("px-5 py-4 border-b border-slate-800/80 flex items-center justify-between", className)}
       {...props}
     >
       {children}
@@ -41,7 +41,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("text-base font-semibold text-white tracking-tight", className)}
+      className={cn("text-sm font-semibold text-white tracking-tight", className)}
       {...props}
     >
       {children}
@@ -67,7 +67,7 @@ export function CardContent({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("p-6", className)} {...props}>
+    <div className={cn("p-5", className)} {...props}>
       {children}
     </div>
   );
@@ -80,7 +80,7 @@ export function CardFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("px-6 py-3 bg-white/[0.02] rounded-b-xl border-t border-white/[0.04] flex items-center", className)}
+      className={cn("px-5 py-3 bg-slate-950/40 rounded-b-xl border-t border-slate-800/80 flex items-center", className)}
       {...props}
     >
       {children}

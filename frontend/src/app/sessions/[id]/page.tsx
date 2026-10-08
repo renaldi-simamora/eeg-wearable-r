@@ -21,8 +21,6 @@ import {
   Cpu,
   Activity,
   Brain,
-  Sparkles,
-  AlertCircle,
   FileSpreadsheet,
   Layers,
 } from "lucide-react";
@@ -60,7 +58,7 @@ export default function SessionDetailPage() {
     <AppShell title={`Session #${sessionId.slice(-6)}`}>
       <div className="space-y-6">
         {/* Top Navigation & Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
             <Link href="/sessions">
               <Button variant="ghost" size="sm" className="gap-1 p-2">
@@ -102,25 +100,25 @@ export default function SessionDetailPage() {
 
         {/* Metadata Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               Start Time
             </span>
-            <span className="font-semibold text-slate-200 block mt-1 truncate">
+            <span className="font-medium text-slate-200 block mt-1 truncate">
               {session?.startedAt ? formatDate(session.startedAt) : "—"}
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               End Time
             </span>
-            <span className="font-semibold text-slate-200 block mt-1 truncate">
+            <span className="font-medium text-slate-200 block mt-1 truncate">
               {session?.endedAt ? formatDate(session.endedAt) : "Completed"}
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               Total Duration
             </span>
@@ -129,29 +127,29 @@ export default function SessionDetailPage() {
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               Device Name
             </span>
-            <span className="font-semibold text-slate-200 block mt-1 truncate">
+            <span className="font-medium text-slate-200 block mt-1 truncate">
               {session?.deviceName || "TGAM1 Headset Alpha"}
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               Device Code
             </span>
-            <span className="font-mono text-cyan-400 font-semibold block mt-1">
+            <span className="font-mono text-cyan-400 font-medium block mt-1">
               {session?.deviceCode || "EEG-001"}
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#0c1220]/80 border border-white/[0.05]">
+          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
             <span className="text-[10px] text-slate-500 uppercase font-mono block">
               Signal Quality
             </span>
-            <div className="flex items-center gap-1.5 mt-1 font-mono font-semibold text-emerald-400">
+            <div className="flex items-center gap-1.5 mt-1 font-mono font-medium text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span>{session?.signalQuality || 94}% Good</span>
             </div>
@@ -160,11 +158,11 @@ export default function SessionDetailPage() {
 
         {/* Section 1: Raw EEG Waveform Trace Replay */}
         <Card className="overflow-hidden">
-          <CardHeader className="py-3 px-5 flex items-center justify-between border-b border-white/[0.05]">
+          <CardHeader className="py-3 px-5 flex items-center justify-between border-b border-slate-800/80">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-cyan-400" />
               <CardTitle className="text-sm font-semibold text-white">
-                1. Recorded EEG Voltage Waveform
+                Recorded EEG Voltage Waveform
               </CardTitle>
             </div>
             <span className="text-[10px] font-mono text-slate-400">
@@ -188,7 +186,7 @@ export default function SessionDetailPage() {
             <Card>
               <CardHeader className="py-3.5 px-5">
                 <CardTitle className="text-sm font-semibold text-white">
-                  2. Brainwave Spectral Power Density
+                  Brainwave Spectral Power Density
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 pt-1">
@@ -199,45 +197,45 @@ export default function SessionDetailPage() {
             <Card>
               <CardHeader className="py-3.5 px-5">
                 <CardTitle className="text-sm font-semibold text-white">
-                  3. Session Technical Details
+                  Session Technical Protocol
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 pt-1 space-y-2 text-xs font-mono">
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
                   <span className="text-slate-400 font-sans">Acquisition Protocol</span>
-                  <span className="font-semibold text-white">Eyes-Open Resting State</span>
+                  <span className="font-medium text-white">Eyes-Open Resting State</span>
                 </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
                   <span className="text-slate-400 font-sans">Filter Applied</span>
-                  <span className="font-semibold text-slate-200">0.5 – 50 Hz Bandpass + 50 Hz Notch</span>
+                  <span className="font-medium text-slate-200">0.5 – 50 Hz Bandpass + 50 Hz Notch</span>
                 </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
                   <span className="text-slate-400 font-sans">Electrode Setup</span>
-                  <span className="font-semibold text-slate-200">10-20 FP1 / A1 Ear Reference</span>
+                  <span className="font-medium text-slate-200">10-20 FP1 / A1 Ear Reference</span>
                 </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80">
                   <span className="text-slate-400 font-sans">Samples Persisted</span>
-                  <span className="font-semibold text-cyan-400">{eegData?.samples?.length || 80} windows</span>
+                  <span className="font-medium text-cyan-400">{eegData?.samples?.length || 80} windows</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-slate-400 font-sans">Impedance Stability</span>
-                  <span className="font-semibold text-emerald-400">&lt; 5 kΩ (Optimal)</span>
+                  <span className="font-medium text-emerald-400">&lt; 5 kΩ (Optimal)</span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column (6 cols): Statistics, ML Placeholder & AI Insights */}
+          {/* Right Column (6 cols): Statistics, ML Placeholder & Model Insights */}
           <div className="lg:col-span-6 space-y-6">
             <Card>
               <CardHeader className="py-3.5 px-5">
                 <CardTitle className="text-sm font-semibold text-white">
-                  4. Biosignal Statistical Summary
+                  Biosignal Statistical Summary
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 pt-1">
                 <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Mean Amplitude
                     </span>
@@ -245,7 +243,7 @@ export default function SessionDetailPage() {
                       +1.42 µV
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Standard Deviation
                     </span>
@@ -253,7 +251,7 @@ export default function SessionDetailPage() {
                       14.86 µV
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Peak-to-Peak (Vp-p)
                     </span>
@@ -261,7 +259,7 @@ export default function SessionDetailPage() {
                       68.20 µV
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Dominant Band
                     </span>
@@ -274,12 +272,12 @@ export default function SessionDetailPage() {
             </Card>
 
             {/* Machine Learning Classification */}
-            <Card className="border-white/[0.08] bg-white/[0.01]">
-              <CardHeader className="py-3 px-5 flex items-center justify-between">
+            <Card>
+              <CardHeader className="py-3 px-5 flex items-center justify-between border-b border-slate-800/80">
                 <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-indigo-400" />
+                  <Brain className="w-4 h-4 text-cyan-400" />
                   <CardTitle className="text-sm font-semibold text-white">
-                    5. Machine Learning Classification
+                    Machine Learning Classification
                   </CardTitle>
                 </div>
                 <Badge
@@ -289,12 +287,12 @@ export default function SessionDetailPage() {
                   {analysisData?.predictions && analysisData.predictions.length > 0 ? "Classified" : "Ready"}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-5 pt-1 space-y-3 text-xs">
+              <CardContent className="p-5 pt-3 space-y-3 text-xs">
                 {analysisData?.predictions && analysisData.predictions.length > 0 ? (
                   analysisData.predictions.map((pred) => (
                     <div
                       key={pred.id}
-                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2 font-mono"
+                      className="p-3.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-2 font-mono"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white text-xs">{pred.modelName}</span>
@@ -302,11 +300,11 @@ export default function SessionDetailPage() {
                           {Math.round(pred.confidence * 100)}% Confidence
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1 border-t border-white/[0.04] text-xs">
+                      <div className="flex items-center justify-between py-1 border-t border-slate-800/80 text-xs">
                         <span className="text-slate-400 font-sans">Predicted Pattern:</span>
                         <span className="font-bold text-cyan-400 text-sm">{pred.predictedClass}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-white/[0.04]">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/80">
                         <span>Version: {pred.modelVersion}</span>
                         <span>{pred.createdAt ? formatDate(pred.createdAt) : "Just now"}</span>
                       </div>
@@ -332,25 +330,25 @@ export default function SessionDetailPage() {
               </CardContent>
             </Card>
 
-            {/* AI Insights & Synthesis */}
-            <Card className="border-white/[0.08] bg-white/[0.01]">
-              <CardHeader className="py-3 px-5 flex items-center justify-between">
+            {/* Pattern Synthesis & Insights */}
+            <Card>
+              <CardHeader className="py-3 px-5 flex items-center justify-between border-b border-slate-800/80">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <Layers className="w-4 h-4 text-cyan-400" />
                   <CardTitle className="text-sm font-semibold text-white">
-                    6. AI Cognitive Synthesis & Insights
+                    Cognitive Synthesis & Model Insights
                   </CardTitle>
                 </div>
                 <Badge variant="neutral" size="sm">
                   {analysisData?.insights && analysisData.insights.length > 0 ? "Generated" : "Standby"}
                 </Badge>
               </CardHeader>
-              <CardContent className="p-5 pt-1 space-y-3 text-xs">
+              <CardContent className="p-5 pt-3 space-y-3 text-xs">
                 {analysisData?.insights && analysisData.insights.length > 0 ? (
                   analysisData.insights.map((ins) => (
                     <div
                       key={ins.id}
-                      className="p-3.5 rounded-xl bg-cyan-500/[0.04] border border-cyan-500/[0.12] space-y-1.5"
+                      className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5"
                     >
                       <h5 className="font-semibold text-white text-xs">{ins.title}</h5>
                       <p className="text-slate-300 leading-relaxed text-xs">{ins.summary}</p>

@@ -19,7 +19,7 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.05]",
+        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80",
         className
       )}
       {...props}

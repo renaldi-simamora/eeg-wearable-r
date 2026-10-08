@@ -25,7 +25,6 @@ export function FrequencyBandsChart({
       range: "0.5 – 4 Hz",
       value: features.delta,
       color: "bg-blue-500",
-      glowColor: "shadow-blue-500/20",
       description: "Deep restorative sleep / slow wave oscillations",
     },
     {
@@ -33,7 +32,6 @@ export function FrequencyBandsChart({
       range: "4 – 8 Hz",
       value: features.theta,
       color: "bg-cyan-400",
-      glowColor: "shadow-cyan-400/20",
       description: "Drowsiness, meditation, memory consolidation",
     },
     {
@@ -41,7 +39,6 @@ export function FrequencyBandsChart({
       range: "8 – 13 Hz",
       value: features.alpha,
       color: "bg-emerald-400",
-      glowColor: "shadow-emerald-400/20",
       description: "Calm wakefulness, resting posterior rhythm",
     },
     {
@@ -49,7 +46,6 @@ export function FrequencyBandsChart({
       range: "13 – 30 Hz",
       value: features.beta,
       color: "bg-amber-400",
-      glowColor: "shadow-amber-400/20",
       description: "Active thinking, sensory analysis, alertness",
     },
     {
@@ -57,7 +53,6 @@ export function FrequencyBandsChart({
       range: "30 – 50 Hz",
       value: features.gamma,
       color: "bg-purple-400",
-      glowColor: "shadow-purple-400/20",
       description: "Cross-cortical network feature binding",
     },
   ];
@@ -70,10 +65,10 @@ export function FrequencyBandsChart({
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xs font-semibold text-slate-200 tracking-wide uppercase">
+          <span className="text-xs font-semibold text-slate-300 tracking-wide uppercase font-mono">
             Spectral Band Power Distribution
           </span>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-slate-400">
             FFT-derived power density across standard neurological sub-bands
           </p>
         </div>
@@ -83,7 +78,7 @@ export function FrequencyBandsChart({
       </div>
 
       {!hasValues && (
-        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[11px] text-slate-400 font-mono flex items-center gap-2">
+        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
           <span>Standby • Spectral powers will calculate once acquisition begins.</span>
         </div>
@@ -98,24 +93,24 @@ export function FrequencyBandsChart({
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-white w-14">{b.name}</span>
-                  <span className="text-[11px] font-mono text-slate-500">
+                  <span className="text-[11px] font-mono text-slate-400">
                     ({b.range})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold text-slate-300">
+                  <span className="font-mono text-xs font-medium text-slate-200">
                     {hasValues ? `${b.value.toFixed(1)} µV²` : "— µV²"}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-500 w-8 text-right">
+                  <span className="text-[10px] font-mono text-slate-400 w-8 text-right">
                     {hasValues ? `${percentage}%` : "0%"}
                   </span>
                 </div>
               </div>
 
               {/* Bar */}
-              <div className="w-full h-2 rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${b.color}`}
+                  className={`h-full rounded-full transition-all duration-300 ${b.color}`}
                   style={{ width: `${hasValues ? Math.min(100, Math.max(3, percentage)) : 0}%` }}
                 />
               </div>

@@ -21,47 +21,40 @@ export function SummaryCard({
   badgeText,
 }: SummaryCardProps) {
   const iconVariants = {
-    blue: "bg-blue-500/[0.1] text-blue-400 border-blue-500/[0.15]",
-    emerald: "bg-emerald-500/[0.1] text-emerald-400 border-emerald-500/[0.15]",
-    amber: "bg-amber-500/[0.1] text-amber-400 border-amber-500/[0.15]",
-    slate: "bg-white/[0.04] text-slate-400 border-white/[0.08]",
-  };
-
-  const glowVariants = {
-    blue: "group-hover:shadow-blue-500/[0.05]",
-    emerald: "group-hover:shadow-emerald-500/[0.05]",
-    amber: "group-hover:shadow-amber-500/[0.05]",
-    slate: "group-hover:shadow-white/[0.02]",
+    blue: "bg-slate-900 border-slate-800 text-blue-400",
+    emerald: "bg-slate-900 border-slate-800 text-emerald-400",
+    amber: "bg-slate-900 border-slate-800 text-amber-400",
+    slate: "bg-slate-900 border-slate-800 text-slate-400",
   };
 
   return (
-    <Card className={cn("group hover:border-white/[0.1] transition-all", glowVariants[variant])}>
-      <CardContent className="p-5">
+    <Card className="hover:border-slate-700/80 transition-colors">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-slate-500 tracking-wider uppercase">
+            <p className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase font-mono">
               {title}
             </p>
             <div className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               {value}
             </div>
             {subtext && (
-              <p className="text-xs text-slate-400 font-medium">{subtext}</p>
+              <p className="text-xs text-slate-400 font-normal">{subtext}</p>
             )}
           </div>
           <div
             className={cn(
-              "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0",
+              "w-9 h-9 rounded-lg border flex items-center justify-center shrink-0",
               iconVariants[variant]
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4" />
           </div>
         </div>
         {badgeText && (
-          <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex items-center justify-between text-[11px] text-slate-500 font-mono">
+          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 font-mono">
             <span>Status</span>
-            <span className="font-semibold text-slate-300">{badgeText}</span>
+            <span className="font-medium text-slate-300">{badgeText}</span>
           </div>
         )}
       </CardContent>

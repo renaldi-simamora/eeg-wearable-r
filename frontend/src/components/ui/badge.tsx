@@ -21,14 +21,14 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variantStyles = {
-    default: "bg-blue-500/[0.1] text-blue-400 border-blue-500/[0.15]",
-    success: "bg-emerald-500/[0.1] text-emerald-400 border-emerald-500/[0.15]",
-    warning: "bg-amber-500/[0.1] text-amber-400 border-amber-500/[0.15]",
-    danger: "bg-red-500/[0.1] text-red-400 border-red-500/[0.15]",
-    info: "bg-sky-500/[0.1] text-sky-400 border-sky-500/[0.15]",
-    neutral: "bg-white/[0.04] text-slate-400 border-white/[0.08]",
+    default: "bg-blue-950/60 text-blue-400 border-blue-800/60",
+    success: "bg-emerald-950/60 text-emerald-400 border-emerald-800/60",
+    warning: "bg-amber-950/60 text-amber-400 border-amber-800/60",
+    danger: "bg-red-950/60 text-red-400 border-red-800/60",
+    info: "bg-cyan-950/60 text-cyan-400 border-cyan-800/60",
+    neutral: "bg-slate-800/80 text-slate-300 border-slate-700/80",
     simulation:
-      "bg-indigo-500/[0.1] text-indigo-400 border-indigo-500/[0.15] font-mono text-[10px] tracking-wide uppercase",
+      "bg-indigo-950/60 text-indigo-300 border-indigo-800/60 font-mono text-[10px] tracking-wide uppercase",
   };
 
   const sizeStyles = {
@@ -39,7 +39,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-medium rounded-full border leading-none shrink-0",
+        "inline-flex items-center gap-1.5 font-medium rounded-md border leading-none shrink-0",
         variantStyles[variant],
         sizeStyles[size],
         className
