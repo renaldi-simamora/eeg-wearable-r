@@ -4,6 +4,11 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@/types";
 import { authService, LoginDTO, RegisterDTO } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  "524835681476-cnvohi484a5tk54koattq2sd4rbl3u9f.apps.googleusercontent.com";
 
 interface AuthContextType {
   user: User | null;
@@ -129,20 +134,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        register,
-        loginWithGoogle,
-        logout,
-        updateUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthContext.Provider
+        value={{
+          user,
+          isAuthenticated: !!user,
+          isLoading,
+          login,
+          register,
+          loginWithGoogle,
+          logout,
+          updateUser,
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </GoogleOAuthProvider>
   );
 }
 

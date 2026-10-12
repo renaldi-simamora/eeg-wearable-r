@@ -117,11 +117,11 @@ export const authService = {
       }
       return res;
     } catch (err: any) {
-      if (credential === "demo-google-oauth-credential" || err.message?.includes("google token")) {
+      if (credential === "demo-google-oauth-credential") {
         const mockUser: User = {
           id: "google-demo-user-01",
-          name: "Dr. Renaldi (Google Researcher)",
-          email: "researcher.google@eeg-wearable.local",
+          name: "Dr. Renaldi (Demo Researcher)",
+          email: "researcher.demo@eeg-wearable.local",
           role: "researcher",
           institution: "Biomedical Engineering Laboratory",
           createdAt: new Date().toISOString(),

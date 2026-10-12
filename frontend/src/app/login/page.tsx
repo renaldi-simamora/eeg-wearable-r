@@ -9,6 +9,7 @@ import * as z from "zod";
 import { useAuth } from "@/providers/AuthProvider";
 import { AuthShell } from "@/components/layout/AuthShell";
 import { AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, Fingerprint, RefreshCw } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid academic/institutional email"),
@@ -58,7 +59,27 @@ function LoginForm() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleRealGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setAuthError(null);
+      setIsGoogleLoading(true);
+      setAuthSuccess(true);
+      try {
+        await loginWithGoogle(tokenResponse.access_token, redirectUrl);
+      } catch (err: any) {
+        setAuthSuccess(false);
+        setIsGoogleLoading(false);
+        setAuthError(err.message || "Gagal memverifikasi akun Google.");
+      }
+    },
+    onError: (errorResponse) => {
+      setIsGoogleLoading(false);
+      console.warn("Google Sign-In cancelled or failed:", errorResponse);
+      setAuthError("Google Sign-In dibatalkan atau jendela popup ditutup.");
+    },
+  });
+
+  const handleDemoBypass = async () => {
     setAuthError(null);
     setIsGoogleLoading(true);
     setAuthSuccess(true);
@@ -67,7 +88,7 @@ function LoginForm() {
     } catch (err: any) {
       setAuthSuccess(false);
       setIsGoogleLoading(false);
-      setAuthError(err.message || "Google Sign-In is unavailable in local testing without verified OAuth origin.");
+      setAuthError(err.message || "Demo login gagal.");
     }
   };
 
@@ -203,20 +224,20 @@ function LoginForm() {
         </div>
 
         {/* Google Sign In */}
-        <div className="flex justify-center w-full">
+        <div className="flex flex-col items-center justify-center w-full gap-2">
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={() => handleRealGoogleLogin()}
             disabled={isGoogleLoading || isSubmitting || authSuccess}
             aria-label="Sign in with Google"
-            className={`w-full flex items-center justify-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800/80 text-slate-200 py-2.5 px-4 text-xs font-medium transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${
+            className={`w-full flex items-center justify-center gap-2.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-100 hover:text-white py-2.5 px-4 text-xs font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
               isGoogleLoading || authSuccess ? "opacity-80 cursor-wait" : "cursor-pointer"
             }`}
           >
             {isGoogleLoading ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" aria-hidden="true" />
-                <span>Signing in with Google...</span>
+                <span>Membuka Google OAuth...</span>
               </>
             ) : (
               <>
@@ -241,6 +262,16 @@ function LoginForm() {
                 <span>Sign in with Google</span>
               </>
             )}
+          </button>
+
+          {/* Offline / Test fallback option */}
+          <button
+            type="button"
+            onClick={handleDemoBypass}
+            disabled={isGoogleLoading || isSubmitting}
+            className="text-[11px] text-slate-500 hover:text-slate-400 underline transition-colors cursor-pointer py-1"
+          >
+            Offline / Bypass Akun Demo Lokal
           </button>
         </div>
 
