@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -115,38 +114,51 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 	var info struct {
 		Aud           string `json:"aud"`
 		Email         string `json:"email"`
-		EmailVerified string `json:"email_verified"`
+		EmailVerified any    `json:"email_verified"`
 		Name          string `json:"name"`
 	}
 
-	// In local dev/test, bypass external Google tokeninfo when demo credential is used
+	verified := false
+
+	// In local dev/test, bypass external Google tokeninfo ONLY when explicit demo credential is used
 	if credential == "demo-google-oauth-credential" {
 		info.Email = "researcher.google@eeg-wearable.local"
 		info.Name = "Dr. Renaldi (Google Researcher)"
-		info.EmailVerified = "true"
+		verified = true
 	} else {
-		// Verify ID token with Google's public tokeninfo endpoint
+		// 1. Try Google ID token verification (from GoogleLogin component / GIS ID Token)
 		resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(credential))
-		if err != nil {
-			return nil, fmt.Errorf("failed to verify google token: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("invalid google token: %s", string(body))
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-			return nil, fmt.Errorf("failed to parse google response: %w", err)
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				if decodeErr := json.NewDecoder(resp.Body).Decode(&info); decodeErr == nil && info.Email != "" {
+					if s.googleClientID == "" || info.Aud == s.googleClientID {
+						verified = true
+					}
+				}
+			}
+			resp.Body.Close()
 		}
 
-		if s.googleClientID != "" && info.Aud != s.googleClientID {
-			return nil, errors.New("client ID mismatch on google token")
+		// 2. If ID token verification did not succeed, try Access Token verification (from useGoogleLogin popup flow)
+		if !verified {
+			req, reqErr := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+			if reqErr == nil {
+				req.Header.Set("Authorization", "Bearer "+credential)
+				client := &http.Client{Timeout: 10 * time.Second}
+				uResp, uErr := client.Do(req)
+				if uErr == nil {
+					if uResp.StatusCode == http.StatusOK {
+						if decodeErr := json.NewDecoder(uResp.Body).Decode(&info); decodeErr == nil && info.Email != "" {
+							verified = true
+						}
+					}
+					uResp.Body.Close()
+				}
+			}
 		}
 
-		if info.Email == "" {
-			return nil, errors.New("google account has no email")
+		if !verified || info.Email == "" {
+			return nil, errors.New("invalid or expired google token")
 		}
 	}
 
@@ -167,14 +179,18 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 			Name:         name,
 			Email:        info.Email,
 			PasswordHash: "oauth2_google_" + uuid.New().String(),
-			Role:         "SUPERADMIN",
-			Institution:  "ADMIN@gmail.com",
+			Role:         "researcher",
+			Institution:  "Biomedical Research Center",
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
 		if err := s.store.CreateUser(user); err != nil {
 			return nil, fmt.Errorf("failed to create user: %w", err)
 		}
+	} else if info.Name != "" && user.Name != info.Name {
+		user.Name = info.Name
+		user.UpdatedAt = time.Now()
+		_ = s.store.UpdateUser(user)
 	}
 
 	token, err := middleware.GenerateToken(user, s.jwtSecret)
