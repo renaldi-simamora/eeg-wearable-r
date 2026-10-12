@@ -71,40 +71,40 @@ export function FrequencyBandsChart({
       name: "Delta" as const,
       range: "0.5 – 4 Hz",
       value: currentFeatures.delta,
-      color: "bg-blue-500",
-      textColor: "text-blue-400",
+      color: "bg-sky-600",
+      textColor: "text-sky-700",
       description: "Deep restorative sleep / slow wave oscillations",
     },
     {
       name: "Theta" as const,
       range: "4 – 8 Hz",
       value: currentFeatures.theta,
-      color: "bg-cyan-400",
-      textColor: "text-cyan-400",
+      color: "bg-teal-600",
+      textColor: "text-teal-700",
       description: "Drowsiness, meditation, memory consolidation",
     },
     {
       name: "Alpha" as const,
       range: "8 – 13 Hz",
       value: currentFeatures.alpha,
-      color: "bg-emerald-400",
-      textColor: "text-emerald-400",
+      color: "bg-[#5B6D49]",
+      textColor: "text-[#3D4C32]",
       description: "Calm wakefulness, resting posterior rhythm",
     },
     {
       name: "Beta" as const,
       range: "13 – 30 Hz",
       value: currentFeatures.beta,
-      color: "bg-amber-400",
-      textColor: "text-amber-400",
+      color: "bg-amber-600",
+      textColor: "text-amber-700",
       description: "Active thinking, sensory analysis, alertness",
     },
     {
       name: "Gamma" as const,
       range: "30 – 50 Hz",
       value: currentFeatures.gamma,
-      color: "bg-purple-400",
-      textColor: "text-purple-400",
+      color: "bg-purple-600",
+      textColor: "text-purple-700",
       description: "Cross-cortical network feature binding",
     },
   ];
@@ -118,22 +118,22 @@ export function FrequencyBandsChart({
     <div className={`space-y-4 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <span className="text-xs font-semibold text-slate-300 tracking-wide uppercase font-mono">
+          <span className="text-xs font-semibold text-[#1C1E1A] tracking-wide uppercase font-mono">
             Spectral Band Power Distribution
           </span>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-[#5E6659]">
             Relative spectral power density across standard neurological sub-bands
           </p>
         </div>
         <div className="flex items-center gap-2">
           {dominant ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] font-mono">
-              <span className="text-slate-400">Dominant:</span>
-              <strong className="text-white">{dominant.name}</strong>
-              <span className="text-cyan-400">({dominant.value.toFixed(1)}%)</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] text-[11px] font-mono text-[#3D4C32]">
+              <span className="text-[#5E6659]">Dominant:</span>
+              <strong className="text-[#1C1E1A] font-semibold">{dominant.name}</strong>
+              <span className="text-[#5B6D49]">({dominant.value.toFixed(1)}%)</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-[11px] font-mono text-stone-500">
               Dominant: N/A
             </span>
           )}
@@ -145,14 +145,14 @@ export function FrequencyBandsChart({
       </div>
 
       {!hasValues && (
-        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+        <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 text-[11px] text-stone-500 font-mono flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-stone-400" />
           <span>Standby • Spectral powers will calculate once EEG acquisition starts.</span>
         </div>
       )}
 
       {/* Progress Bars */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {bands.map((b) => {
           const val = typeof b.value === "number" && !isNaN(b.value) ? b.value : 0;
           const percentage = hasValues ? Math.round((val / total) * 100) : 0;
@@ -161,36 +161,36 @@ export function FrequencyBandsChart({
           return (
             <div
               key={b.name}
-              className={`space-y-1 p-1.5 rounded-lg transition-colors ${
-                isDominantBand ? "bg-slate-900/60 border border-slate-800/90" : ""
+              className={`space-y-1.5 p-2 rounded-xl transition-colors ${
+                isDominantBand ? "bg-[#EDF1E7]/60 border border-[#DEE5D6]" : "hover:bg-stone-50"
               }`}
             >
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${isDominantBand ? "text-white" : "text-slate-300"} w-14`}>
+                  <span className={`font-semibold ${isDominantBand ? "text-[#1C1E1A]" : "text-[#1C1E1A]"} w-14`}>
                     {b.name}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
+                  <span className="text-[11px] font-mono text-stone-400">
                     ({b.range})
                   </span>
                   {isDominantBand && (
-                    <span className="text-[9px] font-mono uppercase bg-slate-800 text-cyan-300 px-1 py-0.2 rounded border border-slate-700">
+                    <span className="text-[9px] font-mono uppercase bg-[#EDF1E7] text-[#3D4C32] px-2 py-0.5 rounded-full border border-[#DEE5D6] font-semibold">
                       Dominant
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 font-mono">
-                  <span className="text-xs font-medium text-slate-200">
+                  <span className="text-xs font-semibold text-[#1C1E1A]">
                     {hasValues ? `${val.toFixed(1)}%` : "— %"}
                   </span>
-                  <span className="text-[10px] text-slate-400 w-8 text-right">
+                  <span className="text-[10px] text-stone-500 w-8 text-right">
                     {hasValues ? `${percentage}%` : "0%"}
                   </span>
                 </div>
               </div>
 
               {/* Bar */}
-              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${b.color}`}
                   style={{ width: `${hasValues ? Math.min(100, Math.max(3, percentage)) : 0}%` }}

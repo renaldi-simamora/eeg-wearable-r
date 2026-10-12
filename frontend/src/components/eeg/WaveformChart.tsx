@@ -42,14 +42,14 @@ export function WaveformChart({
     const width = rect.width;
     const h = rect.height;
 
-    // Background: Technical dark slate background
-    ctx.fillStyle = "#090e1c";
+    // Background: Clean ivory-white clinical canvas
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, width, h);
 
     // Draw grid
     ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(51, 65, 85, 0.4)"; // slate-700
-    ctx.fillStyle = "rgba(148, 163, 184, 0.5)"; // slate-400
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
+    ctx.fillStyle = "rgba(120, 113, 108, 0.75)"; // stone-500
     ctx.font = "10px monospace";
 
     // Horizontal grid lines
@@ -61,8 +61,9 @@ export function WaveformChart({
       const y = centerY - volt * scaleY;
       ctx.beginPath();
       ctx.setLineDash(volt === 0 ? [] : [4, 4]);
-      ctx.moveTo(40, y);
-      ctx.lineTo(width, y);
+      ctx.strokeStyle = volt === 0 ? "rgba(0, 0, 0, 0.12)" : "rgba(0, 0, 0, 0.05)";
+      ctx.moveTo(42, y);
+      ctx.lineTo(width - 8, y);
       ctx.stroke();
 
       // Label
@@ -73,7 +74,8 @@ export function WaveformChart({
 
     // Vertical time lines
     const stepX = width / 8;
-    for (let x = 40 + stepX; x < width; x += stepX) {
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.04)";
+    for (let x = 42 + stepX; x < width; x += stepX) {
       ctx.beginPath();
       ctx.setLineDash([2, 4]);
       ctx.moveTo(x, 10);
@@ -86,12 +88,12 @@ export function WaveformChart({
 
     // Plot waveform
     const plotStartX = 45;
-    const plotWidth = width - plotStartX - 10;
+    const plotWidth = width - plotStartX - 12;
     const step = plotWidth / (samples.length - 1);
 
     // Draw core signal line
     ctx.beginPath();
-    ctx.strokeStyle = "#38bdf8"; // Technical cyan
+    ctx.strokeStyle = "#2D7A58"; // Clinical surgical sage-emerald
     ctx.lineWidth = 1.75;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -113,9 +115,15 @@ export function WaveformChart({
       const lastY = centerY - lastClamped * scaleY;
 
       ctx.beginPath();
-      ctx.fillStyle = "#38bdf8";
-      ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "#5B6D49";
+      ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#EDF1E7";
+      ctx.lineWidth = 1.5;
+      ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }, [samples, height, voltageRange]);
 
@@ -124,7 +132,7 @@ export function WaveformChart({
   const isCompleted = status === "COMPLETED";
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border border-slate-800 bg-[#090e1c] ${className}`}>
+    <div className={`relative rounded-2xl overflow-hidden border border-stone-200/80 bg-white shadow-sm ${className}`}>
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: `${height}px` }}
@@ -133,10 +141,10 @@ export function WaveformChart({
 
       {/* Standby / Ready Overlay */}
       {isReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 p-6 text-center select-none pointer-events-none">
-          <div className="w-9 h-9 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 mb-2">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F7F8F5]/85 backdrop-blur-[2px] p-6 text-center select-none pointer-events-none">
+          <div className="w-10 h-10 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49] mb-2.5">
             <svg
-              className="w-4 h-4"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -149,10 +157,10 @@ export function WaveformChart({
               />
             </svg>
           </div>
-          <span className="text-sm font-semibold text-white tracking-tight">
+          <span className="text-sm font-semibold text-[#1C1E1A] tracking-tight">
             {emptyStateMessage}
           </span>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          <p className="text-xs text-[#5E6659] mt-1 max-w-sm">
             {emptyStateSubtext}
           </p>
         </div>
@@ -160,24 +168,24 @@ export function WaveformChart({
 
       {/* Paused Overlay Banner */}
       {isPaused && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-950/60 border border-amber-800/60 text-[10px] font-mono text-amber-300">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-mono font-medium text-amber-800">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
           <span>PAUSED • STREAM FROZEN</span>
         </div>
       )}
 
       {/* Completed Overlay Banner */}
       {isCompleted && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-800/60 text-[10px] font-mono text-emerald-300">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] text-[10px] font-mono font-medium text-[#3D4C32]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#5B6D49]" />
           <span>SESSION COMPLETED</span>
         </div>
       )}
 
       {/* Real-time scanning indicator */}
       {isStreaming && (
-        <div className="absolute top-2.5 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-cyan-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] text-[10px] font-mono font-medium text-[#3D4C32]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#5B6D49] animate-pulse" />
           <span>LIVE • 50 Hz</span>
         </div>
       )}

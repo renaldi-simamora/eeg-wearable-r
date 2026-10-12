@@ -83,12 +83,12 @@ export default function DevicesPage() {
     <AppShell title="Device Management">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/80">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-serif text-[#1C1E1A] tracking-tight">
               Wearable Biosensor Devices
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-[#5E6659] mt-1">
               Register, configure, monitor telemetry, and manage wireless IoT EEG hardware nodes.
             </p>
           </div>
@@ -97,7 +97,7 @@ export default function DevicesPage() {
             variant="primary"
             size="sm"
             onClick={() => setIsAddOpen(true)}
-            className="gap-2"
+            className="gap-2 rounded-full"
           >
             <Plus className="w-4 h-4" />
             <span>Register New Device</span>
@@ -105,11 +105,11 @@ export default function DevicesPage() {
         </div>
 
         {/* Device Table View */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden bg-white border-stone-200/80 rounded-2xl shadow-sm">
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-400">
-              <thead className="bg-slate-950/60 text-[10px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-800 font-mono">
+            <table className="w-full text-left text-xs text-[#5E6659]">
+              <thead className="bg-[#FAFBF8] text-[10px] uppercase tracking-wider text-stone-500 font-semibold border-b border-stone-200/80 font-mono">
                 <tr>
                   <th className="py-3.5 px-6">Device Name</th>
                   <th className="py-3.5 px-6">Device Code</th>
@@ -121,50 +121,50 @@ export default function DevicesPage() {
                   <th className="py-3.5 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-stone-100">
                 {(devices || []).map((dev) => (
-                  <tr key={dev.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-6 font-semibold text-white">
+                  <tr key={dev.id} className="hover:bg-stone-50/70 transition-colors">
+                    <td className="py-4 px-6 font-semibold text-[#1C1E1A]">
                       {dev.name}
                     </td>
-                    <td className="py-4 px-6 font-mono text-cyan-400 font-medium">
+                    <td className="py-4 px-6 font-mono text-[#5B6D49] font-medium">
                       {dev.deviceCode}
                     </td>
                     <td className="py-4 px-6">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono capitalize ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono capitalize font-medium ${
                           dev.status === "connected"
-                            ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/60"
+                            ? "bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6]"
                             : dev.status === "warning"
-                            ? "bg-amber-950/40 text-amber-400 border border-amber-800/60"
-                            : "bg-slate-900 text-slate-400 border border-slate-800"
+                            ? "bg-amber-50 text-amber-800 border border-amber-200"
+                            : "bg-stone-100 text-stone-600 border border-stone-200"
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             dev.status === "connected"
-                              ? "bg-emerald-400"
+                              ? "bg-[#5B6D49]"
                               : dev.status === "warning"
-                              ? "bg-amber-400"
-                              : "bg-slate-500"
+                              ? "bg-amber-500"
+                              : "bg-stone-400"
                           }`}
                         />
                         <span>{dev.status}</span>
                       </span>
                     </td>
                     <td className="py-4 px-6 font-mono">
-                      <span className="flex items-center gap-1.5 text-slate-200">
-                        <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="flex items-center gap-1.5 text-[#1C1E1A] font-semibold">
+                        <BatteryCharging className="w-3.5 h-3.5 text-[#2D7A58]" />
                         <span>{dev.batteryLevel}%</span>
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-mono text-slate-300">
+                    <td className="py-4 px-6 font-mono text-[#1C1E1A]">
                       {dev.signalQuality > 0 ? `${dev.signalQuality}% Good` : "—"}
                     </td>
-                    <td className="py-4 px-6 font-mono text-slate-400">
+                    <td className="py-4 px-6 font-mono text-stone-500">
                       {dev.firmwareVersion}
                     </td>
-                    <td className="py-4 px-6 text-slate-400 text-[11px] font-mono">
+                    <td className="py-4 px-6 text-stone-500 text-[11px] font-mono">
                       {formatDate(dev.lastSeen)}
                     </td>
                     <td className="py-4 px-6 text-right">
@@ -172,13 +172,13 @@ export default function DevicesPage() {
                         <Button
                           variant={dev.status === "connected" ? "outline" : "primary"}
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs rounded-full border-stone-200"
                           onClick={() =>
                             toggleConnectionMutation.mutate({
                               id: dev.id,
                               status:
                                 dev.status === "connected"
-                                   ? "disconnected"
+                                  ? "disconnected"
                                   : "connected",
                             })
                           }
@@ -188,7 +188,7 @@ export default function DevicesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-slate-300 hover:text-white"
+                          className="h-7 text-xs text-stone-600 hover:text-[#1C1E1A] rounded-full"
                           onClick={() => openDetails(dev)}
                         >
                           Details
@@ -202,17 +202,17 @@ export default function DevicesPage() {
           </div>
 
           {/* Mobile Stacked Cards View */}
-          <div className="md:hidden divide-y divide-slate-800/60">
+          <div className="md:hidden divide-y divide-stone-100">
             {(devices || []).map((dev) => (
               <div key={dev.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-cyan-400">
+                    <div className="w-8 h-8 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49]">
                       <Cpu className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white text-sm">{dev.name}</h4>
-                      <span className="font-mono text-[11px] text-cyan-400">
+                      <h4 className="font-semibold text-[#1C1E1A] text-sm">{dev.name}</h4>
+                      <span className="font-mono text-[11px] text-[#5B6D49]">
                         {dev.deviceCode}
                       </span>
                     </div>
@@ -233,36 +233,36 @@ export default function DevicesPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-xs py-1">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Battery</span>
-                    <span className="font-mono text-slate-200">
+                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Battery</span>
+                    <span className="font-mono font-semibold text-[#1C1E1A]">
                       {dev.batteryLevel}%
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Signal</span>
-                    <span className="font-mono text-slate-200">
+                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Signal</span>
+                    <span className="font-mono font-semibold text-[#1C1E1A]">
                       {dev.signalQuality > 0 ? `${dev.signalQuality}%` : "No Signal"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Firmware</span>
-                    <span className="font-mono text-slate-400">
+                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Firmware</span>
+                    <span className="font-mono text-stone-500">
                       {dev.firmwareVersion}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Last Seen</span>
-                    <span className="text-slate-400 text-[11px] font-mono">
+                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Last Seen</span>
+                    <span className="text-stone-500 text-[11px] font-mono">
                       {formatDate(dev.lastSeen)}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-800/60 gap-2">
+                <div className="pt-2 flex items-center justify-between border-t border-stone-100 gap-2">
                   <Button
                     variant={dev.status === "connected" ? "outline" : "primary"}
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 rounded-full border-stone-200"
                     onClick={() =>
                       toggleConnectionMutation.mutate({
                         id: dev.id,
@@ -278,6 +278,7 @@ export default function DevicesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="rounded-full"
                     onClick={() => openDetails(dev)}
                   >
                     View Details
@@ -298,34 +299,34 @@ export default function DevicesPage() {
           description={`Hardware specifications and telemetry diagnostics for ${selectedDevice.deviceCode}`}
         >
           <div className="space-y-4 text-xs">
-            <div className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-2.5 font-mono">
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">EEG Front-End Module</span>
-                <span className="font-semibold text-white">NeuroSky TGAM1 ASIC</span>
+            <div className="p-4 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 space-y-2.5 font-mono">
+              <div className="flex items-center justify-between py-1.5 border-b border-stone-200/80">
+                <span className="text-stone-500 font-sans">EEG Front-End Module</span>
+                <span className="font-semibold text-[#1C1E1A]">NeuroSky TGAM1 ASIC</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">Micro-controller (MCU)</span>
-                <span className="font-semibold text-slate-200">ESP32-WROOM-32 (240MHz)</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-stone-200/80">
+                <span className="text-stone-500 font-sans">Micro-controller (MCU)</span>
+                <span className="font-semibold text-[#1C1E1A]">ESP32-WROOM-32 (240MHz)</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">Wireless Connectivity</span>
-                <span className="font-semibold text-slate-200">Wi-Fi 802.11 b/g/n (2.4 GHz)</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-stone-200/80">
+                <span className="text-stone-500 font-sans">Wireless Connectivity</span>
+                <span className="font-semibold text-[#1C1E1A]">Wi-Fi 802.11 b/g/n (2.4 GHz)</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">Battery Capacity</span>
-                <span className="font-semibold text-emerald-400">
+              <div className="flex items-center justify-between py-1.5 border-b border-stone-200/80">
+                <span className="text-stone-500 font-sans">Battery Capacity</span>
+                <span className="font-semibold text-[#2D7A58]">
                   {selectedDevice.batteryLevel}% (LiPo 3.7V 500mAh)
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">Firmware Build</span>
-                <span className="font-semibold text-slate-300">
+              <div className="flex items-center justify-between py-1.5 border-b border-stone-200/80">
+                <span className="text-stone-500 font-sans">Firmware Build</span>
+                <span className="font-semibold text-stone-700">
                   {selectedDevice.firmwareVersion}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-slate-400 font-sans">Active Electrode Contact</span>
-                <span className="font-semibold text-cyan-400">FP1 Forehead Dry Contact</span>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-stone-500 font-sans">Active Electrode Contact</span>
+                <span className="font-semibold text-[#5B6D49]">FP1 Forehead Dry Contact</span>
               </div>
             </div>
 
@@ -334,7 +335,7 @@ export default function DevicesPage() {
                 variant="danger"
                 size="sm"
                 onClick={() => deleteDeviceMutation.mutate(selectedDevice.id)}
-                className="gap-1.5"
+                className="gap-1.5 rounded-full"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Remove Device</span>
@@ -343,6 +344,7 @@ export default function DevicesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsDetailOpen(false)}
+                className="rounded-full border-stone-200"
               >
                 Close
               </Button>
@@ -377,17 +379,18 @@ export default function DevicesPage() {
             required
           />
 
-          <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80 text-xs text-slate-400">
-            <span className="font-semibold text-slate-200 block mb-0.5">Provisioning Note:</span>
+          <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 text-xs text-[#5E6659]">
+            <span className="font-semibold text-[#1C1E1A] block mb-0.5">Provisioning Note:</span>
             <span>Once registered, the device node transmits telemetry packets over WebSocket directly to the Go backend.</span>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <Button
               type="button"
               variant="outline"
               size="md"
               onClick={() => setIsAddOpen(false)}
+              className="rounded-full border-stone-200"
             >
               Cancel
             </Button>
@@ -396,6 +399,7 @@ export default function DevicesPage() {
               variant="primary"
               size="md"
               isLoading={createDeviceMutation.isPending}
+              className="rounded-full"
             >
               Register Device
             </Button>

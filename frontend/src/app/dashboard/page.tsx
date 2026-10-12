@@ -59,35 +59,30 @@ export default function DashboardPage() {
     },
   });
 
-  const handleStartSession = () => {
-    startSessionMutation.mutate(selectedDeviceId);
-  };
-
   const activeDevice = summary?.activeDevice;
-  const connectedDevicesCount = (devices || []).filter((d) => d.status === "connected").length || 1;
 
   return (
     <AppShell title="Platform Dashboard">
       <div className="space-y-6">
         {/* 1. Header with greeting and Start New Session Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/80">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-serif text-[#1C1E1A] tracking-tight">
               Welcome back, {user?.name || "Dr. Renaldi"}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Here's the current status of your EEG monitoring platform.
+            <p className="text-xs sm:text-sm text-[#5E6659] mt-1">
+              Current operational status and telemetry summary of the NeuroPulse research platform.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="gap-1.5"
+              className="gap-1.5 rounded-full border-stone-200/90 text-stone-700 hover:bg-stone-100"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+              <RefreshCw className="w-3.5 h-3.5 text-stone-500" />
               <span>Refresh</span>
             </Button>
 
@@ -95,7 +90,7 @@ export default function DashboardPage() {
               variant="primary"
               size="sm"
               onClick={() => setIsStartModalOpen(true)}
-              className="gap-2"
+              className="gap-2 rounded-full"
             >
               <Plus className="w-4 h-4" />
               <span>Start New Session</span>
@@ -159,25 +154,25 @@ export default function DashboardPage() {
           {/* Right Column (4 cols): Hardware Node, Brainwave Spectrum & Diagnostics */}
           <div className="lg:col-span-4 space-y-6">
             {/* Connected Hardware Node Card */}
-            <Card>
-              <CardHeader className="py-3.5 px-5">
+            <Card className="bg-white border-stone-200/80 rounded-2xl shadow-sm">
+              <CardHeader className="py-4 px-6 border-b border-stone-100">
                 <div className="flex items-center justify-between w-full">
-                  <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+                  <CardTitle className="text-xs font-semibold text-[#1C1E1A] uppercase tracking-wider font-mono">
                     Connected Wearable Node
                   </CardTitle>
-                  <Link href="/devices" className="text-[11px] text-cyan-400 hover:underline font-medium">
+                  <Link href="/devices" className="text-xs text-[#5B6D49] hover:underline font-medium">
                     Manage
                   </Link>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 pt-1 space-y-3">
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-2">
+              <CardContent className="p-5 pt-3 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-white text-xs block">
+                      <span className="font-semibold text-[#1C1E1A] text-xs block">
                         {activeDevice?.name || "TGAM1 Headset Alpha"}
                       </span>
-                      <span className="text-[10px] font-mono text-cyan-400 block mt-0.5">
+                      <span className="text-[10px] font-mono text-[#5B6D49] block mt-0.5 font-medium">
                         {activeDevice?.deviceCode || "EEG-001"} • FW {activeDevice?.firmwareVersion || "v2.1.0"}
                       </span>
                     </div>
@@ -185,25 +180,25 @@ export default function DashboardPage() {
                       Connected
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-slate-800/80">
-                    <span className="flex items-center gap-1 font-mono">
-                      <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="flex items-center justify-between text-[11px] text-[#5E6659] pt-2 border-t border-stone-200/70">
+                    <span className="flex items-center gap-1 font-mono font-medium text-[#1C1E1A]">
+                      <BatteryCharging className="w-3.5 h-3.5 text-[#5B6D49]" />
                       <span>{activeDevice?.batteryLevel || 94}% Battery</span>
                     </span>
-                    <span className="font-mono text-slate-500">LiPo 3.7V</span>
+                    <span className="font-mono text-stone-500">LiPo 3.7V</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Brainwave Spectrum Overview */}
-            <Card>
-              <CardHeader className="py-3.5 px-5">
-                <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+            <Card className="bg-white border-stone-200/80 rounded-2xl shadow-sm">
+              <CardHeader className="py-4 px-6 border-b border-stone-100">
+                <CardTitle className="text-xs font-semibold text-[#1C1E1A] uppercase tracking-wider font-mono">
                   Brainwave Spectrum Overview
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 pt-1">
+              <CardContent className="p-5 pt-3">
                 <FrequencyBandsChart features={summary?.brainwaveOverview} />
               </CardContent>
             </Card>
@@ -225,7 +220,7 @@ export default function DashboardPage() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+            <label className="text-xs font-semibold text-[#1C1E1A] uppercase tracking-wider font-mono">
               Target Wearable Device
             </label>
             <div className="space-y-2">
@@ -233,19 +228,19 @@ export default function DashboardPage() {
                 <div
                   key={dev.id}
                   onClick={() => setSelectedDeviceId(dev.id)}
-                  className={`p-3 rounded-lg border text-xs cursor-pointer transition-colors flex items-center justify-between ${
+                  className={`p-3.5 rounded-2xl border text-xs cursor-pointer transition-colors flex items-center justify-between ${
                     selectedDeviceId === dev.id
-                      ? "border-blue-500/80 bg-slate-800/80"
-                      : "border-slate-800 hover:border-slate-700 bg-slate-950"
+                      ? "border-[#5B6D49] bg-[#EDF1E7]/70"
+                      : "border-stone-200 hover:border-stone-300 bg-[#FAFBF8]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300">
-                      <Cpu className="w-4 h-4 text-cyan-400" />
+                    <div className="w-9 h-9 rounded-full bg-white border border-stone-200 flex items-center justify-center text-[#5B6D49]">
+                      <Cpu className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{dev.name}</div>
-                      <div className="text-[11px] font-mono text-slate-400">
+                      <div className="font-semibold text-[#1C1E1A]">{dev.name}</div>
+                      <div className="text-[11px] font-mono text-stone-500">
                         {dev.deviceCode} • FW: {dev.firmwareVersion}
                       </div>
                     </div>
@@ -257,7 +252,7 @@ export default function DashboardPage() {
                     >
                       {dev.status}
                     </Badge>
-                    <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                    <div className="text-[10px] text-stone-500 mt-1 font-mono">
                       Batt: {dev.batteryLevel}%
                     </div>
                   </div>
@@ -266,17 +261,18 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-400 space-y-1">
-            <span className="font-medium text-slate-200 block">Session Configuration:</span>
+          <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 text-xs text-[#5E6659] space-y-1">
+            <span className="font-semibold text-[#1C1E1A] block">Session Configuration:</span>
             <p>Sampling Rate: 512 Hz • Bandpass Filter: 0.5 – 50 Hz • 50 Hz Notch</p>
-            <p className="text-[11px] text-slate-500 font-mono">Archive Target: PostgreSQL sessions & eeg_samples</p>
+            <p className="text-[11px] text-stone-500 font-mono">Archive Target: PostgreSQL sessions & eeg_samples</p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-3 pt-3">
             <Button
               variant="outline"
               size="md"
               onClick={() => setIsStartModalOpen(false)}
+              className="rounded-full border-stone-200 text-stone-700"
             >
               Cancel
             </Button>
@@ -287,7 +283,7 @@ export default function DashboardPage() {
                 setIsStartModalOpen(false);
                 router.push("/live");
               }}
-              className="gap-2"
+              className="gap-2 rounded-full"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>Open Live Session</span>

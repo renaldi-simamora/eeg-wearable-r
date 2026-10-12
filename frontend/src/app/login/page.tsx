@@ -98,31 +98,30 @@ function LoginForm() {
       subtitle="Sign in to your EEG research dashboard to monitor sessions and data."
     >
       <div className="space-y-4">
-
         {/* Error Notification */}
         {authError && (
-          <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-red-200 text-xs flex items-start gap-2.5" role="alert">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2.5" role="alert">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <span className="font-semibold block text-red-100">Authentication Error</span>
-              <p className="text-red-300 mt-0.5">{authError}</p>
+              <span className="font-semibold block text-red-900">Authentication Error</span>
+              <p className="text-red-700 mt-0.5">{authError}</p>
             </div>
           </div>
         )}
 
         {/* Success State */}
         {authSuccess && (
-          <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-xs flex items-center gap-2.5" role="status">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+          <div className="p-3.5 rounded-2xl bg-[#EDF1E7] border border-[#DEE5D6] text-[#3D4C32] text-xs flex items-center gap-2.5" role="status">
+            <CheckCircle2 className="w-4 h-4 text-[#5B6D49] shrink-0" aria-hidden="true" />
             <span>Credentials confirmed. Redirecting to research dashboard...</span>
           </div>
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Email */}
-          <div className="space-y-1">
-            <label htmlFor="email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="block text-xs font-semibold text-[#1C1E1A] tracking-wide">
               Institutional Email
             </label>
             <div className="relative">
@@ -130,22 +129,22 @@ function LoginForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder=""
-                className={`w-full rounded-lg border bg-slate-950/80 px-3.5 py-2 pr-10 text-sm text-slate-100 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none ${
+                placeholder="researcher@university.ac.id"
+                className={`w-full rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-[#1C1E1A] placeholder:text-stone-400 transition-colors duration-150 focus:outline-none ${
                   errors.email
-                    ? "border-red-500/60 focus:border-red-500/80 focus:ring-2 focus:ring-red-500/20"
-                    : "border-slate-800 hover:border-slate-700 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20"
+                    ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                    : "border-stone-200/90 hover:border-stone-300 focus:border-[#5B6D49] focus:ring-2 focus:ring-[#5B6D49]/15"
                 }`}
                 {...register("email")}
               />
-              <Fingerprint className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" aria-hidden="true" />
+              <Fingerprint className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" aria-hidden="true" />
             </div>
-            {errors.email && <p className="text-xs text-red-400 font-medium">{errors.email.message}</p>}
+            {errors.email && <p className="text-xs text-red-600 font-medium">{errors.email.message}</p>}
           </div>
 
           {/* Password */}
-          <div className="space-y-1">
-            <label htmlFor="password" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide">
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="block text-xs font-semibold text-[#1C1E1A] tracking-wide">
               Password
             </label>
             <div className="relative">
@@ -153,34 +152,34 @@ function LoginForm() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder=""
-                className={`w-full rounded-lg border bg-slate-950/80 px-3.5 py-2 pr-10 text-sm text-slate-100 placeholder:text-slate-500 transition-colors duration-150 focus:outline-none ${
+                placeholder="••••••••"
+                className={`w-full rounded-xl border bg-white px-3.5 py-2.5 pr-10 text-sm text-[#1C1E1A] placeholder:text-stone-400 transition-colors duration-150 focus:outline-none ${
                   errors.password
-                    ? "border-red-500/60 focus:border-red-500/80 focus:ring-2 focus:ring-red-500/20"
-                    : "border-slate-800 hover:border-slate-700 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20"
+                    ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                    : "border-stone-200/90 hover:border-stone-300 focus:border-[#5B6D49] focus:ring-2 focus:ring-[#5B6D49]/15"
                 }`}
                 {...register("password")}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 aria-pressed={showPassword}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-red-400 font-medium">{errors.password.message}</p>}
+            {errors.password && <p className="text-xs text-red-600 font-medium">{errors.password.message}</p>}
           </div>
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between text-xs pt-0.5">
-            <label htmlFor="rememberMe" className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
+            <label htmlFor="rememberMe" className="flex items-center gap-2 text-[#5E6659] cursor-pointer select-none">
               <input
                 id="rememberMe"
                 type="checkbox"
-                className="rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-[#070b14]"
+                className="rounded border-stone-300 text-[#5B6D49] focus:ring-[#5B6D49]"
                 aria-label="Remember me"
                 {...register("rememberMe")}
               />
@@ -191,7 +190,7 @@ function LoginForm() {
               onClick={() => {
                 alert("Please contact your laboratory administrator to reset your research credentials.");
               }}
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer text-xs"
+              className="text-[#5B6D49] hover:text-[#4E5E3E] font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer text-xs"
             >
               Forgot password?
             </button>
@@ -201,7 +200,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm py-2 px-4 transition-colors duration-150 border border-blue-500/60 shadow-sm disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            className="w-full rounded-full bg-[#5B6D49] hover:bg-[#4E5E3E] text-white font-medium text-sm py-2.5 px-4 transition-all duration-150 shadow-sm disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/40"
           >
             {isSubmitting ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-label="Loading..." />
@@ -216,11 +215,11 @@ function LoginForm() {
 
         {/* Divider */}
         <div className="relative flex items-center gap-4 pt-1" aria-hidden="true">
-          <div className="flex-1 h-px bg-slate-800" />
-          <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-medium">
+          <div className="flex-1 h-px bg-stone-200" />
+          <span className="text-[10px] text-stone-400 uppercase tracking-widest font-mono font-medium">
             or continue with
           </span>
-          <div className="flex-1 h-px bg-slate-800" />
+          <div className="flex-1 h-px bg-stone-200" />
         </div>
 
         {/* Google Sign In */}
@@ -230,13 +229,13 @@ function LoginForm() {
             onClick={() => handleRealGoogleLogin()}
             disabled={isGoogleLoading || isSubmitting || authSuccess}
             aria-label="Sign in with Google"
-            className={`w-full flex items-center justify-center gap-2.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-100 hover:text-white py-2.5 px-4 text-xs font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+            className={`w-full flex items-center justify-center gap-2.5 rounded-full border border-stone-200/90 bg-white hover:bg-[#FAFBF8] text-[#1C1E1A] py-2.5 px-4 text-xs font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20 ${
               isGoogleLoading || authSuccess ? "opacity-80 cursor-wait" : "cursor-pointer"
             }`}
           >
             {isGoogleLoading ? (
               <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" aria-hidden="true" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#5B6D49] shrink-0" aria-hidden="true" />
                 <span>Membuka Google OAuth...</span>
               </>
             ) : (
@@ -269,18 +268,18 @@ function LoginForm() {
             type="button"
             onClick={handleDemoBypass}
             disabled={isGoogleLoading || isSubmitting}
-            className="text-[11px] text-slate-500 hover:text-slate-400 underline transition-colors cursor-pointer py-1"
+            className="text-[11px] text-stone-500 hover:text-[#5B6D49] underline transition-colors cursor-pointer py-1"
           >
             Offline / Bypass Akun Demo Lokal
           </button>
         </div>
 
         {/* Footer Link */}
-        <div className="text-center text-xs text-slate-400 pt-1">
+        <div className="text-center text-xs text-stone-500 pt-1">
           Don't have an account?{" "}
           <Link
             href={`/register${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            className="text-[#5B6D49] hover:text-[#4E5E3E] font-medium transition-colors"
           >
             Create one →
           </Link>
@@ -294,7 +293,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-slate-400 text-xs font-mono">
+        <div className="min-h-screen bg-[#F7F8F5] flex items-center justify-center text-stone-500 text-xs font-mono">
           Loading authentication workspace...
         </div>
       }

@@ -41,34 +41,34 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+        className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-150"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden animate-in zoom-in-95 duration-150",
+          "relative z-10 w-full max-w-lg bg-white rounded-2xl border border-stone-200/90 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150",
           className
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/40">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-[#FAFBF8]">
           <div>
-            <h3 className="text-sm font-semibold text-white">{title}</h3>
+            <h3 className="text-base font-semibold text-[#1C1E1A]">{title}</h3>
             {description && (
-              <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+              <p className="text-xs text-stone-500 mt-0.5">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );

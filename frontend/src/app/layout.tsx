@@ -17,16 +17,17 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#070b14",
+  themeColor: "#f7f8f5",
   width: "device-width",
   initialScale: 1,
 };
 
 export const metadata: Metadata = {
-  title: "EEG Wearable Platform | IoT EEG Monitoring & Machine Learning",
+  title: "NeuroPulse EEG | Biosignal IoT & Neural Research Platform",
   description:
-    "Web-based platform for monitoring EEG sessions, visualizing signal data, and preparing machine-learning analysis in an integrated IoT environment.",
+    "Web-based research platform for monitoring EEG sessions, visualizing high-resolution biosignal data, and preparing machine-learning analysis.",
   keywords: [
+    "NeuroPulse",
     "EEG Wearable",
     "IoT",
     "ESP32",
@@ -47,7 +48,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-600/30 selection:text-white">
+      <body className="min-h-screen bg-[#f7f8f5] text-[#1c1e1a] flex flex-col font-sans antialiased selection:bg-[#5b6d49]/20 selection:text-[#1c1e1a]">
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

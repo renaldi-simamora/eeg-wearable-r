@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { deviceService } from "@/services/device.service";
 import { sessionService } from "@/services/session.service";
-import { eegService } from "@/services/eeg.service";
 import {
   Play,
   Pause,
@@ -101,49 +100,32 @@ export default function LiveEEGPage() {
   const handleStopSession = async () => {
     setActionError(null);
     try {
-      await stopAcquisition();
-
-      if (activeSessionId && samples.length > 0) {
-        try {
-          await eegService.postEEGData({
-            sessionId: activeSessionId,
-            samples,
-            features: bands,
-          });
-        } catch (e) {
-          console.warn("Failed to persist EEG samples buffer:", e);
-        }
-      }
-
       if (activeSessionId) {
         await stopSessionMutation.mutateAsync(activeSessionId);
       }
-
+      stopAcquisition();
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["eeg-data", activeSessionId] });
-      queryClient.invalidateQueries({ queryKey: ["analysis", activeSessionId] });
     } catch (err: any) {
-      setActionError(err.message || "Failed to finalize recording session.");
+      setActionError(err.message || "Failed to stop recording session.");
     }
   };
 
-  // Handle Start New Session
+  // Start new session after completed
   const handleStartNewSession = () => {
     resetToReady();
     setActiveSessionId(null);
-    setActionError(null);
   };
 
   const getDemoBadgeText = () => {
-    const prefix = isSimulation ? "Demo / Simulation" : "Hardware Connected";
+    const prefix = isSimulation ? "Demo Mode" : "Live Hardware";
     switch (status) {
       case "READY":
         return `${prefix} — Ready`;
       case "STARTING":
-        return `${prefix} — Starting`;
+        return `${prefix} — Starting...`;
       case "ACQUIRING":
-        return `${prefix} — Running`;
+        return `${prefix} — Acquiring`;
       case "PAUSED":
         return `${prefix} — Paused`;
       case "STOPPING":
@@ -160,49 +142,49 @@ export default function LiveEEGPage() {
     switch (status) {
       case "READY":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-stone-600 font-mono text-xs uppercase tracking-wider font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
             READY
           </span>
         );
       case "STARTING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-950/60 text-blue-300 border border-blue-800/60 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200 font-mono text-xs uppercase tracking-wider font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
             STARTING...
           </span>
         );
       case "ACQUIRING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-950/60 text-red-300 border border-red-800/60 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6] font-mono text-xs uppercase tracking-wider font-semibold">
+            <span className="w-2 h-2 rounded-full bg-[#5B6D49] animate-pulse" />
             ACQUIRING...
           </span>
         );
       case "PAUSED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-950/60 text-amber-300 border border-amber-800/60 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs uppercase tracking-wider font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             PAUSED
           </span>
         );
       case "STOPPING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-stone-600 font-mono text-xs uppercase tracking-wider font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
             STOPPING...
           </span>
         );
       case "COMPLETED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-mono text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6] font-mono text-xs uppercase tracking-wider font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#5B6D49]" />
             COMPLETED
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono text-xs uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-stone-600 font-mono text-xs uppercase tracking-wider font-medium">
             READY
           </span>
         );
@@ -211,22 +193,22 @@ export default function LiveEEGPage() {
 
   return (
     <AppShell title="Live EEG Monitoring">
-      <div className="space-y-5">
+      <div className="space-y-6">
         {/* 1. Header with Page Description & Status Badges */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/80">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-serif text-[#1C1E1A] tracking-tight">
               Live EEG Monitoring
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-[#5E6659] mt-1">
               Acquisition and monitoring workspace for wearable EEG telemetry.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Device Hardware Label */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 text-xs font-mono">
-              <span className={`w-1.5 h-1.5 rounded-full ${status === "ACQUIRING" ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-stone-200/90 text-stone-700 text-xs font-mono shadow-xs">
+              <span className={`w-2 h-2 rounded-full ${status === "ACQUIRING" ? "bg-[#5B6D49] animate-pulse" : "bg-stone-400"}`} />
               <span>
                 {activeDevice
                   ? `${activeDevice.name} (${isSimulation ? "Demo Mode" : "Hardware Connected"})`
@@ -235,8 +217,8 @@ export default function LiveEEGPage() {
             </div>
 
             {/* Explicit Demo / Simulation State Badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-cyan-300 text-xs font-mono">
-              <Radio className="w-3 h-3 text-cyan-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] text-[#3D4C32] text-xs font-mono font-medium shadow-xs">
+              <Radio className="w-3.5 h-3.5 text-[#5B6D49]" />
               <span>{getDemoBadgeText()}</span>
             </div>
           </div>
@@ -244,26 +226,26 @@ export default function LiveEEGPage() {
 
         {/* Action Error Banner */}
         {actionError && (
-          <div className="p-3.5 rounded-lg bg-red-950/40 border border-red-800/60 text-red-300 text-xs flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{actionError}</span>
           </div>
         )}
 
         {/* 2. Dedicated Session Control Bar */}
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-5 rounded-3xl bg-white border border-stone-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Left: Device Selection & Hardware Spec */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+              <label className="text-[10px] font-mono uppercase text-stone-500 font-semibold block">
                 Target Device
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <select
                   value={selectedDeviceId}
                   onChange={(e) => setSelectedDeviceId(e.target.value)}
                   disabled={status === "ACQUIRING" || status === "PAUSED" || status === "STARTING"}
-                  className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-medium text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 cursor-pointer"
+                  className="rounded-full border border-stone-200/90 bg-[#FAFBF8] px-3.5 py-1.5 text-xs font-medium text-[#1C1E1A] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20 disabled:opacity-60 cursor-pointer shadow-xs"
                 >
                   {(devices || []).map((d) => (
                     <option key={d.id} value={d.id}>
@@ -281,13 +263,13 @@ export default function LiveEEGPage() {
               </div>
             </div>
 
-            <div className="hidden sm:block h-8 w-px bg-slate-800 mx-1 self-center mt-3" />
+            <div className="hidden sm:block h-8 w-px bg-stone-200 mx-1 self-center mt-3" />
 
             <div className="space-y-1 pt-0 sm:pt-0">
-              <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">
+              <span className="text-[10px] font-mono uppercase text-stone-500 font-semibold block">
                 Acquisition Protocol
               </span>
-              <div className="text-xs text-slate-300 font-mono">
+              <div className="text-xs text-[#1C1E1A] font-mono font-medium">
                 512 SPS • FP1 Monopolar • 0.5–50 Hz
               </div>
             </div>
@@ -301,7 +283,7 @@ export default function LiveEEGPage() {
                 size="md"
                 onClick={handleStartSession}
                 isLoading={createSessionMutation.isPending}
-                className="gap-2 px-5 shadow-sm"
+                className="gap-2 px-6 rounded-full shadow-sm"
               >
                 <Play className="w-4 h-4 fill-current" />
                 <span>Start Session</span>
@@ -309,7 +291,7 @@ export default function LiveEEGPage() {
             )}
 
             {status === "STARTING" && (
-              <Button variant="primary" size="md" disabled isLoading className="gap-2">
+              <Button variant="primary" size="md" disabled isLoading className="gap-2 rounded-full">
                 <span>Starting Session...</span>
               </Button>
             )}
@@ -320,9 +302,9 @@ export default function LiveEEGPage() {
                   variant="outline"
                   size="md"
                   onClick={handleTogglePause}
-                  className="gap-2 text-amber-300 hover:text-amber-200 border-amber-800/60 hover:bg-amber-950/40"
+                  className="gap-2 text-amber-800 hover:text-amber-900 border-amber-200 bg-amber-50 hover:bg-amber-100 rounded-full"
                 >
-                  <Pause className="w-4 h-4 text-amber-400" />
+                  <Pause className="w-4 h-4 text-amber-700" />
                   <span>Pause</span>
                 </Button>
 
@@ -331,7 +313,7 @@ export default function LiveEEGPage() {
                   size="md"
                   onClick={handleStopSession}
                   isLoading={stopSessionMutation.isPending}
-                  className="gap-2"
+                  className="gap-2 rounded-full"
                 >
                   <Square className="w-3.5 h-3.5 fill-current" />
                   <span>Stop Session</span>
@@ -345,7 +327,7 @@ export default function LiveEEGPage() {
                   variant="primary"
                   size="md"
                   onClick={handleTogglePause}
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+                  className="gap-2 rounded-full"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Resume</span>
@@ -356,7 +338,7 @@ export default function LiveEEGPage() {
                   size="md"
                   onClick={handleStopSession}
                   isLoading={stopSessionMutation.isPending}
-                  className="gap-2"
+                  className="gap-2 rounded-full"
                 >
                   <Square className="w-3.5 h-3.5 fill-current" />
                   <span>Stop Session</span>
@@ -365,16 +347,16 @@ export default function LiveEEGPage() {
             )}
 
             {status === "STOPPING" && (
-              <Button variant="danger" size="md" disabled isLoading className="gap-2">
+              <Button variant="danger" size="md" disabled isLoading className="gap-2 rounded-full">
                 <span>Finalizing Session...</span>
               </Button>
             )}
 
             {status === "COMPLETED" && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 {activeSessionId && (
                   <Link href={`/sessions/${activeSessionId}`}>
-                    <Button variant="outline" size="md" className="gap-2">
+                    <Button variant="outline" size="md" className="gap-2 rounded-full border-stone-200">
                       <span>View Session</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
@@ -384,7 +366,7 @@ export default function LiveEEGPage() {
                   variant="primary"
                   size="md"
                   onClick={handleStartNewSession}
-                  className="gap-2"
+                  className="gap-2 rounded-full"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Start New Session</span>
@@ -395,24 +377,24 @@ export default function LiveEEGPage() {
         </div>
 
         {/* 3. Horizontal Session Status Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {/* Signal Quality */}
-          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block">
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <span className="text-[10px] text-stone-500 uppercase font-mono block">
               Signal Quality
             </span>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               {signalQuality !== null ? (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-base font-bold text-white font-mono">
+                  <span className="w-2 h-2 rounded-full bg-[#5B6D49]" />
+                  <span className="text-xl font-bold text-[#1C1E1A] font-mono">
                     {signalQuality}%
                   </span>
-                  <span className="text-xs text-emerald-400 font-medium">Good</span>
+                  <span className="text-xs text-[#2D7A58] font-medium">Good</span>
                 </>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                <div className="flex items-center gap-1.5 text-xs text-stone-400 font-mono">
+                  <span className="w-2 h-2 rounded-full bg-stone-300" />
                   <span>Waiting for session</span>
                 </div>
               )}
@@ -420,23 +402,23 @@ export default function LiveEEGPage() {
           </div>
 
           {/* Session Duration */}
-          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block">
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <span className="text-[10px] text-stone-500 uppercase font-mono block">
               Session Duration
             </span>
-            <div className="flex items-center gap-2 mt-1 font-mono text-base font-bold text-white">
-              <Clock className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2 mt-1.5 font-mono text-xl font-bold text-[#1C1E1A]">
+              <Clock className="w-4 h-4 text-stone-400" />
               <span>{formatDuration(sessionSeconds)}</span>
             </div>
           </div>
 
           {/* Transport Bridge */}
-          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block">
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <span className="text-[10px] text-stone-500 uppercase font-mono block">
               Transport Bridge
             </span>
-            <div className="flex items-center gap-2 mt-1 text-slate-200 font-mono text-xs">
-              <Wifi className="w-4 h-4 text-blue-400" />
+            <div className="flex items-center gap-2 mt-1.5 text-[#1C1E1A] font-mono text-xs font-semibold">
+              <Wifi className="w-4 h-4 text-[#5B6D49]" />
               <span>
                 {status === "READY"
                   ? "Disconnected / Ready"
@@ -448,8 +430,8 @@ export default function LiveEEGPage() {
           </div>
 
           {/* Recording State */}
-          <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <span className="text-[10px] text-stone-500 uppercase font-mono block mb-1">
               Recording State
             </span>
             {renderRecordingStateBadge()}
@@ -458,29 +440,29 @@ export default function LiveEEGPage() {
 
         {/* 4. Session Summary Banner (Shown when COMPLETED) */}
         {status === "COMPLETED" && (
-          <div className="p-4 rounded-xl bg-slate-900 border border-emerald-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-800 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="p-5 rounded-3xl bg-[#FAFBF8] border border-[#DEE5D6] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49] shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-white">
+                <h4 className="text-sm font-semibold text-[#1C1E1A]">
                   Recording Session Completed Successfully
                 </h4>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 font-mono mt-0.5">
-                  <span>Duration: <strong className="text-white">{formatDuration(sessionSeconds)}</strong></span>
-                  <span className="text-slate-600">•</span>
-                  <span>Signal Quality: <strong className="text-emerald-400">{signalQuality || 94}%</strong></span>
-                  <span className="text-slate-600">•</span>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#5E6659] font-mono mt-0.5">
+                  <span>Duration: <strong className="text-[#1C1E1A]">{formatDuration(sessionSeconds)}</strong></span>
+                  <span className="text-stone-300">•</span>
+                  <span>Signal Quality: <strong className="text-[#2D7A58]">{signalQuality || 94}%</strong></span>
+                  <span className="text-stone-300">•</span>
                   <span>Protocol: FP1 512 SPS</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {activeSessionId && (
                 <Link href={`/sessions/${activeSessionId}`}>
-                  <Button variant="primary" size="sm" className="gap-1.5">
+                  <Button variant="primary" size="sm" className="gap-1.5 rounded-full">
                     <span>View Session Details</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
@@ -490,7 +472,7 @@ export default function LiveEEGPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleStartNewSession}
-                className="gap-1.5"
+                className="gap-1.5 rounded-full border-stone-200"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Start New Session</span>
@@ -500,30 +482,30 @@ export default function LiveEEGPage() {
         )}
 
         {/* 5. Primary Visual Element: Large Raw EEG Waveform Canvas */}
-        <Card className="overflow-hidden">
-          <CardHeader className="py-3 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400">
+        <Card className="overflow-hidden bg-white border-stone-200/80 rounded-3xl shadow-sm">
+          <CardHeader className="py-4 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49]">
                 <Activity className="w-4 h-4" />
               </div>
               <div>
-                <CardTitle className="text-sm font-semibold text-white">
+                <CardTitle className="text-base font-semibold text-[#1C1E1A]">
                   Raw EEG Signal
                 </CardTitle>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-[#5E6659]">
                   FP1 Channel • Real-time biosignal voltage trace
                 </p>
               </div>
             </div>
 
             {/* Chart Calibration Controls */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-[11px] text-stone-500 font-mono">
                 <span>Scale:</span>
                 <select
                   value={voltageRange}
                   onChange={(e) => setVoltageRange(Number(e.target.value))}
-                  className="rounded-md bg-slate-950 border border-slate-800 px-2 py-1 text-slate-200 focus:outline-none text-[11px] cursor-pointer"
+                  className="rounded-full bg-[#FAFBF8] border border-stone-200 px-3 py-1 text-[#1C1E1A] focus:outline-none text-[11px] cursor-pointer"
                 >
                   <option value={25}>±25 µV</option>
                   <option value={50}>±50 µV</option>
@@ -531,13 +513,13 @@ export default function LiveEEGPage() {
                 </select>
               </div>
 
-              <span className="text-[10px] font-mono text-cyan-300 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
+              <span className="text-[10px] font-mono text-[#3D4C32] bg-[#EDF1E7] px-2.5 py-1 rounded-full border border-[#DEE5D6] font-medium">
                 512 SPS
               </span>
             </div>
           </CardHeader>
 
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-6">
             <WaveformChart
               samples={samples}
               height={340}
@@ -551,51 +533,51 @@ export default function LiveEEGPage() {
         </Card>
 
         {/* 6. Secondary Analysis Grid: Frequency Bands, Device Specs, and ML Pipeline */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Frequency Band Analysis (6 cols) */}
           <div className="lg:col-span-6">
-            <Card className="h-full">
-              <CardHeader className="py-3.5 px-5">
-                <CardTitle className="text-sm font-semibold text-white">
+            <Card className="h-full bg-white border-stone-200/80 rounded-3xl shadow-sm">
+              <CardHeader className="py-4 px-6 border-b border-stone-100">
+                <CardTitle className="text-base font-semibold text-[#1C1E1A]">
                   Frequency Band Analysis
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-5 pt-1">
+              <CardContent className="p-6 pt-4">
                 <FrequencyBandsChart features={bands} isSimulation={isSimulation} />
               </CardContent>
             </Card>
           </div>
 
           {/* Device Configuration & Montage (6 cols) */}
-          <div className="lg:col-span-6 space-y-5">
-            <Card>
-              <CardHeader className="py-3.5 px-5">
-                <CardTitle className="text-sm font-semibold text-white">
+          <div className="lg:col-span-6 space-y-6">
+            <Card className="bg-white border-stone-200/80 rounded-3xl shadow-sm">
+              <CardHeader className="py-4 px-6 border-b border-stone-100">
+                <CardTitle className="text-base font-semibold text-[#1C1E1A]">
                   Device Configuration
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-5 pt-1 space-y-2 text-xs font-mono">
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                  <span className="text-slate-400">Device Hardware</span>
-                  <span className="font-medium text-slate-200">
+              <CardContent className="p-6 pt-4 space-y-2.5 text-xs font-mono">
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Device Hardware</span>
+                  <span className="font-semibold text-[#1C1E1A]">
                     {activeDevice?.name || "TGAM1 Wearable Headset Alpha"} (Demo Device)
                   </span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                  <span className="text-slate-400">Electrode Channel</span>
-                  <span className="font-medium text-slate-200">FP1 (Left Prefrontal)</span>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Electrode Channel</span>
+                  <span className="font-semibold text-[#1C1E1A]">FP1 (Left Prefrontal)</span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                  <span className="text-slate-400">Reference / Ground</span>
-                  <span className="font-medium text-slate-200">A1 (Left Earclip)</span>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Reference / Ground</span>
+                  <span className="font-semibold text-[#1C1E1A]">A1 (Left Earclip)</span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                  <span className="text-slate-400">Bandpass Filter</span>
-                  <span className="font-medium text-slate-200">0.5 Hz HPF / 50 Hz LPF</span>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Bandpass Filter</span>
+                  <span className="font-semibold text-[#1C1E1A]">0.5 Hz HPF / 50 Hz LPF</span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                  <span className="text-slate-400">Telemetry Rate</span>
-                  <span className="font-medium text-emerald-400">50 Hz Packets (512 Hz Sampling)</span>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Telemetry Rate</span>
+                  <span className="font-semibold text-[#2D7A58]">50 Hz Packets (512 Hz Sampling)</span>
                 </div>
               </CardContent>
             </Card>

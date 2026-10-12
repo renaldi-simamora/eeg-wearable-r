@@ -44,41 +44,41 @@ export function DeviceHealthCard({ health, className = "" }: DeviceHealthCardPro
   ];
 
   return (
-    <Card className={className}>
-      <CardHeader className="py-3.5 px-5">
+    <Card className={`bg-white border-stone-200/80 rounded-2xl shadow-sm ${className}`}>
+      <CardHeader className="py-4 px-6 border-b border-stone-200/80">
         <div>
-          <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+          <CardTitle className="text-xs font-semibold text-[#1C1E1A] uppercase tracking-wider font-mono">
             Hardware & IoT Telemetry
           </CardTitle>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className="text-[11px] text-[#5E6659] mt-0.5">
             ESP32 micro-controller and TGAM1 sensor operational diagnostics
           </p>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-1 space-y-2">
+      <CardContent className="p-5 pt-4 space-y-2.5">
         {items.map((it) => {
           const Icon = it.icon;
           return (
             <div
               key={it.label}
-              className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between hover:border-slate-700/80 transition-colors"
+              className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between hover:border-stone-300 transition-colors"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400">
-                  <Icon className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49]">
+                  <Icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-400 block font-normal">
+                  <span className="text-[11px] text-stone-500 block font-normal">
                     {it.label}
                   </span>
-                  <span className="text-xs font-medium text-slate-200 font-mono block">
+                  <span className="text-xs font-semibold text-[#1C1E1A] font-mono block">
                     {it.value}
                   </span>
                 </div>
               </div>
-              <span className={`w-2 h-2 rounded-full shrink-0 ${
-                it.status === "operational" ? "bg-emerald-400" : "bg-amber-400"
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                it.status === "operational" ? "bg-[#5B6D49]" : "bg-amber-500"
               }`} />
             </div>
           );

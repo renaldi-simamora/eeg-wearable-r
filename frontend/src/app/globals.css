@@ -2,16 +2,21 @@
 
 @layer base {
   :root {
-    --background: #070b14;
-    --foreground: #e2e8f0;
-    --primary: #3b82f6;
+    --background: #f7f8f5;
+    --foreground: #1c1e1a;
+    --primary: #5b6d49;
     --primary-foreground: #ffffff;
-    --border: rgba(255, 255, 255, 0.06);
+    --card: #ffffff;
+    --card-foreground: #1c1e1a;
+    --muted: #edf1e7;
+    --muted-foreground: #5e6659;
+    --border: rgba(0, 0, 0, 0.08);
   }
 
   html {
     overflow-x: hidden;
     scroll-behavior: smooth;
+    background-color: var(--background);
   }
 
   body {
@@ -24,7 +29,7 @@
   }
 }
 
-/* Custom subtle scrollbars - dark theme */
+/* Custom subtle scrollbars - warm light theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -35,21 +40,21 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.22);
 }
 
 /* Waveform glowing animations */
 @keyframes pulseGlow {
   0%, 100% {
-    opacity: 0.4;
+    opacity: 0.7;
   }
   50% {
-    opacity: 0.8;
+    opacity: 1;
   }
 }
 
