@@ -1,23 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant_Garamond, Manrope, JetBrains_Mono, Caveat } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-serif",
   subsets: ["latin"],
+  weight: ["500", "600"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const manrope = Manrope({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+const caveat = Caveat({
+  variable: "--font-script",
+  subsets: ["latin"],
+  weight: ["500"],
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f7f8f5",
+  themeColor: "#EFEDE8",
   width: "device-width",
   initialScale: 1,
 };
@@ -46,9 +62,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`${cormorant.variable} ${manrope.variable} ${jetbrainsMono.variable} ${caveat.variable} antialiased`}
     >
-      <body className="min-h-screen bg-[#f7f8f5] text-[#1c1e1a] flex flex-col font-sans antialiased selection:bg-[#5b6d49]/20 selection:text-[#1c1e1a]">
+      <body className="min-h-screen bg-[#EFEDE8] text-[#262622] flex flex-col font-sans antialiased selection:bg-[#66744F]/20 selection:text-[#262622]">
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

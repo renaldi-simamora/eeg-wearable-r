@@ -142,19 +142,6 @@ function RegisterForm() {
     },
   });
 
-  const handleDemoBypass = async () => {
-    setAuthError(null);
-    setIsGoogleLoading(true);
-    setAuthSuccess(true);
-    try {
-      await loginWithGoogle("demo-google-oauth-credential", redirectUrl);
-    } catch (err: any) {
-      setAuthSuccess(false);
-      setIsGoogleLoading(false);
-      setAuthError(err.message || "Demo register gagal.");
-    }
-  };
-
   return (
     <AuthShell
       title="Create Your Account"
@@ -373,16 +360,6 @@ function RegisterForm() {
                 <span>Sign up with Google</span>
               </>
             )}
-          </button>
-
-          {/* Offline / Test fallback option */}
-          <button
-            type="button"
-            onClick={handleDemoBypass}
-            disabled={isGoogleLoading || isSubmitting}
-            className="text-[11px] text-stone-500 hover:text-[#5B6D49] underline transition-colors cursor-pointer py-1"
-          >
-            Offline / Bypass Akun Demo Lokal
           </button>
         </div>
 
