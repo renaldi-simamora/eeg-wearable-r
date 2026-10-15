@@ -90,6 +90,20 @@
   scrollbar-width: none;
 }
 
+/* Utility classes */
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+.font-sans {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+.font-script {
+  font-family: var(--font-script), cursive;
+}
+
 /* Reduced motion preference support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

@@ -2,134 +2,157 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, ArrowUpRight, Activity } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/providers/AuthProvider";
+import { Activity, ArrowUpRight, Menu, X } from "lucide-react";
 
 interface NavbarProps {
   theme?: "dark" | "light";
+  activeId?: string;
 }
 
-export default function Navbar({ theme = "light" }: NavbarProps) {
+export default function Navbar({ activeId }: NavbarProps) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    setMounted(true);
   }, []);
 
-  const navLinks = [
-    { label: "Overview", href: "/#overview" },
-    { label: "Hardware IoT", href: "/#hardware" },
-    { label: "EEG Bands", href: "/#bands" },
-    { label: "Workflow Riset", href: "/#workflow" },
-    { label: "Dokumentasi", href: "/about" },
+  const currentActive = activeId || (pathname === "/about" ? "about" : "overview");
+
+  const navItems = [
+    { id: "overview", label: "Beranda", href: "/#overview" },
+    { id: "why", label: "Keunggulan", href: "/#why" },
+    { id: "hardware", label: "Hardware", href: "/#hardware" },
+    { id: "calculator", label: "Kalkulator", href: "/#calculator" },
+    { id: "pipeline", label: "Alur Sinyal", href: "/#pipeline" },
+    { id: "bands", label: "Spektrum EEG", href: "/#bands" },
+    { id: "about", label: "Tentang Riset", href: "/about" },
   ];
 
   return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 w-full transition-all duration-200 ${
-        isScrolled
-          ? "bg-[#F8F9F5]/95 backdrop-blur-md border-b border-stone-200/80 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.03)]"
-          : "bg-[#F8F9F5]/80 backdrop-blur-sm border-b border-stone-200/50"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-        {/* Brand */}
-        <Link href="/" aria-label="NeuroPulse Homepage" className="flex items-center gap-3 group min-h-[44px]">
-          <div className="w-9 h-9 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49] group-hover:scale-105 transition-transform shadow-2xs">
-            <Activity className="w-4 h-4" />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="font-bold tracking-tight text-base text-[#1C1E1A] group-hover:text-[#5B6D49] transition-colors leading-tight">
-              NeuroPulse
-            </span>
-            <span className="text-[10px] text-stone-500 font-mono tracking-wider uppercase">
-              EEG Biosensing IoT
-            </span>
-          </div>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-7 lg:gap-9" aria-label="Main Navigation">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="text-[13px] font-medium tracking-wide text-stone-600 hover:text-[#1C1E1A] transition-colors relative py-2 px-1 min-h-[40px] inline-flex items-center"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right Buttons: Login and Register */}
-        <div className="hidden md:flex items-center gap-2.5">
-          <Link
-            href="/login"
-            className="text-xs font-semibold text-stone-700 hover:text-[#1C1E1A] transition-colors px-4 py-2 min-h-[38px] inline-flex items-center justify-center rounded-full hover:bg-stone-200/60"
-          >
-            Masuk
-          </Link>
-          <Link
-            href="/dashboard"
-            className="px-5 py-2 min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-full bg-[#5B6D49] hover:bg-[#4E5E3E] text-white font-medium text-xs tracking-tight transition-all shadow-sm hover:shadow active:scale-[0.98] text-center cursor-pointer"
-          >
-            <span>Buka Platform</span>
-            <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-              <ArrowUpRight className="w-2.5 h-2.5 text-white" />
+    <header className="sticky top-3 sm:top-4 z-50 w-full transition-all px-3 sm:px-4 md:px-6">
+      <div className="max-w-[1240px] w-full mx-auto">
+        <div className="bg-[#FAF9F6]/90 backdrop-blur-xl rounded-full border border-white/80 shadow-[0_14px_34px_-10px_rgba(50,48,38,0.12)] px-3.5 sm:px-5 py-2.5 flex items-center justify-between gap-4">
+          
+          {/* Left: Brand Identity */}
+          <Link href="/" aria-label="NeuroPulse Home" className="inline-flex items-center gap-3 group shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[#E8ECDF] border border-[rgba(102,116,79,0.25)] flex items-center justify-center text-[#58684C] transition-transform group-hover:scale-105 shadow-2xs">
+              <Activity className="w-4.5 h-4.5 stroke-[2.2]" />
+            </div>
+            <div>
+              <span className="font-serif font-bold text-base tracking-tight text-[#1E201D] block leading-none">
+                NeuroPulse
+              </span>
+              <span className="text-[10px] font-mono tracking-wider uppercase text-[#77776E] block mt-0.5">
+                IoT Biosignal Platform
+              </span>
             </div>
           </Link>
+
+          {/* Center: Navigation Links with Active Pill & Indicator Dot */}
+          <div className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-stone-100/70 border border-[rgba(40,40,30,0.04)]">
+            {navItems.map((item) => {
+              const isActive = currentActive === item.id;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={`relative px-3.5 py-1.5 rounded-full text-[13px] transition-all flex items-center gap-1 ${
+                    isActive
+                      ? "bg-white text-[#1E201D] shadow-xs font-semibold"
+                      : "text-[#77776E] hover:text-[#1E201D] font-medium"
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5F6E52]" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Right: Login & Register (Harmonized Auth Actions) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {mounted && user ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-xs font-semibold transition-all shadow-xs group"
+              >
+                <span>Console</span>
+                <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold text-[#1E201D] hover:text-[#5F6E52] transition-colors"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-xs font-semibold transition-all shadow-xs group cursor-pointer"
+                >
+                  <span>Daftar</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation menu"
+              className="w-9 h-9 rounded-full border border-[rgba(40,40,30,0.1)] bg-white/80 flex lg:hidden items-center justify-center text-[#1E201D] cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
+
         </div>
 
-        {/* Mobile menu trigger */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-full text-stone-600 hover:text-[#1C1E1A] hover:bg-stone-200/60 transition-colors cursor-pointer min-h-[44px] min-w-[44px] inline-flex items-center justify-center"
-          aria-label="Toggle navigation menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
-        </button>
-      </div>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-b border-stone-200/80 bg-[#F8F9F5] px-5 pt-3 pb-6 space-y-3 shadow-lg">
-          <nav className="flex flex-col space-y-1" aria-label="Mobile Navigation">
-            {navLinks.map((link) => (
+        {/* Mobile Navigation Dropdown */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden mt-2 p-5 rounded-3xl bg-[#FAF9F6] border border-white/80 shadow-xl space-y-3 text-sm font-medium text-[#262622] animate-in fade-in duration-150">
+            {navItems.map((item) => (
               <Link
-                key={link.label}
-                href={link.href}
+                key={item.id}
+                href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2.5 min-h-[40px] flex items-center rounded-xl text-xs font-medium text-stone-700 hover:text-[#1C1E1A] hover:bg-stone-100"
+                className={`block py-1.5 px-3 rounded-xl transition-colors ${
+                  currentActive === item.id ? "bg-white font-semibold text-[#5F6E52]" : "hover:text-[#5F6E52]"
+                }`}
               >
-                {link.label}
+                {item.label}
               </Link>
             ))}
-          </nav>
-          <div className="pt-3 border-t border-stone-200 flex items-center gap-3">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 py-2.5 min-h-[40px] flex items-center justify-center text-center rounded-full bg-white border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs"
-            >
-              Masuk
-            </Link>
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 py-2.5 min-h-[40px] flex items-center justify-center text-center rounded-full bg-[#5B6D49] text-xs font-medium text-white hover:bg-[#4E5E3E] transition-colors shadow-sm"
-            >
-              Buka Platform
-            </Link>
+            <div className="pt-3 border-t border-[rgba(40,40,30,0.08)] flex items-center gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2 text-center rounded-full bg-white border border-stone-200 text-xs font-semibold text-[#1E201D]"
+              >
+                Masuk
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2 text-center rounded-full bg-[#5F6E52] text-white text-xs font-semibold"
+              >
+                Daftar ↗
+              </Link>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </header>
   );
 }
+
 export { Navbar };
