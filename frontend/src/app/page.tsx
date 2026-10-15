@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 
 // Research specifications & experimental numbers
-export const RESEARCH_SPECS = {
+const RESEARCH_SPECS = {
   noiseFloor: "1.2 µVrms",
   samplingRate: "512 Hz",
   packetDelivery: "99.2%",
