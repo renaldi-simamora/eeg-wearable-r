@@ -453,7 +453,7 @@ func (s *PostgresStore) SeedInitialData() {
 
 	var count int
 	_ = s.db.QueryRow("SELECT COUNT(*) FROM devices").Scan(&count)
-	if count == 0 {
+	if count < 5 {
 		log.Println("[Postgres] Seeding initial devices...")
 		initialDevices := []models.Device{
 			{
@@ -492,6 +492,30 @@ func (s *PostgresStore) SeedInitialData() {
 				CreatedAt:       time.Now().Add(-48 * time.Hour),
 				UpdatedAt:       time.Now().Add(-12 * time.Minute),
 			},
+			{
+				ID:              "dev-004",
+				DeviceCode:      "EEG-004",
+				Name:            "TGAM1 Wearable Headset Delta",
+				Status:          "connected",
+				BatteryLevel:    91,
+				SignalQuality:   96,
+				FirmwareVersion: "v1.2.4-esp32",
+				LastSeen:        time.Now(),
+				CreatedAt:       time.Now().Add(-72 * time.Hour),
+				UpdatedAt:       time.Now(),
+			},
+			{
+				ID:              "dev-005",
+				DeviceCode:      "EEG-005",
+				Name:            "TGAM1 Wearable Headset Theta",
+				Status:          "connected",
+				BatteryLevel:    78,
+				SignalQuality:   92,
+				FirmwareVersion: "v1.2.4-esp32",
+				LastSeen:        time.Now(),
+				CreatedAt:       time.Now().Add(-48 * time.Hour),
+				UpdatedAt:       time.Now(),
+			},
 		}
 		for _, dev := range initialDevices {
 			_ = s.CreateDevice(&dev)
@@ -499,12 +523,15 @@ func (s *PostgresStore) SeedInitialData() {
 	}
 
 	var sessionCount int
-	_ = s.db.QueryRow("SELECT COUNT(*) FROM sessions WHERE id IN ('ses-001', 'ses-002')").Scan(&sessionCount)
-	if sessionCount < 2 {
-		log.Println("[Postgres] Seeding initial research sessions & EEG data...")
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM sessions WHERE id IN ('ses-001', 'ses-002', 'ses-003', 'ses-004', 'ses-005')").Scan(&sessionCount)
+	if sessionCount < 5 {
+		log.Println("[Postgres] Seeding initial research sessions & EEG data across 5 brainwave protocols...")
 		now := time.Now()
 		s1Ended := now.Add(-30 * time.Minute)
-		s2Ended := now.Add(-2 * time.Hour)
+		s2Ended := now.Add(-120 * time.Minute)
+		s3Ended := now.Add(-240 * time.Minute)
+		s4Ended := now.Add(-360 * time.Minute)
+		s5Ended := now.Add(-480 * time.Minute)
 
 		// Ensure user-demo-01 exists to satisfy foreign key constraint and provide default admin login
 		_ = s.CreateUser(&models.User{
@@ -518,86 +545,180 @@ func (s *PostgresStore) SeedInitialData() {
 			UpdatedAt:    now,
 		})
 
-		_ = s.CreateSession(&models.Session{
-			ID:            "ses-001",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-001",
-			StartedAt:     now.Add(-45 * time.Minute),
-			EndedAt:       &s1Ended,
-			Duration:      900,
-			Status:        "completed",
-			CreatedAt:     now.Add(-45 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Alpha",
-			DeviceCode:    "EEG-001",
-			SignalQuality: 94,
-		})
-		_ = s.CreateSession(&models.Session{
-			ID:            "ses-002",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-001",
-			StartedAt:     now.Add(-140 * time.Minute),
-			EndedAt:       &s2Ended,
-			Duration:      1200,
-			Status:        "completed",
-			CreatedAt:     now.Add(-140 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Alpha",
-			DeviceCode:    "EEG-001",
-			SignalQuality: 88,
-		})
+		initialSessions := []models.Session{
+			{
+				ID:            "ses-001",
+				UserID:        "user-demo-01",
+				DeviceID:      "dev-001",
+				StartedAt:     now.Add(-45 * time.Minute),
+				EndedAt:       &s1Ended,
+				Duration:      900,
+				Status:        "completed",
+				CreatedAt:     now.Add(-45 * time.Minute),
+				DeviceName:    "TGAM1 Wearable Headset Alpha",
+				DeviceCode:    "EEG-001",
+				SignalQuality: 94,
+			},
+			{
+				ID:            "ses-002",
+				UserID:        "user-demo-01",
+				DeviceID:      "dev-002",
+				StartedAt:     now.Add(-140 * time.Minute),
+				EndedAt:       &s2Ended,
+				Duration:      1200,
+				Status:        "completed",
+				CreatedAt:     now.Add(-140 * time.Minute),
+				DeviceName:    "TGAM1 Wearable Headset Beta",
+				DeviceCode:    "EEG-002",
+				SignalQuality: 91,
+			},
+			{
+				ID:            "ses-003",
+				UserID:        "user-demo-01",
+				DeviceID:      "dev-003",
+				StartedAt:     now.Add(-252 * time.Minute),
+				EndedAt:       &s3Ended,
+				Duration:      720,
+				Status:        "completed",
+				CreatedAt:     now.Add(-252 * time.Minute),
+				DeviceName:    "TGAM1 Wearable Headset Gamma",
+				DeviceCode:    "EEG-003",
+				SignalQuality: 89,
+			},
+			{
+				ID:            "ses-004",
+				UserID:        "user-demo-01",
+				DeviceID:      "dev-004",
+				StartedAt:     now.Add(-385 * time.Minute),
+				EndedAt:       &s4Ended,
+				Duration:      1500,
+				Status:        "completed",
+				CreatedAt:     now.Add(-385 * time.Minute),
+				DeviceName:    "TGAM1 Wearable Headset Delta",
+				DeviceCode:    "EEG-004",
+				SignalQuality: 96,
+			},
+			{
+				ID:            "ses-005",
+				UserID:        "user-demo-01",
+				DeviceID:      "dev-005",
+				StartedAt:     now.Add(-498 * time.Minute),
+				EndedAt:       &s5Ended,
+				Duration:      1080,
+				Status:        "completed",
+				CreatedAt:     now.Add(-498 * time.Minute),
+				DeviceName:    "TGAM1 Wearable Headset Theta",
+				DeviceCode:    "EEG-005",
+				SignalQuality: 92,
+			},
+		}
+
+		for _, ses := range initialSessions {
+			_ = s.CreateSession(&ses)
+		}
 
 		// Seed Brainwave features
 		_ = s.SaveBrainwaveFeature(&models.BrainwaveFeature{
 			ID:        "bw-001",
 			SessionID: "ses-001",
 			Timestamp: now.UnixMilli() - 1800000,
-			Delta:     14.2,
-			Theta:     18.5,
-			Alpha:     42.1, // Alpha Dominant
-			Beta:      17.6,
-			Gamma:     7.6,
+			Delta:     10.5,
+			Theta:     15.0,
+			Alpha:     48.0, // Alpha Dominant
+			Beta:      18.0,
+			Gamma:     8.5,
 			CreatedAt: now.Add(-30 * time.Minute),
 		})
 		_ = s.SaveBrainwaveFeature(&models.BrainwaveFeature{
 			ID:        "bw-002",
 			SessionID: "ses-002",
 			Timestamp: now.UnixMilli() - 7200000,
-			Delta:     11.5,
-			Theta:     14.8,
-			Alpha:     20.4,
-			Beta:      40.5, // Beta Dominant (Active Focus)
-			Gamma:     12.8,
+			Delta:     9.5,
+			Theta:     13.5,
+			Alpha:     19.0,
+			Beta:      45.0, // Beta Dominant
+			Gamma:     13.0,
 			CreatedAt: now.Add(-120 * time.Minute),
 		})
+		_ = s.SaveBrainwaveFeature(&models.BrainwaveFeature{
+			ID:        "bw-003",
+			SessionID: "ses-003",
+			Timestamp: now.UnixMilli() - 14400000,
+			Delta:     8.0,
+			Theta:     11.0,
+			Alpha:     15.0,
+			Beta:      26.0,
+			Gamma:     40.0, // Gamma Dominant
+			CreatedAt: now.Add(-240 * time.Minute),
+		})
+		_ = s.SaveBrainwaveFeature(&models.BrainwaveFeature{
+			ID:        "bw-004",
+			SessionID: "ses-004",
+			Timestamp: now.UnixMilli() - 21600000,
+			Delta:     52.0, // Delta Dominant
+			Theta:     20.0,
+			Alpha:     13.0,
+			Beta:      9.5,
+			Gamma:     5.5,
+			CreatedAt: now.Add(-360 * time.Minute),
+		})
+		_ = s.SaveBrainwaveFeature(&models.BrainwaveFeature{
+			ID:        "bw-005",
+			SessionID: "ses-005",
+			Timestamp: now.UnixMilli() - 28800000,
+			Delta:     17.0,
+			Theta:     47.0, // Theta Dominant
+			Alpha:     17.5,
+			Beta:      12.0,
+			Gamma:     6.5,
+			CreatedAt: now.Add(-480 * time.Minute),
+		})
 
-		// Seed EEG samples for ses-001 (10 Hz alpha wave) and ses-002 (20 Hz beta wave)
-		s1Samples := make([]models.EEGSample, 60)
-		for i := 0; i < 60; i++ {
-			t := float64(i) * 0.05
-			val := 18.0*math.Sin(2*math.Pi*10.0*t) + 8.0*math.Sin(2*math.Pi*2.0*t) + (rand.Float64()*3.0 - 1.5)
-			s1Samples[i] = models.EEGSample{
-				ID:            fmt.Sprintf("s1-%d", i),
-				SessionID:     "ses-001",
-				Timestamp:     (now.UnixMilli() - 1800000) + int64(i*50),
-				RawEEG:        math.Round(val*100) / 100,
-				SignalQuality: 94,
-				CreatedAt:     now.Add(-30 * time.Minute),
+		// Seed EEG samples for all 5 sessions (120 points each)
+		for sIdx, sInfo := range initialSessions {
+			samples := make([]models.EEGSample, 120)
+			cycles := 17.0
+			switch sIdx {
+			case 0:
+				cycles = 17.0 // Alpha
+			case 1:
+				cycles = 32.0 // Beta
+			case 2:
+				cycles = 48.0 // Gamma
+			case 3:
+				cycles = 3.2 // Delta
+			case 4:
+				cycles = 7.5 // Theta
 			}
-		}
-		_ = s.SaveEEGSamples(s1Samples)
 
-		s2Samples := make([]models.EEGSample, 60)
-		for i := 0; i < 60; i++ {
-			t := float64(i) * 0.05
-			val := 19.0*math.Sin(2*math.Pi*20.0*t) + 6.0*math.Sin(2*math.Pi*4.0*t) + (rand.Float64()*3.0 - 1.5)
-			s2Samples[i] = models.EEGSample{
-				ID:            fmt.Sprintf("s2-%d", i),
-				SessionID:     "ses-002",
-				Timestamp:     (now.UnixMilli() - 7200000) + int64(i*50),
-				RawEEG:        math.Round(val*100) / 100,
-				SignalQuality: 88,
-				CreatedAt:     now.Add(-120 * time.Minute),
+			for i := 0; i < 120; i++ {
+				phase := (float64(i) * 2.0 * math.Pi * cycles) / 120.0
+				var val float64
+				switch sIdx {
+				case 0:
+					env := 18.0 + 5.0*math.Cos((float64(i)*2.0*math.Pi*1.5)/120.0)
+					val = env*math.Sin(phase) + 2.0*math.Sin(phase*2.0+0.4)
+				case 1:
+					val = 12.0*math.Sin(phase) + 3.5*math.Sin(phase*0.7+0.9) + 2.0*math.Sin(phase*1.4+2.1)
+				case 2:
+					val = 6.5*math.Sin(phase) + 2.5*math.Sin(phase*1.35+0.4)
+				case 3:
+					val = 36.0*math.Sin(phase) + 6.0*math.Sin(phase*0.45+0.8)
+				case 4:
+					val = 24.0*math.Sin(phase) + 5.0*math.Sin(phase*0.5+1.2)
+				}
+				val += (rand.Float64()*2.0 - 1.0) * 0.8
+
+				samples[i] = models.EEGSample{
+					ID:            fmt.Sprintf("pg-s%d-%d", sIdx+1, i),
+					SessionID:     sInfo.ID,
+					Timestamp:     sInfo.StartedAt.UnixMilli() + int64(i*20),
+					RawEEG:        math.Round(val*100) / 100,
+					SignalQuality: sInfo.SignalQuality,
+					CreatedAt:     sInfo.StartedAt,
+				}
 			}
+			_ = s.SaveEEGSamples(samples)
 		}
-		_ = s.SaveEEGSamples(s2Samples)
 	}
 }

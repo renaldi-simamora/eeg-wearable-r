@@ -119,9 +119,13 @@ func (m *MemoryStore) seed() {
 		m.devices[devices[i].ID] = &devices[i]
 	}
 
-	// Seed Sessions
+	// Seed 5 diverse sessions representing each of the 5 primary EEG band protocols
 	s1Ended := now.Add(-30 * time.Minute)
-	s2Ended := now.Add(-2 * time.Hour)
+	s2Ended := now.Add(-120 * time.Minute)
+	s3Ended := now.Add(-240 * time.Minute)
+	s4Ended := now.Add(-360 * time.Minute)
+	s5Ended := now.Add(-480 * time.Minute)
+
 	sessions := []models.Session{
 		{
 			ID:            "ses-001",
@@ -139,15 +143,54 @@ func (m *MemoryStore) seed() {
 		{
 			ID:            "ses-002",
 			UserID:        "user-demo-01",
-			DeviceID:      "dev-001",
+			DeviceID:      "dev-002",
 			StartedAt:     now.Add(-140 * time.Minute),
 			EndedAt:       &s2Ended,
 			Duration:      1200,
 			Status:        "completed",
 			CreatedAt:     now.Add(-140 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Alpha",
-			DeviceCode:    "EEG-001",
-			SignalQuality: 88,
+			DeviceName:    "TGAM1 Wearable Headset Beta",
+			DeviceCode:    "EEG-002",
+			SignalQuality: 91,
+		},
+		{
+			ID:            "ses-003",
+			UserID:        "user-demo-01",
+			DeviceID:      "dev-003",
+			StartedAt:     now.Add(-252 * time.Minute),
+			EndedAt:       &s3Ended,
+			Duration:      720,
+			Status:        "completed",
+			CreatedAt:     now.Add(-252 * time.Minute),
+			DeviceName:    "TGAM1 Wearable Headset Gamma",
+			DeviceCode:    "EEG-003",
+			SignalQuality: 89,
+		},
+		{
+			ID:            "ses-004",
+			UserID:        "user-demo-01",
+			DeviceID:      "dev-004",
+			StartedAt:     now.Add(-385 * time.Minute),
+			EndedAt:       &s4Ended,
+			Duration:      1500,
+			Status:        "completed",
+			CreatedAt:     now.Add(-385 * time.Minute),
+			DeviceName:    "TGAM1 Wearable Headset Delta",
+			DeviceCode:    "EEG-004",
+			SignalQuality: 96,
+		},
+		{
+			ID:            "ses-005",
+			UserID:        "user-demo-01",
+			DeviceID:      "dev-005",
+			StartedAt:     now.Add(-498 * time.Minute),
+			EndedAt:       &s5Ended,
+			Duration:      1080,
+			Status:        "completed",
+			CreatedAt:     now.Add(-498 * time.Minute),
+			DeviceName:    "TGAM1 Wearable Headset Theta",
+			DeviceCode:    "EEG-005",
+			SignalQuality: 93,
 		},
 	}
 	for i := range sessions {
@@ -159,12 +202,12 @@ func (m *MemoryStore) seed() {
 		{
 			ID:        "bw-001",
 			SessionID: "ses-001",
-			Timestamp: now.Unix() - 1800,
-			Delta:     14.2,
-			Theta:     18.5,
-			Alpha:     42.1, // Alpha Dominant
-			Beta:      17.6,
-			Gamma:     7.6,
+			Timestamp: now.UnixMilli() - 1800000,
+			Delta:     10.5,
+			Theta:     15.0,
+			Alpha:     48.0, // Alpha Dominant (48%)
+			Beta:      18.0,
+			Gamma:     8.5,
 			CreatedAt: now.Add(-30 * time.Minute),
 		},
 	}
@@ -172,46 +215,101 @@ func (m *MemoryStore) seed() {
 		{
 			ID:        "bw-002",
 			SessionID: "ses-002",
-			Timestamp: now.Unix() - 7200,
-			Delta:     11.5,
-			Theta:     14.8,
-			Alpha:     20.4,
-			Beta:      40.5, // Beta Dominant (Active Focus)
-			Gamma:     12.8,
+			Timestamp: now.UnixMilli() - 7200000,
+			Delta:     9.5,
+			Theta:     13.5,
+			Alpha:     19.0,
+			Beta:      45.0, // Beta Dominant (45%)
+			Gamma:     13.0,
 			CreatedAt: now.Add(-120 * time.Minute),
 		},
 	}
-
-	// Seed EEG waveform samples for replay
-	s1Samples := make([]models.EEGSample, 60)
-	for i := 0; i < 60; i++ {
-		t := float64(i) * 0.05
-		val := 18.0*math.Sin(2*math.Pi*10.0*t) + 8.0*math.Sin(2*math.Pi*2.0*t) + (rand.Float64()*3.0 - 1.5)
-		s1Samples[i] = models.EEGSample{
-			ID:            fmt.Sprintf("s1-%d", i),
-			SessionID:     "ses-001",
-			Timestamp:     (now.Unix() - 1800) + int64(i),
-			RawEEG:        math.Round(val*100) / 100,
-			SignalQuality: 94,
-			CreatedAt:     now.Add(-30 * time.Minute),
-		}
+	m.brainwaves["ses-003"] = []models.BrainwaveFeature{
+		{
+			ID:        "bw-003",
+			SessionID: "ses-003",
+			Timestamp: now.UnixMilli() - 14400000,
+			Delta:     8.0,
+			Theta:     11.0,
+			Alpha:     15.0,
+			Beta:      26.0,
+			Gamma:     40.0, // Gamma Dominant (40%)
+			CreatedAt: now.Add(-240 * time.Minute),
+		},
 	}
-	m.eegSamples["ses-001"] = s1Samples
-
-	s2Samples := make([]models.EEGSample, 60)
-	for i := 0; i < 60; i++ {
-		t := float64(i) * 0.05
-		val := 19.0*math.Sin(2*math.Pi*20.0*t) + 6.0*math.Sin(2*math.Pi*4.0*t) + (rand.Float64()*3.0 - 1.5)
-		s2Samples[i] = models.EEGSample{
-			ID:            fmt.Sprintf("s2-%d", i),
-			SessionID:     "ses-002",
-			Timestamp:     (now.Unix() - 7200) + int64(i),
-			RawEEG:        math.Round(val*100) / 100,
-			SignalQuality: 88,
-			CreatedAt:     now.Add(-120 * time.Minute),
-		}
+	m.brainwaves["ses-004"] = []models.BrainwaveFeature{
+		{
+			ID:        "bw-004",
+			SessionID: "ses-004",
+			Timestamp: now.UnixMilli() - 21600000,
+			Delta:     52.0, // Delta Dominant (52%)
+			Theta:     20.0,
+			Alpha:     13.0,
+			Beta:      9.5,
+			Gamma:     5.5,
+			CreatedAt: now.Add(-360 * time.Minute),
+		},
 	}
-	m.eegSamples["ses-002"] = s2Samples
+	m.brainwaves["ses-005"] = []models.BrainwaveFeature{
+		{
+			ID:        "bw-005",
+			SessionID: "ses-005",
+			Timestamp: now.UnixMilli() - 28800000,
+			Delta:     17.0,
+			Theta:     47.0, // Theta Dominant (47%)
+			Alpha:     17.5,
+			Beta:      12.0,
+			Gamma:     6.5,
+			CreatedAt: now.Add(-480 * time.Minute),
+		},
+	}
+
+	// Seed 120 physiological samples per session
+	for sIdx, s := range sessions {
+		samples := make([]models.EEGSample, 120)
+		cycles := 17.0
+		switch sIdx {
+		case 0:
+			cycles = 17.0 // Alpha
+		case 1:
+			cycles = 32.0 // Beta
+		case 2:
+			cycles = 48.0 // Gamma
+		case 3:
+			cycles = 3.2 // Delta
+		case 4:
+			cycles = 7.5 // Theta
+		}
+
+		for i := 0; i < 120; i++ {
+			phase := (float64(i) * 2.0 * math.Pi * cycles) / 120.0
+			var val float64
+			switch sIdx {
+			case 0:
+				env := 18.0 + 5.0*math.Cos((float64(i)*2.0*math.Pi*1.5)/120.0)
+				val = env*math.Sin(phase) + 2.0*math.Sin(phase*2.0+0.4)
+			case 1:
+				val = 12.0*math.Sin(phase) + 3.5*math.Sin(phase*0.7+0.9) + 2.0*math.Sin(phase*1.4+2.1)
+			case 2:
+				val = 6.5*math.Sin(phase) + 2.5*math.Sin(phase*1.35+0.4)
+			case 3:
+				val = 36.0*math.Sin(phase) + 6.0*math.Sin(phase*0.45+0.8)
+			case 4:
+				val = 24.0*math.Sin(phase) + 5.0*math.Sin(phase*0.5+1.2)
+			}
+			val += (rand.Float64()*2.0 - 1.0) * 0.8
+
+			samples[i] = models.EEGSample{
+				ID:            fmt.Sprintf("s%d-%d", sIdx+1, i),
+				SessionID:     s.ID,
+				Timestamp:     s.StartedAt.UnixMilli() + int64(i*20),
+				RawEEG:        math.Round(val*100) / 100,
+				SignalQuality: s.SignalQuality,
+				CreatedAt:     s.StartedAt,
+			}
+		}
+		m.eegSamples[s.ID] = samples
+	}
 }
 
 func (m *MemoryStore) CreateUser(user *models.User) error {

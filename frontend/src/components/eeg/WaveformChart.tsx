@@ -127,7 +127,8 @@ export function WaveformChart({
     }
   }, [samples, height, voltageRange]);
 
-  const isReady = status === "READY" || (samples.length < 2 && !isStreaming);
+  const hasSamples = samples.length >= 2;
+  const isReady = status === "READY";
   const isPaused = status === "PAUSED";
   const isCompleted = status === "COMPLETED";
 
@@ -139,8 +140,8 @@ export function WaveformChart({
         className="block"
       />
 
-      {/* Standby / Ready Overlay */}
-      {isReady && (
+      {/* Standby / Empty State Overlay only when there are no samples */}
+      {!hasSamples && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F7F8F5]/85 backdrop-blur-[2px] p-6 text-center select-none pointer-events-none">
           <div className="w-10 h-10 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] flex items-center justify-center text-[#5B6D49] mb-2.5">
             <svg
@@ -163,6 +164,14 @@ export function WaveformChart({
           <p className="text-xs text-[#5E6659] mt-1 max-w-sm">
             {emptyStateSubtext}
           </p>
+        </div>
+      )}
+
+      {/* Ready / Target Rhythm Preview Banner */}
+      {isReady && hasSamples && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 text-[10px] font-mono font-medium text-stone-600 shadow-xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+          <span>TARGET RHYTHM PREVIEW • READY</span>
         </div>
       )}
 

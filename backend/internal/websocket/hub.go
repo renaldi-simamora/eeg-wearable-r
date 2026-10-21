@@ -58,6 +58,7 @@ type Hub struct {
 	isSimulation    bool
 	activeSessionID string
 	simTime         float64
+	sampleCounter   int64
 	currentProfile  SimProfile
 }
 
@@ -225,78 +226,84 @@ func (h *Hub) BroadcastSample(packet StreamPacket) {
 }
 
 type SimProfile struct {
-	Name         string
-	DominantBand string
-	BaseDelta    float64
-	BaseTheta    float64
-	BaseAlpha    float64
-	BaseBeta     float64
-	BaseGamma    float64
-	WaveFreq     float64 // Principal oscillation frequency in Hz
-	PrimaryAmp   float64 // µV
+	Name            string
+	DominantBand    string
+	BaseDelta       float64
+	BaseTheta       float64
+	BaseAlpha       float64
+	BaseBeta        float64
+	BaseGamma       float64
+	WaveFreq        float64 // Principal oscillation frequency in Hz
+	CyclesPerBuffer float64 // Visual cycles across 120-sample buffer
+	PrimaryAmp      float64 // µV
 }
 
 var simProfiles = []SimProfile{
 	{
-		Name:         "Active Cognitive Focus (Beta Dominant)",
-		DominantBand: "Beta",
-		BaseDelta:    10.0,
-		BaseTheta:    14.0,
-		BaseAlpha:    20.0,
-		BaseBeta:     42.0, // Beta ~42%
-		BaseGamma:    14.0,
-		WaveFreq:     22.0,
-		PrimaryAmp:   14.0, // Amplitudo lebih rendah dan frekuensi cepat
+		Name:            "Relaxed Alertness (Alpha Dominant)",
+		DominantBand:    "Alpha",
+		BaseDelta:       10.5,
+		BaseTheta:       15.0,
+		BaseAlpha:       48.0, // Alpha ~48% DOMINANT
+		BaseBeta:        18.0,
+		BaseGamma:       8.5,
+		WaveFreq:        10.0,
+		CyclesPerBuffer: 17.0, // 17 smooth cycles with spindle envelope
+		PrimaryAmp:      22.0,
 	},
 	{
-		Name:         "Relaxed Alertness (Alpha Dominant)",
-		DominantBand: "Alpha",
-		BaseDelta:    12.0,
-		BaseTheta:    16.0,
-		BaseAlpha:    46.0, // Alpha ~46%
-		BaseBeta:     18.0,
-		BaseGamma:    8.0,
-		WaveFreq:     10.0,
-		PrimaryAmp:   22.0, // Irama sinkron 10 Hz sedang
+		Name:            "Active Cognitive Focus (Beta Dominant)",
+		DominantBand:    "Beta",
+		BaseDelta:       9.5,
+		BaseTheta:       13.5,
+		BaseAlpha:       19.0,
+		BaseBeta:        45.0, // Beta ~45% DOMINANT
+		BaseGamma:       13.0,
+		WaveFreq:        22.0,
+		CyclesPerBuffer: 32.0, // 32 fast desynchronized cycles
+		PrimaryAmp:      14.0,
 	},
 	{
-		Name:         "Drowsy / Meditative State (Theta Dominant)",
-		DominantBand: "Theta",
-		BaseDelta:    18.0,
-		BaseTheta:    45.0, // Theta ~45%
-		BaseAlpha:    18.0,
-		BaseBeta:     12.0,
-		BaseGamma:    7.0,
-		WaveFreq:     6.0,
-		PrimaryAmp:   26.0, // Gelombang sedang-lambat
+		Name:            "High Cognitive Workload (Gamma Dominant)",
+		DominantBand:    "Gamma",
+		BaseDelta:       8.0,
+		BaseTheta:       11.0,
+		BaseAlpha:       15.0,
+		BaseBeta:        26.0,
+		BaseGamma:       40.0, // Gamma ~40% DOMINANT
+		WaveFreq:        40.0,
+		CyclesPerBuffer: 48.0, // 48 rapid micro-ripples
+		PrimaryAmp:      8.5,
 	},
 	{
-		Name:         "Deep Restful State (Delta Dominant)",
-		DominantBand: "Delta",
-		BaseDelta:    48.0, // Delta ~48%
-		BaseTheta:    22.0,
-		BaseAlpha:    14.0,
-		BaseBeta:     10.0,
-		BaseGamma:    6.0,
-		WaveFreq:     2.0,
-		PrimaryAmp:   38.0, // Gelombang lambat bervoltase tinggi
+		Name:            "Deep Restful State (Delta Dominant)",
+		DominantBand:    "Delta",
+		BaseDelta:       52.0, // Delta ~52% DOMINANT
+		BaseTheta:       20.0,
+		BaseAlpha:       13.0,
+		BaseBeta:        9.5,
+		BaseGamma:       5.5,
+		WaveFreq:        2.0,
+		CyclesPerBuffer: 3.2, // 3.2 large slow rolling waves
+		PrimaryAmp:      38.0,
 	},
 	{
-		Name:         "High Cognitive Workload (Gamma Dominant)",
-		DominantBand: "Gamma",
-		BaseDelta:    8.0,
-		BaseTheta:    12.0,
-		BaseAlpha:    16.0,
-		BaseBeta:     26.0,
-		BaseGamma:    38.0, // Gamma ~38%
-		WaveFreq:     40.0,
-		PrimaryAmp:   8.5, // Gelombang cepat bervoltase rendah
+		Name:            "Drowsy / Meditative State (Theta Dominant)",
+		DominantBand:    "Theta",
+		BaseDelta:       17.0,
+		BaseTheta:       47.0, // Theta ~47% DOMINANT
+		BaseAlpha:       17.5,
+		BaseBeta:        12.0,
+		BaseGamma:       6.5,
+		WaveFreq:        6.0,
+		CyclesPerBuffer: 7.5, // 7.5 rhythmic rolling waves
+		PrimaryAmp:      26.0,
 	},
 }
 
 func getSessionProfile(sessionID string) SimProfile {
 	if sessionID == "" {
-		return simProfiles[1] // Default Alpha
+		return simProfiles[0] // Default Alpha
 	}
 	var hash uint32 = 2166136261
 	for i := 0; i < len(sessionID); i++ {
@@ -313,21 +320,21 @@ func getProfileForDevice(deviceID, deviceName, sessionID string) SimProfile {
 		return simProfiles[3] // Delta
 	}
 	if strings.Contains(s, "theta") || strings.Contains(s, "005") {
-		return simProfiles[2] // Theta
-	}
-	if strings.Contains(s, "alpha") || strings.Contains(s, "alfa") || strings.Contains(s, "001") {
-		return simProfiles[1] // Alpha
-	}
-	if strings.Contains(s, "beta") || strings.Contains(s, "002") {
-		return simProfiles[0] // Beta
+		return simProfiles[4] // Theta
 	}
 	if strings.Contains(s, "gamma") || strings.Contains(s, "003") {
-		return simProfiles[4] // Gamma
+		return simProfiles[2] // Gamma
+	}
+	if strings.Contains(s, "beta") || strings.Contains(s, "002") {
+		return simProfiles[1] // Beta
+	}
+	if strings.Contains(s, "alpha") || strings.Contains(s, "alfa") || strings.Contains(s, "001") {
+		return simProfiles[0] // Alpha
 	}
 	if sessionID != "" {
 		return getSessionProfile(sessionID)
 	}
-	return simProfiles[1]
+	return simProfiles[0]
 }
 
 // startSimulationGenerator runs ONLY when explicitly acquiring in simulation mode
@@ -343,6 +350,8 @@ func (h *Hub) startSimulationGenerator() {
 		profile := h.currentProfile
 		h.simTime += 0.04
 		t := h.simTime
+		h.sampleCounter++
+		sampleIdx := h.sampleCounter
 		h.mu.Unlock()
 
 		// Never generate or broadcast simulated EEG data when standby/ready or no clients connected
@@ -350,12 +359,12 @@ func (h *Hub) startSimulationGenerator() {
 			continue
 		}
 
-		// Biologically realistic temporal oscillations around the selected session profile
-		d := math.Max(1.0, profile.BaseDelta+4.0*math.Sin(t*0.35+0.5)+(rand.Float64()*2.0-1.0))
-		th := math.Max(1.0, profile.BaseTheta+4.0*math.Sin(t*0.45+1.2)+(rand.Float64()*2.0-1.0))
-		a := math.Max(1.0, profile.BaseAlpha+5.0*math.Sin(t*0.55+2.1)+(rand.Float64()*2.5-1.25))
-		b := math.Max(1.0, profile.BaseBeta+4.5*math.Sin(t*0.65+3.4)+(rand.Float64()*2.0-1.0))
-		g := math.Max(1.0, profile.BaseGamma+3.0*math.Sin(t*0.85+4.3)+(rand.Float64()*1.5-0.75))
+		// Gentle biological micro-fluctuations (±1.5%) around profile baselines
+		d := math.Max(1.0, profile.BaseDelta+1.5*math.Sin(t*0.35+0.5)+(rand.Float64()*1.0-0.5))
+		th := math.Max(1.0, profile.BaseTheta+1.5*math.Sin(t*0.45+1.2)+(rand.Float64()*1.0-0.5))
+		a := math.Max(1.0, profile.BaseAlpha+2.0*math.Sin(t*0.55+2.1)+(rand.Float64()*1.0-0.5))
+		b := math.Max(1.0, profile.BaseBeta+1.8*math.Sin(t*0.65+3.4)+(rand.Float64()*1.0-0.5))
+		g := math.Max(1.0, profile.BaseGamma+1.2*math.Sin(t*0.85+4.3)+(rand.Float64()*0.8-0.4))
 
 		// Relative spectral power percentage (sum to 100%)
 		sum := d + th + a + b + g
@@ -365,15 +374,30 @@ func (h *Hub) startSimulationGenerator() {
 		relBeta := math.Round((b/sum)*1000) / 10
 		relGamma := math.Round((g/sum)*1000) / 10
 
-		// Realistic raw EEG voltage waveform trace reflecting the profile's principal oscillation and amplitude
-		amp := profile.PrimaryAmp
-		if amp <= 0 {
-			amp = 22.0
+		// True physiological waveform synthesis without aliasing
+		k := profile.CyclesPerBuffer
+		if k <= 0 {
+			k = 17.0
 		}
-		signal := amp*math.Sin(2*math.Pi*profile.WaveFreq*t) +
-			(amp*0.3)*math.Sin(2*math.Pi*(profile.WaveFreq*0.5)*t) +
-			3.0*math.Sin(2*math.Pi*1.5*t) +
-			(rand.Float64()*2.0 - 1.0)
+		phase := (float64(sampleIdx) * 2.0 * math.Pi * k) / 120.0
+
+		var signal float64
+		switch profile.DominantBand {
+		case "Delta":
+			signal = 36.0*math.Sin(phase) + 6.0*math.Sin(phase*0.45+0.8)
+		case "Theta":
+			signal = 24.0*math.Sin(phase) + 5.0*math.Sin(phase*0.5+1.2)
+		case "Alpha":
+			env := 18.0 + 5.0*math.Cos((float64(sampleIdx)*2.0*math.Pi*1.5)/120.0)
+			signal = env*math.Sin(phase) + 2.0*math.Sin(phase*2.0+0.4)
+		case "Beta":
+			signal = 12.0*math.Sin(phase) + 3.5*math.Sin(phase*0.7+0.9) + 2.0*math.Sin(phase*1.4+2.1)
+		case "Gamma":
+			signal = 6.5*math.Sin(phase) + 2.5*math.Sin(phase*1.35+0.4)
+		default:
+			signal = 18.0 * math.Sin(phase)
+		}
+		signal += (rand.Float64()*2.0 - 1.0) * 1.0
 		signal = math.Round(signal*100) / 100
 
 		packet := StreamPacket{
