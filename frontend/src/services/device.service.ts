@@ -18,7 +18,13 @@ export interface UpdateDeviceDTO {
 export const deviceService = {
   async getDevices(): Promise<Device[]> {
     try {
-      return await apiClient<Device[]>("/devices");
+      const serverDevices = await apiClient<Device[]>("/devices");
+      if (Array.isArray(serverDevices) && serverDevices.length > 0) {
+        const existingCodes = new Set(serverDevices.map((d) => d.deviceCode));
+        const missing = mockDevices.filter((d) => !existingCodes.has(d.deviceCode));
+        return [...serverDevices, ...missing];
+      }
+      return mockDevices;
     } catch {
       return mockDevices;
     }

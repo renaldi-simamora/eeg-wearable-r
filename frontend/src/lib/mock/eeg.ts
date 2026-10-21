@@ -84,19 +84,19 @@ export const eegBandInfo = [
   },
   {
     name: "Alpha",
-    range: "8 – 13 Hz",
+    range: "8 – 12 Hz",
     color: "#10b981", // Emerald
-    description: "Occurs during calm, relaxed wakefulness with eyes closed; primary posterior dominant rhythm.",
+    description: "Occurs during calm, relaxed wakefulness with eyes closed; primary posterior dominant rhythm (Alfa).",
   },
   {
     name: "Beta",
-    range: "13 – 30 Hz",
+    range: "12 – 38 Hz",
     color: "#f59e0b", // Amber
     description: "Prevalent during active, alert cognitive engagement, problem solving, and analytical focus.",
   },
   {
     name: "Gamma",
-    range: "30 – 50 Hz",
+    range: "30 – 100 Hz",
     color: "#8b5cf6", // Purple
     description: "Involved in simultaneous processing of information across disparate cortical brain networks.",
   },

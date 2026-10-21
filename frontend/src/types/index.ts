@@ -57,9 +57,9 @@ export interface BrainwaveFeature {
   timestamp?: number;
   delta: number; // 0.5 - 4 Hz
   theta: number; // 4 - 8 Hz
-  alpha: number; // 8 - 13 Hz
-  beta: number;  // 13 - 30 Hz
-  gamma: number; // 30 - 50 Hz
+  alpha: number; // 8 - 12 Hz (Alfa)
+  beta: number;  // 12 - 38 Hz (Beta)
+  gamma: number; // 30 - 100 Hz (Gamma)
   createdAt?: string;
 }
 

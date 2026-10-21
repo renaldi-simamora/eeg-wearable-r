@@ -52,7 +52,7 @@ func (m *MemoryStore) seed() {
 	}
 	m.users[adminUser.ID] = adminUser
 
-	// Seed Devices
+	// Seed Devices (5 devices representing 5 primary EEG band protocols)
 	devices := []models.Device{
 		{
 			ID:              "dev-001",
@@ -70,25 +70,49 @@ func (m *MemoryStore) seed() {
 			ID:              "dev-002",
 			DeviceCode:      "EEG-002",
 			Name:            "TGAM1 Wearable Headset Beta",
-			Status:          "disconnected",
-			BatteryLevel:    62,
-			SignalQuality:   0,
+			Status:          "connected",
+			BatteryLevel:    82,
+			SignalQuality:   91,
 			FirmwareVersion: "v1.1.4-esp32",
-			LastSeen:        now.Add(-5 * time.Hour),
+			LastSeen:        now,
 			CreatedAt:       now.Add(-120 * time.Hour),
-			UpdatedAt:       now.Add(-5 * time.Hour),
+			UpdatedAt:       now,
 		},
 		{
 			ID:              "dev-003",
 			DeviceCode:      "EEG-003",
 			Name:            "TGAM1 Wearable Headset Gamma",
-			Status:          "warning",
-			BatteryLevel:    18,
-			SignalQuality:   42,
+			Status:          "connected",
+			BatteryLevel:    85,
+			SignalQuality:   93,
 			FirmwareVersion: "v1.2.0-esp32",
-			LastSeen:        now.Add(-12 * time.Minute),
+			LastSeen:        now,
 			CreatedAt:       now.Add(-48 * time.Hour),
-			UpdatedAt:       now.Add(-12 * time.Minute),
+			UpdatedAt:       now,
+		},
+		{
+			ID:              "dev-004",
+			DeviceCode:      "EEG-004",
+			Name:            "TGAM1 Wearable Headset Delta",
+			Status:          "connected",
+			BatteryLevel:    94,
+			SignalQuality:   96,
+			FirmwareVersion: "v1.2.0-esp32",
+			LastSeen:        now,
+			CreatedAt:       now.Add(-36 * time.Hour),
+			UpdatedAt:       now,
+		},
+		{
+			ID:              "dev-005",
+			DeviceCode:      "EEG-005",
+			Name:            "TGAM1 Wearable Headset Theta",
+			Status:          "connected",
+			BatteryLevel:    87,
+			SignalQuality:   92,
+			FirmwareVersion: "v1.2.0-esp32",
+			LastSeen:        now,
+			CreatedAt:       now.Add(-24 * time.Hour),
+			UpdatedAt:       now,
 		},
 	}
 	for i := range devices {

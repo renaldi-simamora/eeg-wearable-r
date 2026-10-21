@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,8 +39,11 @@ type StreamPacket struct {
 }
 
 type WSControlMessage struct {
-	Action       string `json:"action"` // "start" | "pause" | "resume" | "stop" | "status"
+	Action       string `json:"action"` // "start" | "pause" | "resume" | "stop" | "set_device"
 	SessionID    string `json:"sessionId,omitempty"`
+	DeviceID     string `json:"deviceId,omitempty"`
+	DeviceName   string `json:"deviceName,omitempty"`
+	DeviceCode   string `json:"deviceCode,omitempty"`
 	IsSimulation bool   `json:"isSimulation,omitempty"`
 }
 
@@ -109,20 +113,36 @@ func (h *Hub) run() {
 
 // StartAcquisition transitions stream to active state
 func (h *Hub) StartAcquisition(sessionID string, isSim bool) {
+	h.StartAcquisitionWithDevice(sessionID, isSim, "", "")
+}
+
+// StartAcquisitionWithDevice transitions stream to active state with targeted device profile
+func (h *Hub) StartAcquisitionWithDevice(sessionID string, isSim bool, deviceID string, deviceName string) {
 	h.mu.Lock()
 	h.isAcquiring = true
 	h.isPaused = false
 	h.isSimulation = isSim
 	h.activeSessionID = sessionID
 	h.simTime = 0.0
-	h.currentProfile = getSessionProfile(sessionID)
+	h.currentProfile = getProfileForDevice(deviceID, deviceName, sessionID)
 	profileName := h.currentProfile.Name
 	dominantBand := h.currentProfile.DominantBand
 	h.mu.Unlock()
 
-	log.Printf("[SESSION] status: ACQUIRING session_id: %s", sessionID)
+	log.Printf("[SESSION] status: ACQUIRING session_id: %s device: %s %s", sessionID, deviceID, deviceName)
 	log.Printf("[SIMULATION] enabled: %v, session_id: %s, profile: %s, dominant: %s", isSim, sessionID, profileName, dominantBand)
 	h.BroadcastState("ACQUIRING", sessionID)
+}
+
+// SetDevice dynamically switches the simulation profile to match the selected target device
+func (h *Hub) SetDevice(deviceID string, deviceName string) {
+	h.mu.Lock()
+	h.currentProfile = getProfileForDevice(deviceID, deviceName, h.activeSessionID)
+	profileName := h.currentProfile.Name
+	dominantBand := h.currentProfile.DominantBand
+	h.mu.Unlock()
+
+	log.Printf("[DEVICE] switched target device: %s %s -> profile: %s (%s dominant)", deviceID, deviceName, profileName, dominantBand)
 }
 
 // PauseAcquisition pauses data streaming without terminating session
@@ -213,64 +233,70 @@ type SimProfile struct {
 	BaseBeta     float64
 	BaseGamma    float64
 	WaveFreq     float64 // Principal oscillation frequency in Hz
+	PrimaryAmp   float64 // µV
 }
 
 var simProfiles = []SimProfile{
 	{
 		Name:         "Active Cognitive Focus (Beta Dominant)",
 		DominantBand: "Beta",
-		BaseDelta:    11.0,
-		BaseTheta:    15.0,
-		BaseAlpha:    21.0,
-		BaseBeta:     39.0, // Beta ~39%
+		BaseDelta:    10.0,
+		BaseTheta:    14.0,
+		BaseAlpha:    20.0,
+		BaseBeta:     42.0, // Beta ~42%
 		BaseGamma:    14.0,
-		WaveFreq:     20.0,
+		WaveFreq:     22.0,
+		PrimaryAmp:   14.0, // Amplitudo lebih rendah dan frekuensi cepat
 	},
 	{
 		Name:         "Relaxed Alertness (Alpha Dominant)",
 		DominantBand: "Alpha",
-		BaseDelta:    13.0,
-		BaseTheta:    17.0,
-		BaseAlpha:    43.0, // Alpha ~43%
-		BaseBeta:     19.0,
+		BaseDelta:    12.0,
+		BaseTheta:    16.0,
+		BaseAlpha:    46.0, // Alpha ~46%
+		BaseBeta:     18.0,
 		BaseGamma:    8.0,
 		WaveFreq:     10.0,
+		PrimaryAmp:   22.0, // Irama sinkron 10 Hz sedang
 	},
 	{
 		Name:         "Drowsy / Meditative State (Theta Dominant)",
 		DominantBand: "Theta",
-		BaseDelta:    22.0,
-		BaseTheta:    42.0, // Theta ~42%
-		BaseAlpha:    19.0,
+		BaseDelta:    18.0,
+		BaseTheta:    45.0, // Theta ~45%
+		BaseAlpha:    18.0,
 		BaseBeta:     12.0,
-		BaseGamma:    5.0,
+		BaseGamma:    7.0,
 		WaveFreq:     6.0,
+		PrimaryAmp:   26.0, // Gelombang sedang-lambat
 	},
 	{
 		Name:         "Deep Restful State (Delta Dominant)",
 		DominantBand: "Delta",
-		BaseDelta:    44.0, // Delta ~44%
-		BaseTheta:    24.0,
-		BaseAlpha:    15.0,
-		BaseBeta:     11.0,
+		BaseDelta:    48.0, // Delta ~48%
+		BaseTheta:    22.0,
+		BaseAlpha:    14.0,
+		BaseBeta:     10.0,
 		BaseGamma:    6.0,
-		WaveFreq:     2.5,
+		WaveFreq:     2.0,
+		PrimaryAmp:   38.0, // Gelombang lambat bervoltase tinggi
 	},
 	{
-		Name:         "High Cognitive Workload (Gamma/Beta Elevated)",
+		Name:         "High Cognitive Workload (Gamma Dominant)",
 		DominantBand: "Gamma",
-		BaseDelta:    9.0,
-		BaseTheta:    13.0,
-		BaseAlpha:    18.0,
-		BaseBeta:     29.0,
-		BaseGamma:    31.0, // Gamma ~31%
-		WaveFreq:     36.0,
+		BaseDelta:    8.0,
+		BaseTheta:    12.0,
+		BaseAlpha:    16.0,
+		BaseBeta:     26.0,
+		BaseGamma:    38.0, // Gamma ~38%
+		WaveFreq:     40.0,
+		PrimaryAmp:   8.5, // Gelombang cepat bervoltase rendah
 	},
 }
 
 func getSessionProfile(sessionID string) SimProfile {
 	if sessionID == "" {
-		return simProfiles[rand.Intn(len(simProfiles))]
+		return simProfiles[1] // Default Alpha
 	}
 	var hash uint32 = 2166136261
 	for i := 0; i < len(sessionID); i++ {
@@ -279,6 +305,29 @@ func getSessionProfile(sessionID string) SimProfile {
 	}
 	idx := int(hash % uint32(len(simProfiles)))
 	return simProfiles[idx]
+}
+
+func getProfileForDevice(deviceID, deviceName, sessionID string) SimProfile {
+	s := strings.ToLower(deviceID + " " + deviceName)
+	if strings.Contains(s, "delta") || strings.Contains(s, "004") {
+		return simProfiles[3] // Delta
+	}
+	if strings.Contains(s, "theta") || strings.Contains(s, "005") {
+		return simProfiles[2] // Theta
+	}
+	if strings.Contains(s, "alpha") || strings.Contains(s, "alfa") || strings.Contains(s, "001") {
+		return simProfiles[1] // Alpha
+	}
+	if strings.Contains(s, "beta") || strings.Contains(s, "002") {
+		return simProfiles[0] // Beta
+	}
+	if strings.Contains(s, "gamma") || strings.Contains(s, "003") {
+		return simProfiles[4] // Gamma
+	}
+	if sessionID != "" {
+		return getSessionProfile(sessionID)
+	}
+	return simProfiles[1]
 }
 
 // startSimulationGenerator runs ONLY when explicitly acquiring in simulation mode
@@ -316,11 +365,15 @@ func (h *Hub) startSimulationGenerator() {
 		relBeta := math.Round((b/sum)*1000) / 10
 		relGamma := math.Round((g/sum)*1000) / 10
 
-		// Realistic raw EEG voltage waveform trace reflecting the profile's principal oscillation
-		signal := 22.0*math.Sin(2*math.Pi*profile.WaveFreq*t) +
-			10.0*math.Sin(2*math.Pi*(profile.WaveFreq*0.5)*t) +
-			5.0*math.Sin(2*math.Pi*2.0*t) +
-			(rand.Float64()*3.0 - 1.5)
+		// Realistic raw EEG voltage waveform trace reflecting the profile's principal oscillation and amplitude
+		amp := profile.PrimaryAmp
+		if amp <= 0 {
+			amp = 22.0
+		}
+		signal := amp*math.Sin(2*math.Pi*profile.WaveFreq*t) +
+			(amp*0.3)*math.Sin(2*math.Pi*(profile.WaveFreq*0.5)*t) +
+			3.0*math.Sin(2*math.Pi*1.5*t) +
+			(rand.Float64()*2.0 - 1.0)
 		signal = math.Round(signal*100) / 100
 
 		packet := StreamPacket{
@@ -369,7 +422,9 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 			if err := json.Unmarshal(msgBytes, &ctrl); err == nil {
 				switch ctrl.Action {
 				case "start":
-					h.StartAcquisition(ctrl.SessionID, ctrl.IsSimulation)
+					h.StartAcquisitionWithDevice(ctrl.SessionID, ctrl.IsSimulation, ctrl.DeviceID, ctrl.DeviceName)
+				case "set_device":
+					h.SetDevice(ctrl.DeviceID, ctrl.DeviceName)
 				case "pause":
 					h.PauseAcquisition()
 				case "resume":

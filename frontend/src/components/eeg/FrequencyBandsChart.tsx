@@ -85,15 +85,15 @@ export function FrequencyBandsChart({
     },
     {
       name: "Alpha" as const,
-      range: "8 – 13 Hz",
+      range: "8 – 12 Hz",
       value: currentFeatures.alpha,
       color: "bg-[#5B6D49]",
       textColor: "text-[#3D4C32]",
-      description: "Calm wakefulness, resting posterior rhythm",
+      description: "Calm wakefulness, resting posterior rhythm (Alfa)",
     },
     {
       name: "Beta" as const,
-      range: "13 – 30 Hz",
+      range: "12 – 38 Hz",
       value: currentFeatures.beta,
       color: "bg-amber-600",
       textColor: "text-amber-700",
@@ -101,11 +101,11 @@ export function FrequencyBandsChart({
     },
     {
       name: "Gamma" as const,
-      range: "30 – 50 Hz",
+      range: "30 – 100 Hz",
       value: currentFeatures.gamma,
       color: "bg-purple-600",
       textColor: "text-purple-700",
-      description: "Cross-cortical network feature binding",
+      description: "Cross-cortical network feature binding & high cognition",
     },
   ];
 

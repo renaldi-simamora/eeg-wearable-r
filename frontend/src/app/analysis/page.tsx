@@ -76,18 +76,18 @@ export default function AnalysisPage() {
               </div>
               <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/80">
                 <span className="text-stone-400 block text-[10px]">BAND 3</span>
-                <span className="text-[#5B6D49] font-bold text-sm block mt-1">Alpha (α)</span>
-                <span className="text-stone-500 text-[10px] block mt-0.5">8 – 13 Hz</span>
+                <span className="text-[#5B6D49] font-bold text-sm block mt-1">Alfa / Alpha (α)</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">8 – 12 Hz</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/80">
                 <span className="text-stone-400 block text-[10px]">BAND 4</span>
                 <span className="text-amber-700 font-bold text-sm block mt-1">Beta (β)</span>
-                <span className="text-stone-500 text-[10px] block mt-0.5">13 – 30 Hz</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">12 – 38 Hz</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 col-span-2 sm:col-span-1">
                 <span className="text-stone-400 block text-[10px]">BAND 5</span>
                 <span className="text-purple-700 font-bold text-sm block mt-1">Gamma (γ)</span>
-                <span className="text-stone-500 text-[10px] block mt-0.5">30 – 50 Hz</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">30 – 100 Hz</span>
               </div>
             </div>
           </CardContent>

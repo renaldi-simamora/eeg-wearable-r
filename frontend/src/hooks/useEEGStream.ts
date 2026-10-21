@@ -22,64 +22,70 @@ export interface SimProfile {
   baseBeta: number;
   baseGamma: number;
   waveFreq: number; // Hz
+  primaryAmp: number; // µV
 }
 
 export const SIM_PROFILES: SimProfile[] = [
   {
     name: "Active Cognitive Focus (Beta Dominant)",
     dominantBand: "Beta",
-    baseDelta: 11.0,
-    baseTheta: 15.0,
-    baseAlpha: 21.0,
-    baseBeta: 39.0, // Beta ~39%
+    baseDelta: 10.0,
+    baseTheta: 14.0,
+    baseAlpha: 20.0,
+    baseBeta: 42.0, // Beta ~42%
     baseGamma: 14.0,
-    waveFreq: 20.0,
+    waveFreq: 22.0,
+    primaryAmp: 14.0, // Amplitudo lebih rendah dan cepat
   },
   {
     name: "Relaxed Alertness (Alpha Dominant)",
     dominantBand: "Alpha",
-    baseDelta: 13.0,
-    baseTheta: 17.0,
-    baseAlpha: 43.0, // Alpha ~43%
-    baseBeta: 19.0,
+    baseDelta: 12.0,
+    baseTheta: 16.0,
+    baseAlpha: 46.0, // Alpha ~46%
+    baseBeta: 18.0,
     baseGamma: 8.0,
     waveFreq: 10.0,
+    primaryAmp: 22.0, // Irama sinkron 10 Hz sedang
   },
   {
     name: "Drowsy / Meditative State (Theta Dominant)",
     dominantBand: "Theta",
-    baseDelta: 22.0,
-    baseTheta: 42.0, // Theta ~42%
-    baseAlpha: 19.0,
+    baseDelta: 18.0,
+    baseTheta: 45.0, // Theta ~45%
+    baseAlpha: 18.0,
     baseBeta: 12.0,
-    baseGamma: 5.0,
+    baseGamma: 7.0,
     waveFreq: 6.0,
+    primaryAmp: 26.0, // Gelombang sedang-lambat
   },
   {
     name: "Deep Restful State (Delta Dominant)",
     dominantBand: "Delta",
-    baseDelta: 44.0, // Delta ~44%
-    baseTheta: 24.0,
-    baseAlpha: 15.0,
-    baseBeta: 11.0,
+    baseDelta: 48.0, // Delta ~48%
+    baseTheta: 22.0,
+    baseAlpha: 14.0,
+    baseBeta: 10.0,
     baseGamma: 6.0,
-    waveFreq: 2.5,
+    waveFreq: 2.0,
+    primaryAmp: 38.0, // Gelombang lambat bervoltase tinggi
   },
   {
-    name: "High Cognitive Workload (Gamma/Beta Elevated)",
+    name: "High Cognitive Workload (Gamma Dominant)",
     dominantBand: "Gamma",
-    baseDelta: 9.0,
-    baseTheta: 13.0,
-    baseAlpha: 18.0,
-    baseBeta: 29.0,
-    baseGamma: 31.0, // Gamma ~31%
-    waveFreq: 36.0,
+    baseDelta: 8.0,
+    baseTheta: 12.0,
+    baseAlpha: 16.0,
+    baseBeta: 26.0,
+    baseGamma: 38.0, // Gamma ~38%
+    waveFreq: 40.0,
+    primaryAmp: 8.5, // Gelombang cepat bervoltase rendah
   },
 ];
 
 export function getSessionProfile(sessionId?: string | null): SimProfile {
   if (!sessionId) {
-    return SIM_PROFILES[0];
+    return SIM_PROFILES[1]; // Alpha as default
   }
   let hash = 2166136261;
   for (let i = 0; i < sessionId.length; i++) {
@@ -88,6 +94,39 @@ export function getSessionProfile(sessionId?: string | null): SimProfile {
   }
   const idx = Math.abs(hash) % SIM_PROFILES.length;
   return SIM_PROFILES[idx];
+}
+
+// Map target device directly to corresponding brainwave profile
+export function getProfileForDevice(device?: any, sessionId?: string | null): SimProfile {
+  if (device) {
+    const str = (
+      typeof device === "string"
+        ? device
+        : `${device.name || ""} ${device.deviceCode || ""} ${device.id || ""}`
+    ).toLowerCase();
+
+    if (str.includes("delta") || str.includes("004")) {
+      return SIM_PROFILES.find((p) => p.dominantBand === "Delta") || SIM_PROFILES[3];
+    }
+    if (str.includes("theta") || str.includes("005")) {
+      return SIM_PROFILES.find((p) => p.dominantBand === "Theta") || SIM_PROFILES[2];
+    }
+    if (str.includes("alpha") || str.includes("alfa") || str.includes("001")) {
+      return SIM_PROFILES.find((p) => p.dominantBand === "Alpha") || SIM_PROFILES[1];
+    }
+    if (str.includes("beta") || str.includes("002")) {
+      return SIM_PROFILES.find((p) => p.dominantBand === "Beta") || SIM_PROFILES[0];
+    }
+    if (str.includes("gamma") || str.includes("003")) {
+      return SIM_PROFILES.find((p) => p.dominantBand === "Gamma") || SIM_PROFILES[4];
+    }
+  }
+
+  if (sessionId) {
+    return getSessionProfile(sessionId);
+  }
+
+  return SIM_PROFILES[1]; // default Alpha
 }
 
 export interface EEGStreamState {
@@ -102,11 +141,12 @@ export interface EEGStreamState {
   activeSessionId: string | null;
   activeProfile: SimProfile | null;
   errorMessage: string | null;
-  startAcquisition: (sessionId?: string) => Promise<void>;
+  startAcquisition: (sessionId?: string, dev?: any) => Promise<void>;
   pauseAcquisition: () => void;
   resumeAcquisition: () => void;
   stopAcquisition: () => Promise<void>;
   resetToReady: () => void;
+  setTargetDevice: (device: any) => void;
   // Backwards compatibility aliases
   startStream: () => void;
   pauseStream: () => void;
@@ -123,7 +163,11 @@ export const ZERO_BANDS: BrainwaveFeature = {
   gamma: 0,
 };
 
-export function useEEGStream(autoStart: boolean = false, initialSessionId?: string): EEGStreamState {
+export function useEEGStream(
+  autoStart: boolean = false,
+  initialSessionId?: string,
+  initialTargetDevice?: any
+): EEGStreamState {
   const [status, setStatus] = useState<EEGSessionStatus>(autoStart ? "ACQUIRING" : "READY");
   const [samples, setSamples] = useState<EEGSample[]>([]);
   const [bands, setBands] = useState<BrainwaveFeature>(ZERO_BANDS);
@@ -132,8 +176,8 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
   const [connectionMode, setConnectionMode] = useState<"websocket" | "client_simulation" | "disconnected">("disconnected");
   const [isSimulation, setIsSimulation] = useState<boolean>(true);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId || null);
-  const [activeProfile, setActiveProfile] = useState<SimProfile | null>(
-    initialSessionId ? getSessionProfile(initialSessionId) : null
+  const [activeProfile, setActiveProfile] = useState<SimProfile | null>(() =>
+    getProfileForDevice(initialTargetDevice, initialSessionId)
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -142,7 +186,18 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
   const secondTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeRef = useRef<number>(0);
   const activeSessionIdRef = useRef<string | null>(initialSessionId || null);
-  const profileRef = useRef<SimProfile>(getSessionProfile(initialSessionId));
+  const targetDeviceRef = useRef<any>(initialTargetDevice || null);
+  const profileRef = useRef<SimProfile>(getProfileForDevice(initialTargetDevice, initialSessionId));
+
+  // Sync profile when initialTargetDevice prop changes
+  useEffect(() => {
+    if (initialTargetDevice) {
+      targetDeviceRef.current = initialTargetDevice;
+      const prof = getProfileForDevice(initialTargetDevice, activeSessionIdRef.current);
+      profileRef.current = prof;
+      setActiveProfile(prof);
+    }
+  }, [initialTargetDevice]);
 
   // Simulation generator: dynamic oscillation per session profile with 100% relative power normalization
   const tickSimulation = useCallback(() => {
@@ -165,12 +220,13 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
     const relBeta = Math.round((b / sum) * 1000) / 10;
     const relGamma = Math.round((g / sum) * 1000) / 10;
 
-    // Realistic raw EEG voltage waveform trace reflecting the profile's principal oscillation
+    // Realistic raw EEG voltage waveform trace reflecting the profile's principal oscillation and amplitude
+    const amp = profile.primaryAmp || 22.0;
     const signal =
-      22.0 * Math.sin(2 * Math.PI * profile.waveFreq * t) +
-      10.0 * Math.sin(2 * Math.PI * (profile.waveFreq * 0.5) * t) +
-      5.0 * Math.sin(2 * Math.PI * 2.0 * t) +
-      (Math.random() * 3.0 - 1.5);
+      amp * Math.sin(2 * Math.PI * profile.waveFreq * t) +
+      (amp * 0.3) * Math.sin(2 * Math.PI * (profile.waveFreq * 0.5) * t) +
+      3.0 * Math.sin(2 * Math.PI * 1.5 * t) +
+      (Math.random() * 2.0 - 1.0);
     const rawVal = Math.round(signal * 100) / 100;
     const sq = 92 + Math.floor(Math.random() * 6);
 
@@ -211,10 +267,14 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
         ws.onopen = () => {
           setConnectionMode("websocket");
           try {
+            const curDev = targetDeviceRef.current;
             ws?.send(
               JSON.stringify({
                 action: "start",
                 sessionId: activeSessionIdRef.current || undefined,
+                deviceId: curDev?.id,
+                deviceName: curDev?.name,
+                deviceCode: curDev?.deviceCode,
                 isSimulation: true,
               })
             );
@@ -328,17 +388,42 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
   }, [status, tickSimulation]);
 
   // Actions
-  const startAcquisition = useCallback(async (sessionId?: string) => {
+  const setTargetDevice = useCallback((device: any) => {
+    targetDeviceRef.current = device;
+    const prof = getProfileForDevice(device, activeSessionIdRef.current);
+    profileRef.current = prof;
+    setActiveProfile(prof);
+
+    try {
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(
+          JSON.stringify({
+            action: "set_device",
+            deviceId: device?.id,
+            deviceName: device?.name,
+            deviceCode: device?.deviceCode,
+          })
+        );
+      }
+    } catch {}
+  }, []);
+
+  const startAcquisition = useCallback(async (sessionId?: string, dev?: any) => {
     setErrorMessage(null);
     setStatus("STARTING");
 
+    if (dev) {
+      targetDeviceRef.current = dev;
+    }
     if (sessionId) {
       activeSessionIdRef.current = sessionId;
       setActiveSessionId(sessionId);
-      const prof = getSessionProfile(sessionId);
-      profileRef.current = prof;
-      setActiveProfile(prof);
     }
+
+    const curDev = dev || targetDeviceRef.current;
+    const prof = getProfileForDevice(curDev, sessionId || activeSessionIdRef.current);
+    profileRef.current = prof;
+    setActiveProfile(prof);
 
     timeRef.current = 0;
     setSamples([]);
@@ -351,6 +436,9 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
           JSON.stringify({
             action: "start",
             sessionId: activeSessionIdRef.current || undefined,
+            deviceId: curDev?.id,
+            deviceName: curDev?.name,
+            deviceCode: curDev?.deviceCode,
             isSimulation: true,
           })
         );
@@ -439,6 +527,7 @@ export function useEEGStream(autoStart: boolean = false, initialSessionId?: stri
     resumeAcquisition,
     stopAcquisition,
     resetToReady,
+    setTargetDevice,
     startStream,
     pauseStream,
     clearBuffer,

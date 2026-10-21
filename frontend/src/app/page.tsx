@@ -61,8 +61,56 @@ const RESEARCH_SPECS = {
   mcu: "ESP32-WROOM-32",
   asic: "NeuroSky TGAM1",
   battery: "3.7V LiPo 500mAh",
-  contactPhone: "+62 (021) 786-3501",
-  contactEmail: "contact@neuropulse.ac.id",
+  contactPhone: "+62 858-9441-0430",
+  contactEmail: "renaldirenaldi@apps.ipb.ac.id",
+} as const;
+
+// Konfigurasi estimasi baterai dan daya (ESP32 DevKit V1 + NeuroSky TGAM1 R2.9)
+const BATTERY_ESTIMATION_CONFIG = {
+  batteryCapacityMAh: 500, // LiPo 500mAh nominal
+  esp32AvgCurrentMA: 120, // ESP32 Wi-Fi aktif rata-rata ~120 mA
+  tgam1CurrentMA: 15, // Modul TGAM1 ~15 mA
+  regulatorEfficiency: 0.85, // Efisiensi regulator tegangan 85%
+  usableCapacityRatio: 0.8, // Kapasitas baterai terpakai 80% (safety cut-off)
+} as const;
+
+// Opsi kanal elektroda (TGAM1 hanya mendukung 1 kanal)
+const CHANNEL_OPTIONS = [
+  { ch: 1 as const, label: "1-Ch FP1", supported: true },
+  { ch: 2 as const, label: "2-Ch Bipolar", supported: false, disabledReason: "Tidak didukung TGAM1" },
+  { ch: 4 as const, label: "4-Ch Frontal", supported: false, disabledReason: "Tidak didukung TGAM1" },
+];
+
+// Opsi sampling rate ADC (TGAM1 hanya mendukung 512 SPS)
+const SAMPLING_RATE_OPTIONS = [
+  { rate: 128 as const, label: "128 SPS", supported: false, disabledReason: "Tidak didukung TGAM1" },
+  { rate: 256 as const, label: "256 SPS", supported: false, disabledReason: "Tidak didukung TGAM1" },
+  { rate: 512 as const, label: "512 SPS", supported: true },
+];
+
+// Preset kondisi eksperimen netral (tanpa klaim pengukuran emosi/fokus langsung)
+const EXPERIMENT_CONDITIONS = [
+  { id: "resting", label: "Kondisi Istirahat", desc: "Mata terbuka / tertutup" },
+  { id: "concentration", label: "Tugas Konsentrasi", desc: "Aktivitas kognitif" },
+  { id: "reading", label: "Membaca", desc: "Stimulasi visual / teks" },
+  { id: "other", label: "Lainnya", desc: "Protokol kustom" },
+] as const;
+
+type ExperimentConditionId = (typeof EXPERIMENT_CONDITIONS)[number]["id"];
+
+// Spesifikasi model Machine Learning terpilih (Baseline SVM)
+const SELECTED_ML_MODEL = {
+  name: "Support Vector Machine (SVM)",
+  kernel: "RBF (Radial Basis Function)",
+  role: "Model Klasifikasi Baseline",
+  tag: "Terpilih untuk TGAM1",
+  description:
+    "Memetakan vektor fitur daya spektral 5-band (Delta, Theta, Alfa, Beta, Gamma) ke hyperplane berdimensi tinggi menggunakan kernel RBF. Sangat efisien untuk data 1-kanal FP1, tahan terhadap overfitting pada sampel laboratorium, serta menghasilkan inferensi deterministik berkecepatan tinggi.",
+  features: [
+    { label: "Fitur Input", value: "PSD 5 Sub-band" },
+    { label: "Kompleksitas", value: "Ringan · O(N_sv · d)" },
+    { label: "Status Evaluasi", value: "Baseline Eksperimen" },
+  ],
 } as const;
 
 interface HardwareItem {
@@ -207,16 +255,16 @@ export default function LandingPage() {
   // Hero Visual Mode
   const [heroViewMode, setHeroViewMode] = useState<"arch" | "oscilloscope" | "workbench">("arch");
 
-  // Interactive Spectrum & Filter Simulator
-  const [selectedRhythm, setSelectedRhythm] = useState<"alpha" | "beta" | "theta" | "delta">("alpha");
+  // Interactive Spectrum & Filter Simulator (5 Gelombang Otak Klinis)
+  const [selectedRhythm, setSelectedRhythm] = useState<"delta" | "theta" | "alpha" | "beta" | "gamma">("alpha");
   const [notchFilterActive, setNotchFilterActive] = useState<boolean>(true);
 
   // Interactive Research Setup Estimator / Calculator States
-  const [calcFocus, setCalcFocus] = useState<"bci" | "focus" | "sleep" | "emotion">("bci");
+  const [calcFocus, setCalcFocus] = useState<ExperimentConditionId>("resting");
   const [calcChannels, setCalcChannels] = useState<1 | 2 | 4>(1);
   const [calcSamplingRate, setCalcSamplingRate] = useState<128 | 256 | 512>(512);
   const [calcDurationMin, setCalcDurationMin] = useState<number>(60);
-  const [calcModel, setCalcModel] = useState<"svm" | "rf" | "cnn">("svm");
+  const calcModel = "svm" as const;
   const [copiedCalc, setCopiedCalc] = useState<boolean>(false);
 
   // Modals
@@ -233,11 +281,11 @@ export default function LandingPage() {
   // Dynamic Scrollspy: Updates activeNav as user scrolls through sections
   useEffect(() => {
     const sectionIds = ["overview", "why", "hardware", "calculator", "pipeline", "bands"];
-    
+
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const headerOffset = 120; // accounts for floating header height & buffer
-      
+
       // If at the very top of the page, default to overview
       if (scrollY < 120) {
         setActiveNav("overview");
@@ -255,7 +303,7 @@ export default function LandingPage() {
           }
         }
       }
-      
+
       // Special check: if scrolled close to the bottom of the page, highlight the last section ('bands')
       const windowHeight = window.innerHeight;
       const fullHeight = document.documentElement.scrollHeight;
@@ -305,30 +353,26 @@ export default function LandingPage() {
     const bytesPerSecond = calcChannels * calcSamplingRate * 2 * 1.1;
     const throughputKBps = (bytesPerSecond / 1024).toFixed(2);
     const sessionMB = ((bytesPerSecond * (calcDurationMin * 60)) / (1024 * 1024)).toFixed(1);
-    
-    // Battery life: 500mAh / total mA draw
-    const baseCurrentMA = 38; // ESP32 idle + regulator
-    const wifiTxCurrentMA = 12 * (calcSamplingRate / 256);
-    const tgamDrawMA = 7 * calcChannels;
-    const totalDrawMA = baseCurrentMA + wifiTxCurrentMA + tgamDrawMA;
-    const batteryHours = (500 / totalDrawMA).toFixed(1);
 
-    // Latency
-    const latencyMs = (11 + calcChannels * 1.6 + (calcSamplingRate === 512 ? 2.5 : 1.2)).toFixed(1);
-
-    // Estimated Model Accuracy
-    const accuracy =
-      calcModel === "svm" ? "94.6%" : calcModel === "rf" ? "92.8%" : "96.4%";
+    // Estimasi baterai berdasarkan asumsi eksplisit BATTERY_ESTIMATION_CONFIG
+    // Beban 3.3V: ESP32 Wi-Fi aktif rata-rata (~120 mA) + TGAM1 (~15 mA) = 135 mA
+    const totalLoadCurrentMA =
+      BATTERY_ESTIMATION_CONFIG.esp32AvgCurrentMA + BATTERY_ESTIMATION_CONFIG.tgam1CurrentMA;
+    // Arus efektif yang ditarik dari baterai dengan efisiensi regulator 85%
+    const effectiveBatteryCurrentMA =
+      totalLoadCurrentMA / BATTERY_ESTIMATION_CONFIG.regulatorEfficiency;
+    // Kapasitas terpakai: 500 mAh * 80% = 400 mAh
+    const usableCapacityMAh =
+      BATTERY_ESTIMATION_CONFIG.batteryCapacityMAh * BATTERY_ESTIMATION_CONFIG.usableCapacityRatio;
+    const batteryHours = (usableCapacityMAh / effectiveBatteryCurrentMA).toFixed(1);
 
     return {
       throughputKBps,
       sessionMB,
       batteryHours,
-      latencyMs,
-      accuracy,
-      totalDrawMA: totalDrawMA.toFixed(0),
+      totalLoadCurrentMA,
     };
-  }, [calcChannels, calcSamplingRate, calcDurationMin, calcModel]);
+  }, [calcChannels, calcSamplingRate, calcDurationMin]);
 
   // Streaming waveform synthesis with rhythm & notch filter effects
   useEffect(() => {
@@ -337,16 +381,18 @@ export default function LandingPage() {
       setDemoSamples((prev) => {
         const nextTime = (prev[prev.length - 1]?.timestamp || 0) + 20;
 
-        // Base rhythm depending on user selection
+        // Base rhythm depending on user selection (5 Gelombang Otak)
         let rhythmComponent = 0;
         if (selectedRhythm === "alpha") {
-          rhythmComponent = Math.sin(nextTime * 0.063) * 22; // ~10 Hz
+          rhythmComponent = Math.sin(nextTime * 0.063) * 22; // ~10 Hz (Alfa)
         } else if (selectedRhythm === "beta") {
-          rhythmComponent = Math.sin(nextTime * 0.126) * 14; // ~20 Hz
+          rhythmComponent = Math.sin(nextTime * 0.126) * 14; // ~20 Hz (Beta)
         } else if (selectedRhythm === "theta") {
-          rhythmComponent = Math.sin(nextTime * 0.038) * 26; // ~6 Hz
+          rhythmComponent = Math.sin(nextTime * 0.038) * 26; // ~6 Hz (Theta)
         } else if (selectedRhythm === "delta") {
-          rhythmComponent = Math.sin(nextTime * 0.013) * 34; // ~2 Hz
+          rhythmComponent = Math.sin(nextTime * 0.013) * 34; // ~2 Hz (Delta)
+        } else if (selectedRhythm === "gamma") {
+          rhythmComponent = Math.sin(nextTime * 0.251) * 8; // ~40 Hz (Gamma: frekuensi tinggi amplitudo rendah)
         }
 
         // Secondary subtle physiological fluctuation
@@ -393,17 +439,29 @@ export default function LandingPage() {
 
   const handleCopyCalcConfig = () => {
     const configData = {
+      source: "simulation",
       platform: "NeuroPulse IoT EEG",
-      experimentFocus: calcFocus,
+      hardware: {
+        asic: "NeuroSky TGAM1 R2.9",
+        mcu: "ESP32 DevKit V1",
+        channels: calcChannels,
+        samplingRateSPS: calcSamplingRate,
+        rawAdcResolution: "12-bit",
+        baudRate: 57600,
+      },
+      experimentCondition: calcFocus,
       channels: calcChannels,
       samplingRateSPS: calcSamplingRate,
       sessionDurationMin: calcDurationMin,
       mlModel: calcModel,
       estimatedThroughputKBps: calcMetrics.throughputKBps,
-      estimatedSessionStorageMB: calcMetrics.sessionMB,
+      rawSessionStorageMB: calcMetrics.sessionMB,
       estimatedBatteryLifeHours: calcMetrics.batteryHours,
-      estimatedLatencyMs: calcMetrics.latencyMs,
-      predictedAccuracy: calcMetrics.accuracy,
+      batteryEstimationNote:
+        "Estimasi kasar: ESP32 Wi-Fi ~120mA + TGAM1 15mA, efisiensi regulator 85%, kapasitas terpakai 80%",
+      predictedAccuracy: "Belum tersedia",
+      accuracyNote: "Bergantung pada dataset dan hasil eksperimen",
+      estimatedLatencyMs: "Belum tersedia",
     };
     navigator.clipboard.writeText(JSON.stringify(configData, null, 2));
     setCopiedCalc(true);
@@ -421,14 +479,14 @@ export default function LandingPage() {
     { freq: "3.0 Hz", power: selectedRhythm === "delta" ? "54.1 µV²" : "18.5 µV²", height: selectedRhythm === "delta" ? 98 : 44, band: "Delta" },
     { freq: "5.0 Hz", power: selectedRhythm === "theta" ? "62.4 µV²" : "24.1 µV²", height: selectedRhythm === "theta" ? 88 : 58, band: "Theta" },
     { freq: "7.0 Hz", power: selectedRhythm === "theta" ? "74.8 µV²" : "31.8 µV²", height: selectedRhythm === "theta" ? 96 : 68, band: "Theta" },
-    { freq: "8.5 Hz", power: selectedRhythm === "alpha" ? "82.5 µV²" : "46.2 µV²", height: selectedRhythm === "alpha" ? 90 : 86, band: "Alpha" },
-    { freq: "10.0 Hz", power: selectedRhythm === "alpha" ? "98.4 µV²" : "68.4 µV²", height: selectedRhythm === "alpha" ? 100 : 96, band: "Alpha" },
-    { freq: "12.0 Hz", power: selectedRhythm === "alpha" ? "76.1 µV²" : "54.1 µV²", height: selectedRhythm === "alpha" ? 82 : 80, band: "Alpha" },
-    { freq: "14.0 Hz", power: selectedRhythm === "beta" ? "65.7 µV²" : "29.7 µV²", height: selectedRhythm === "beta" ? 85 : 60, band: "Beta" },
-    { freq: "18.0 Hz", power: selectedRhythm === "beta" ? "84.3 µV²" : "22.3 µV²", height: selectedRhythm === "beta" ? 94 : 48, band: "Beta" },
-    { freq: "24.0 Hz", power: selectedRhythm === "beta" ? "72.8 µV²" : "16.8 µV²", height: selectedRhythm === "beta" ? 88 : 38, band: "Beta" },
-    { freq: "32.0 Hz", power: "11.2 µV²", height: 26, band: "Gamma" },
-    { freq: "42.0 Hz", power: "8.4 µV²", height: 18, band: "Gamma" },
+    { freq: "8.5 Hz", power: selectedRhythm === "alpha" ? "82.5 µV²" : "46.2 µV²", height: selectedRhythm === "alpha" ? 90 : 86, band: "Alfa" },
+    { freq: "10.0 Hz", power: selectedRhythm === "alpha" ? "98.4 µV²" : "68.4 µV²", height: selectedRhythm === "alpha" ? 100 : 96, band: "Alfa" },
+    { freq: "12.0 Hz", power: selectedRhythm === "alpha" ? "76.1 µV²" : "54.1 µV²", height: selectedRhythm === "alpha" ? 82 : 80, band: "Alfa" },
+    { freq: "16.0 Hz", power: selectedRhythm === "beta" ? "65.7 µV²" : "29.7 µV²", height: selectedRhythm === "beta" ? 85 : 54, band: "Beta" },
+    { freq: "22.0 Hz", power: selectedRhythm === "beta" ? "84.3 µV²" : "22.3 µV²", height: selectedRhythm === "beta" ? 94 : 44, band: "Beta" },
+    { freq: "30.0 Hz", power: selectedRhythm === "beta" ? "72.8 µV²" : "16.8 µV²", height: selectedRhythm === "beta" ? 88 : 36, band: "Beta" },
+    { freq: "42.0 Hz", power: selectedRhythm === "gamma" ? "68.4 µV²" : "11.2 µV²", height: selectedRhythm === "gamma" ? 90 : 24, band: "Gamma" },
+    { freq: "65.0 Hz", power: selectedRhythm === "gamma" ? "52.7 µV²" : "7.8 µV²", height: selectedRhythm === "gamma" ? 76 : 16, band: "Gamma" },
   ];
 
   const frequencyCards = [
@@ -450,8 +508,8 @@ export default function LandingPage() {
     },
     {
       id: "alpha" as const,
-      name: "Alpha Rhythm",
-      range: "8 – 13 Hz",
+      name: "Alfa Rhythm",
+      range: "8 – 12 Hz",
       voltage: "20 – 60 µV",
       state: "Kondisi rileks terjaga, fokus tenang posterior",
       sineWave: "M 0 16 Q 6 4 12 16 T 24 16 T 36 16 T 48 16 T 60 16 T 72 16 T 84 16 T 96 16 T 108 16 T 120 16 T 128 16",
@@ -459,21 +517,29 @@ export default function LandingPage() {
     {
       id: "beta" as const,
       name: "Beta Rhythm",
-      range: "13 – 30 Hz",
+      range: "12 – 38 Hz",
       voltage: "5 – 30 µV",
       state: "Aktivitas kognitif intens, pemecahan masalah & siaga",
       sineWave: "M 0 16 Q 3 6 6 16 T 12 16 T 18 16 T 24 16 T 30 16 T 36 16 T 42 16 T 48 16 T 54 16 T 60 16 T 66 16 T 72 16 T 78 16 T 84 16 T 90 16 T 96 16 T 102 16 T 108 16 T 114 16 T 120 16 T 128 16",
+    },
+    {
+      id: "gamma" as const,
+      name: "Gamma Rhythm",
+      range: "30 – 100 Hz",
+      voltage: "0.5 – 10 µV",
+      state: "Integrasi sensorik lintas-korteks, persepsi sadar & konsentrasi puncak",
+      sineWave: "M 0 16 Q 1.5 8 3 16 T 6 16 T 9 16 T 12 16 T 15 16 T 18 16 T 21 16 T 24 16 T 27 16 T 30 16 T 33 16 T 36 16 T 39 16 T 42 16 T 45 16 T 48 16 T 51 16 T 54 16 T 57 16 T 60 16 T 63 16 T 66 16 T 69 16 T 72 16 T 75 16 T 78 16 T 81 16 T 84 16 T 87 16 T 90 16 T 93 16 T 96 16 T 99 16 T 102 16 T 105 16 T 108 16 T 111 16 T 114 16 T 117 16 T 120 16 T 123 16 T 126 16 T 128 16",
     },
   ];
 
   return (
     <div className="min-h-screen bg-[#F0EDE6] text-[#262622] flex flex-col font-sans selection:bg-[#5F6E52]/20 selection:text-[#262622] py-3 sm:py-4 px-3 sm:px-4 md:px-6">
       <div className="max-w-[1240px] w-full mx-auto space-y-4 sm:space-y-5">
-        
+
         {/* 1. FLOATING GLASSMORPHISM PILL NAVBAR (Inspired by User Screenshot 1) */}
         <header className="sticky top-3 sm:top-4 z-50 w-full transition-all">
           <div className="bg-[#FAF9F6]/90 backdrop-blur-xl rounded-full border border-white/80 shadow-[0_14px_34px_-10px_rgba(50,48,38,0.12)] px-3.5 sm:px-5 py-2.5 flex items-center justify-between gap-4">
-            
+
             {/* Left: Brand Identity */}
             <Link href="/" aria-label="NeuroPulse Home" className="inline-flex items-center gap-3 group shrink-0">
               <div className="w-9 h-9 rounded-full bg-[#E8ECDF] border border-[rgba(102,116,79,0.25)] flex items-center justify-center text-[#58684C] transition-transform group-hover:scale-105 shadow-2xs">
@@ -498,11 +564,10 @@ export default function LandingPage() {
                     key={item.id}
                     href={item.href}
                     onClick={(e) => scrollToSection(e, item)}
-                    className={`relative px-3.5 py-1.5 rounded-full text-[13px] transition-all flex items-center gap-1 ${
-                      isActive
-                        ? "bg-white text-[#1E201D] shadow-xs font-semibold"
-                        : "text-[#77776E] hover:text-[#1E201D] font-medium"
-                    }`}
+                    className={`relative px-3.5 py-1.5 rounded-full text-[13px] transition-all flex items-center gap-1 ${isActive
+                      ? "bg-white text-[#1E201D] shadow-xs font-semibold"
+                      : "text-[#77776E] hover:text-[#1E201D] font-medium"
+                      }`}
                   >
                     <span>{item.label}</span>
                     {isActive && (
@@ -565,9 +630,8 @@ export default function LandingPage() {
                     scrollToSection(e, item);
                     setMobileMenuOpen(false);
                   }}
-                  className={`block py-1.5 px-3 rounded-xl transition-colors ${
-                    activeNav === item.id ? "bg-white font-semibold text-[#5F6E52]" : "hover:text-[#5F6E52]"
-                  }`}
+                  className={`block py-1.5 px-3 rounded-xl transition-colors ${activeNav === item.id ? "bg-white font-semibold text-[#5F6E52]" : "hover:text-[#5F6E52]"
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -600,7 +664,7 @@ export default function LandingPage() {
         >
           {/* HERO CONTENT GRID */}
           <div className="pt-4 pb-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
+
             {/* Left 45%: Editorial Headline, Paragraph, Buttons, Social Proof */}
             <div className="lg:col-span-5 space-y-6 text-left">
               <div className="space-y-1">
@@ -683,7 +747,7 @@ export default function LandingPage() {
             {/* Right 55%: Magnificent Architectural Visual Canvas (100% Real Non-AI Photography) */}
             <div className="lg:col-span-7 relative">
               <div className="relative rounded-[28px] overflow-hidden border border-[rgba(40,40,30,0.08)] bg-stone-100 shadow-[0_16px_36px_-12px_rgba(50,48,38,0.18)]">
-                
+
                 {/* Visual Canvas: Mode Switcher between Neural EEG Visual (eeg-wearable-rei.png), Live Waveform, and Electronics Lab */}
                 {heroViewMode === "arch" ? (
                   <div className="relative aspect-[16/10] sm:aspect-[16/10] w-full bg-[#03070E] overflow-hidden group">
@@ -696,7 +760,7 @@ export default function LandingPage() {
                       className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                       sizes="(max-width: 1024px) 100vw, 800px"
                     />
-                    
+
                     {/* Top overlay controls */}
                     <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-white/20 text-[11px] font-mono text-white shadow-xs">
@@ -748,7 +812,7 @@ export default function LandingPage() {
                       className="object-cover transition-transform duration-700 hover:scale-[1.02]"
                       sizes="(max-width: 1024px) 100vw, 700px"
                     />
-                    
+
                     {/* Top overlay controls */}
                     <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-[rgba(40,40,30,0.08)] text-[11px] font-mono text-[#1E201D] shadow-xs">
@@ -847,7 +911,7 @@ export default function LandingPage() {
 
           {/* 3. THREE FLOATING PILL METRIC CARDS (Exact match to reference bottom cards) */}
           <div className="mt-8 lg:mt-0 lg:absolute lg:-bottom-7 lg:left-12 lg:right-12 z-20 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            
+
             {/* Pill 1 */}
             <div className="bg-white/95 backdrop-blur-md rounded-[22px] py-4 px-5 border border-[rgba(40,40,30,0.08)] shadow-[0_12px_28px_-10px_rgba(50,48,38,0.14)] flex items-center gap-4 transition-transform hover:-translate-y-0.5">
               <div className="w-11 h-11 rounded-full bg-[#E8ECDF] flex items-center justify-center text-[#58684C] shrink-0">
@@ -901,7 +965,7 @@ export default function LandingPage() {
           className="scroll-mt-24 sm:scroll-mt-28 bg-[#FAF9F6] rounded-[32px] sm:rounded-[36px] border border-[rgba(40,40,30,0.06)] p-6 sm:p-10 lg:p-12 shadow-[0_16px_40px_-20px_rgba(50,48,38,0.08)]"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
-            
+
             {/* Left 40%: Overline, H2, Paragraph, Pill Button, Eco Badge */}
             <div className="lg:col-span-5 space-y-6">
               <div className="flex items-center gap-3 text-[11px] font-mono tracking-[0.14em] uppercase text-[#77776E]">
@@ -947,7 +1011,7 @@ export default function LandingPage() {
 
             {/* Right 60%: 2x2 Bento Cards with 100% REAL AUTHENTIC PHOTOGRAPHY AT THE BOTTOM OF EACH CARD */}
             <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
+
               {/* Card 1: Non-Invasive Biosensing / Scandinavian In-Home Comfort */}
               <div className="bg-white rounded-[24px] p-5 border border-[rgba(40,40,30,0.08)] shadow-xs flex flex-col justify-between space-y-4 transition-transform hover:-translate-y-1 duration-300">
                 <div className="space-y-2">
@@ -1138,9 +1202,8 @@ export default function LandingPage() {
                 key={idx}
                 onClick={() => setActivePaginationDot(idx)}
                 aria-label={`Pilih slide ${idx + 1}`}
-                className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                  activePaginationDot === idx ? "bg-[#5F6E52] w-6" : "bg-[#77776E]/25 w-2.5"
-                }`}
+                className={`h-2.5 rounded-full transition-all cursor-pointer ${activePaginationDot === idx ? "bg-[#5F6E52] w-6" : "bg-[#77776E]/25 w-2.5"
+                  }`}
               />
             ))}
           </div>
@@ -1184,33 +1247,27 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             {/* Left 55%: Interactive Sliders and Options */}
             <div className="lg:col-span-7 bg-white rounded-[26px] p-6 border border-[rgba(40,40,30,0.08)] shadow-xs space-y-6">
-              
-              {/* Option 1: Fokus Eksperimen */}
+
+              {/* Option 1: Fokus Eksperimen (Kondisi Eksperimen Netral) */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-[#1E201D] flex items-center justify-between">
-                  <span>1. Bidang Riset / Fokus Eksperimen</span>
+                  <span>1. Kondisi Eksperimen</span>
                   <span className="font-mono text-[11px] text-[#58684C] uppercase tracking-wider font-bold">
-                    {calcFocus}
+                    {EXPERIMENT_CONDITIONS.find((c) => c.id === calcFocus)?.label || calcFocus}
                   </span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { id: "bci", label: "BCI Motor", desc: "Kontrol Perangkat" },
-                    { id: "focus", label: "Fokus / Kognitif", desc: "Beban Kerja Otak" },
-                    { id: "sleep", label: "Tidur & Relaksasi", desc: "Staging Gelombang" },
-                    { id: "emotion", label: "Emosi & Stres", desc: "Alpha Asymmetry" },
-                  ].map((item) => (
+                  {EXPERIMENT_CONDITIONS.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => setCalcFocus(item.id as any)}
-                      className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
-                        calcFocus === item.id
-                          ? "bg-[#E8ECDF]/50 border-[#5F6E52] shadow-2xs"
-                          : "bg-stone-50 border-stone-200/80 hover:bg-stone-100/70"
-                      }`}
+                      onClick={() => setCalcFocus(item.id)}
+                      className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${calcFocus === item.id
+                        ? "bg-[#E8ECDF]/50 border-[#5F6E52] shadow-2xs"
+                        : "bg-stone-50 border-stone-200/80 hover:bg-stone-100/70"
+                        }`}
                     >
                       <span className="text-xs font-semibold text-[#1E201D] block">{item.label}</span>
                       <span className="text-[10px] text-[#77776E] block mt-0.5">{item.desc}</span>
@@ -1221,28 +1278,37 @@ export default function LandingPage() {
 
               {/* Option 2: Jumlah Kanal & Sampling Rate */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+
                 {/* Channels */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#1E201D] block">
-                    2. Kanal Elektroda (Montage)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#1E201D] block">
+                      2. Kanal Elektroda (Montage)
+                    </label>
+                    <span className="text-[10px] font-mono text-[#77776E]">TGAM1: 1-Ch</span>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5">
-                    {[
-                      { ch: 1, label: "1-Ch FP1" },
-                      { ch: 2, label: "2-Ch Bipolar" },
-                      { ch: 4, label: "4-Ch Frontal" },
-                    ].map((item) => (
+                    {CHANNEL_OPTIONS.map((item) => (
                       <button
                         key={item.ch}
-                        onClick={() => setCalcChannels(item.ch as any)}
-                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all cursor-pointer ${
-                          calcChannels === item.ch
-                            ? "bg-[#5F6E52] text-white border-[#5F6E52]"
-                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100"
+                        type="button"
+                        disabled={!item.supported}
+                        title={!item.supported ? item.disabledReason : undefined}
+                        onClick={() => item.supported && setCalcChannels(item.ch)}
+                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${
+                          !item.supported
+                            ? "bg-stone-100/80 border-stone-200/60 text-[#77776E]/60 cursor-not-allowed opacity-60"
+                            : calcChannels === item.ch
+                            ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
+                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
                         }`}
                       >
-                        {item.label}
+                        <span className="block">{item.label}</span>
+                        {!item.supported && (
+                          <span className="block text-[8.5px] text-[#77776E]/80 font-sans tracking-tight mt-0.5">
+                            {item.disabledReason}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -1250,21 +1316,34 @@ export default function LandingPage() {
 
                 {/* Sampling Rate */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-[#1E201D] block">
-                    3. Sampling Rate (ADC)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#1E201D] block">
+                      3. Sampling Rate (ADC)
+                    </label>
+                    <span className="text-[10px] font-mono text-[#77776E]">TGAM1: 512 SPS</span>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5">
-                    {[128, 256, 512].map((rate) => (
+                    {SAMPLING_RATE_OPTIONS.map((item) => (
                       <button
-                        key={rate}
-                        onClick={() => setCalcSamplingRate(rate as any)}
-                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all cursor-pointer ${
-                          calcSamplingRate === rate
-                            ? "bg-[#5F6E52] text-white border-[#5F6E52]"
-                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100"
+                        key={item.rate}
+                        type="button"
+                        disabled={!item.supported}
+                        title={!item.supported ? item.disabledReason : undefined}
+                        onClick={() => item.supported && setCalcSamplingRate(item.rate)}
+                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${
+                          !item.supported
+                            ? "bg-stone-100/80 border-stone-200/60 text-[#77776E]/60 cursor-not-allowed opacity-60"
+                            : calcSamplingRate === item.rate
+                            ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
+                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
                         }`}
                       >
-                        {rate} SPS
+                        <span className="block">{item.label}</span>
+                        {!item.supported && (
+                          <span className="block text-[8.5px] text-[#77776E]/80 font-sans tracking-tight mt-0.5">
+                            {item.disabledReason}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -1283,7 +1362,7 @@ export default function LandingPage() {
                 <input
                   type="range"
                   min={15}
-                  max={480}
+                  max={120}
                   step={15}
                   value={calcDurationMin}
                   onChange={(e) => setCalcDurationMin(Number(e.target.value))}
@@ -1291,59 +1370,90 @@ export default function LandingPage() {
                 />
                 <div className="flex justify-between text-[10px] font-mono text-[#77776E]">
                   <span>15 Menit</span>
+                  <span>30 Menit</span>
                   <span>1 Jam</span>
-                  <span>4 Jam</span>
-                  <span>8 Jam</span>
+                  <span>1.5 Jam</span>
+                  <span>2 Jam (Maks)</span>
                 </div>
               </div>
 
-              {/* Option 4: Algoritma Machine Learning */}
+              {/* Option 5: Model Inferensi Machine Learning (Showcase SVM Saja) */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-[#1E201D] block">
-                  5. Model Inferensi Machine Learning
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "svm", label: "SVM (RBF Kernel)", desc: "Latensi Terendah" },
-                    { id: "rf", label: "Random Forest", desc: "Explainable Trees" },
-                    { id: "cnn", label: "1D-CNN Neural", desc: "Akurasi Tertinggi" },
-                  ].map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setCalcModel(m.id as any)}
-                      className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                        calcModel === m.id
-                          ? "bg-[#E8ECDF]/50 border-[#5F6E52]"
-                          : "bg-stone-50 border-stone-200 hover:bg-stone-100"
-                      }`}
-                    >
-                      <span className="text-xs font-semibold text-[#1E201D] block">{m.label}</span>
-                      <span className="text-[10px] text-[#77776E] block mt-0.5">{m.desc}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#1E201D] block">
+                    5. Model Klasifikasi Terpilih (Machine Learning)
+                  </label>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8ECDF] text-[#3D4C32] font-semibold border border-[#5F6E52]/20">
+                    {SELECTED_ML_MODEL.tag}
+                  </span>
+                </div>
+
+                {/* Showcase Box SVM (Show-only, elegan, informatif & tidak berlebihan) */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-stone-50/80 border border-stone-200/90 shadow-2xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#5F6E52] text-white flex items-center justify-center text-xs font-mono font-bold shadow-xs">
+                        SVM
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-xs font-bold text-[#1E201D]">
+                            {SELECTED_ML_MODEL.name}
+                          </h4>
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-700 border border-stone-300/60 font-medium">
+                            {SELECTED_ML_MODEL.kernel}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-[#77776E] mt-0.5">
+                          {SELECTED_ML_MODEL.role} · Ekstraksi Fitur 1-Kanal
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#55554E] leading-relaxed">
+                    {SELECTED_ML_MODEL.description}
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-stone-200/70 text-[10px] font-mono">
+                    {SELECTED_ML_MODEL.features.map((item, idx) => (
+                      <div key={idx} className="bg-white p-2 rounded-xl border border-stone-200/80">
+                        <span className="text-[#77776E] block text-[8.5px] uppercase tracking-wide">{item.label}</span>
+                        <span className="text-[#1E201D] font-semibold block mt-0.5 truncate">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
             </div>
 
             {/* Right 45%: Dynamic Telemetry & Engineering Projections */}
-            <div className="lg:col-span-5 bg-stone-900 text-stone-100 rounded-[26px] p-6 shadow-sm space-y-6">
-              
-              <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+            <div className="lg:col-span-5 bg-stone-900 text-stone-100 rounded-[26px] p-6 shadow-sm space-y-5">
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-800 gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-[#82996E] animate-pulse" />
                   <span className="font-mono text-xs uppercase tracking-wider text-stone-300 font-semibold">
                     Proyeksi Telemetri Real-Time
                   </span>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">
-                  ESP32 + Go Gin
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700">
+                    ESP32 + Go Gin
+                  </span>
+                </div>
+              </div>
+
+              {/* Badge Simulasi / Estimasi */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300/90 text-[10.5px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>Estimasi / simulasi, bukan hasil pengukuran</span>
               </div>
 
               {/* Output Metric Cards */}
               <div className="grid grid-cols-2 gap-3">
-                
+
                 {/* Metric 1 */}
                 <div className="bg-stone-800/80 rounded-2xl p-3.5 border border-stone-700/60">
                   <span className="text-[10px] font-mono uppercase text-stone-400 block">Throughput Sinyal</span>
@@ -1356,31 +1466,42 @@ export default function LandingPage() {
 
                 {/* Metric 2 */}
                 <div className="bg-stone-800/80 rounded-2xl p-3.5 border border-stone-700/60">
-                  <span className="text-[10px] font-mono uppercase text-stone-400 block">Total Volume Sesi</span>
+                  <span className="text-[10px] font-mono uppercase text-stone-400 block">Ukuran data mentah</span>
                   <div className="mt-1 flex items-baseline gap-1">
                     <span className="text-2xl font-bold font-mono text-white">{calcMetrics.sessionMB}</span>
                     <span className="text-xs font-mono text-stone-400">MB</span>
                   </div>
-                  <span className="text-[10px] text-stone-400 block mt-1">PostgreSQL persistensi</span>
+                  <span className="text-[10px] text-stone-400 block mt-1">Belum termasuk overhead database</span>
                 </div>
 
                 {/* Metric 3 */}
                 <div className="bg-stone-800/80 rounded-2xl p-3.5 border border-stone-700/60">
-                  <span className="text-[10px] font-mono uppercase text-stone-400 block">Estimasi Baterai</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase text-stone-400 block">Estimasi Baterai</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40">
+                      Estimasi kasar
+                    </span>
+                  </div>
                   <div className="mt-1 flex items-baseline gap-1">
                     <span className="text-2xl font-bold font-mono text-white">{calcMetrics.batteryHours}</span>
                     <span className="text-xs font-mono text-stone-400">Jam</span>
                   </div>
-                  <span className="text-[10px] text-stone-400 block mt-1">LiPo 500mAh ({calcMetrics.totalDrawMA} mA)</span>
+                  <span className="text-[10px] text-stone-400 block mt-1 leading-snug">
+                    Asumsi: ESP32 Wi-Fi ~120mA + TGAM1 15mA, efisiensi 85%, kapasitas terpakai 80% (500mAh)
+                  </span>
                 </div>
 
                 {/* Metric 4 */}
-                <div className="bg-stone-800/80 rounded-2xl p-3.5 border border-stone-700/60">
-                  <span className="text-[10px] font-mono uppercase text-stone-400 block">Prediksi Akurasi</span>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-2xl font-bold font-mono text-[#82996E]">{calcMetrics.accuracy}</span>
+                <div className="bg-stone-800/80 rounded-2xl p-3.5 border border-stone-700/60 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase text-stone-400 block">Prediksi Akurasi</span>
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span className="text-base sm:text-lg font-bold font-mono text-stone-300">Belum tersedia</span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-stone-400 block mt-1">Latensi: {calcMetrics.latencyMs} ms</span>
+                  <span className="text-[10px] text-stone-400 block mt-1 leading-snug">
+                    Bergantung pada dataset dan hasil eksperimen
+                  </span>
                 </div>
 
               </div>
@@ -1392,7 +1513,7 @@ export default function LandingPage() {
                   <span>Rekomendasi Hardware Laboratorium</span>
                 </span>
                 <p className="text-[11.5px] text-stone-300 leading-relaxed">
-                  Konfigurasi {calcChannels} kanal @ {calcSamplingRate} SPS sangat optimal dengan modul {RESEARCH_SPECS.asic} dan ESP32-WROOM-32.
+                  Sesuai spesifikasi TGAM1 (1 kanal, 512 SPS).
                 </p>
               </div>
 
@@ -1423,7 +1544,7 @@ export default function LandingPage() {
           className="scroll-mt-24 sm:scroll-mt-28 bg-[#FAF9F6] rounded-[32px] sm:rounded-[36px] border border-[rgba(40,40,30,0.06)] p-6 sm:p-10 lg:p-12 shadow-[0_16px_40px_-20px_rgba(50,48,38,0.08)]"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            
+
             {/* Left 35%: Overline, H2, Subtitle */}
             <div className="lg:col-span-4 space-y-3 text-left">
               <div className="flex items-center gap-3 text-[11px] font-mono tracking-[0.14em] uppercase text-[#77776E]">
@@ -1442,7 +1563,7 @@ export default function LandingPage() {
 
             {/* Right 65%: 4 Step Cards Connected with Arrows (Matching Reference!) */}
             <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row lg:items-stretch gap-2.5">
-              
+
               {/* Step 01 */}
               <div className="flex-1 bg-white rounded-[22px] p-4 border border-[rgba(40,40,30,0.08)] shadow-xs flex flex-col justify-between space-y-3 min-h-[160px] transition-transform hover:-translate-y-1 duration-200">
                 <div className="flex items-center justify-between">
@@ -1561,11 +1682,10 @@ export default function LandingPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setNotchFilterActive(!notchFilterActive)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-mono font-medium transition-all cursor-pointer ${
-                  notchFilterActive
-                    ? "bg-[#E8ECDF] border-[#5F6E52]/40 text-[#3D4C32]"
-                    : "bg-red-50 border-red-300 text-red-700"
-                }`}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-mono font-medium transition-all cursor-pointer ${notchFilterActive
+                  ? "bg-[#E8ECDF] border-[#5F6E52]/40 text-[#3D4C32]"
+                  : "bg-red-50 border-red-300 text-red-700"
+                  }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>{notchFilterActive ? "Notch 50 Hz Aktif (Bersih ✓)" : "Derau 50 Hz Terbuka (Unfiltered)"}</span>
@@ -1573,25 +1693,23 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* 4 Interactive Rhythm Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 5 Interactive Rhythm Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
             {frequencyCards.map((b) => {
               const isSelected = selectedRhythm === b.id;
               return (
                 <div
                   key={b.name}
                   onClick={() => setSelectedRhythm(b.id)}
-                  className={`rounded-[24px] p-5 space-y-3.5 border transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-white border-[#5F6E52] shadow-md ring-2 ring-[#5F6E52]/20 -translate-y-1"
-                      : "bg-white/80 border-[rgba(40,40,30,0.08)] shadow-xs hover:-translate-y-1 hover:bg-white"
-                  }`}
+                  className={`rounded-[24px] p-4 sm:p-5 space-y-3 border transition-all cursor-pointer ${isSelected
+                    ? "bg-white border-[#5F6E52] shadow-md ring-2 ring-[#5F6E52]/20 -translate-y-1"
+                    : "bg-white/80 border-[rgba(40,40,30,0.08)] shadow-xs hover:-translate-y-1 hover:bg-white"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-[#1E201D]">{b.name}</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium ${
-                      isSelected ? "bg-[#5F6E52] text-white" : "bg-[#E8ECDF] text-[#3D4C32]"
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-medium ${isSelected ? "bg-[#5F6E52] text-white" : "bg-[#E8ECDF] text-[#3D4C32]"
+                      }`}>
                       {b.range}
                     </span>
                   </div>
@@ -1603,10 +1721,10 @@ export default function LandingPage() {
                     </svg>
                   </div>
 
-                  <p className="text-xs text-[#77776E] leading-relaxed min-h-[36px]">{b.state}</p>
+                  <p className="text-[11px] text-[#77776E] leading-relaxed min-h-[36px]">{b.state}</p>
 
-                  <div className="pt-2 border-t border-[rgba(40,40,30,0.06)] flex items-center justify-between text-[11px] font-mono text-[#77776E]">
-                    <span>Amplitudo Khas:</span>
+                  <div className="pt-2 border-t border-[rgba(40,40,30,0.06)] flex items-center justify-between text-[10px] font-mono text-[#77776E]">
+                    <span>Amplitudo:</span>
                     <span className="font-semibold text-[#1E201D]">{b.voltage}</span>
                   </div>
                 </div>
@@ -1622,7 +1740,7 @@ export default function LandingPage() {
                   Power Spectral Density (Fast Fourier Transform)
                 </span>
                 <p className="text-xs text-[#77776E] mt-0.5">
-                  Distribusi daya gelombang relatif dihitung per sub-band klinis (Delta, Theta, Alpha, Beta, Gamma). Ritme aktif: <strong className="text-[#5F6E52] uppercase">{selectedRhythm}</strong>.
+                  Distribusi daya gelombang relatif dihitung per sub-band klinis (Delta, Theta, Alfa, Beta, Gamma). Ritme aktif: <strong className="text-[#5F6E52] uppercase">{selectedRhythm === "alpha" ? "Alfa" : selectedRhythm}</strong>.
                 </p>
               </div>
 
@@ -1639,32 +1757,35 @@ export default function LandingPage() {
 
             {/* Interactive Bars */}
             <div className="h-32 flex items-end gap-2 sm:gap-3 px-2">
-              {spectrumBars.map((bar, idx) => (
-                <div
-                  key={idx}
-                  onMouseEnter={() => setHoveredBar(bar)}
-                  onMouseLeave={() => setHoveredBar(null)}
-                  className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
-                >
-                  <div className="w-full bg-[#E8ECDF]/40 rounded-t-md overflow-hidden h-24 flex items-end">
-                    <div
-                      className={`w-full transition-all duration-500 rounded-t-md ${
-                        bar.band.toLowerCase() === selectedRhythm
+              {spectrumBars.map((bar, idx) => {
+                const isBarActive =
+                  bar.band.toLowerCase() === selectedRhythm ||
+                  (selectedRhythm === "alpha" && bar.band.toLowerCase() === "alfa");
+                return (
+                  <div
+                    key={idx}
+                    onMouseEnter={() => setHoveredBar(bar)}
+                    onMouseLeave={() => setHoveredBar(null)}
+                    className="flex-1 flex flex-col items-center gap-2 group cursor-pointer"
+                  >
+                    <div className="w-full bg-[#E8ECDF]/40 rounded-t-md overflow-hidden h-24 flex items-end">
+                      <div
+                        className={`w-full transition-all duration-500 rounded-t-md ${isBarActive
                           ? "bg-[#5F6E52] shadow-xs"
                           : "bg-[#77776E]/40 group-hover:bg-[#5F6E52]"
-                      }`}
-                      style={{ height: `${bar.height}%` }}
-                    />
-                  </div>
-                  <span className={`text-[10px] font-mono ${
-                    bar.band.toLowerCase() === selectedRhythm
+                          }`}
+                        style={{ height: `${bar.height}%` }}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-mono ${isBarActive
                       ? "text-[#1E201D] font-bold"
                       : "text-[#77776E] group-hover:text-[#1E201D]"
-                  }`}>
-                    {bar.freq}
-                  </span>
-                </div>
-              ))}
+                      }`}>
+                      {bar.freq}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -1687,7 +1808,7 @@ export default function LandingPage() {
 
           {/* Banner Content Grid */}
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 p-6 sm:p-10 lg:p-14">
-            
+
             {/* Left Column: Heading, Paragraph, Auth Buttons */}
             <div className="lg:col-span-7 space-y-6 text-left max-w-xl">
               <div className="flex items-center gap-3 text-[11px] font-mono tracking-[0.14em] uppercase text-[#58684C] font-semibold">
@@ -1739,7 +1860,7 @@ export default function LandingPage() {
 
             {/* Right Column: 2 Floating Glass Contact Cards (Matching Screenshot 3 pill cards) */}
             <div className="lg:col-span-5 flex flex-col justify-center gap-3.5 sm:max-w-md lg:ml-auto w-full">
-              
+
               {/* Floating Phone Card */}
               <a
                 href={`tel:${RESEARCH_SPECS.contactPhone.replace(/[^0-9+]/g, "")}`}
@@ -1796,7 +1917,7 @@ export default function LandingPage() {
           className="bg-[#FAF9F6] rounded-[32px] sm:rounded-[36px] border border-[rgba(40,40,30,0.06)] p-6 sm:p-10 lg:p-12 text-xs text-[#77776E] shadow-[0_16px_40px_-20px_rgba(50,48,38,0.06)]"
         >
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10 pb-10 border-b border-[rgba(40,40,30,0.06)]">
-            
+
             {/* Col 1 (5 cols): Brand & Academic Thesis Title */}
             <div className="md:col-span-5 space-y-4">
               <Link href="/" className="inline-flex items-center gap-3.5 group">
@@ -2038,36 +2159,33 @@ export default function LandingPage() {
       >
         {selectedHardware && (
           <div className="space-y-4">
-            
+
             {/* Modal Tabs */}
             <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl border border-stone-200/80 text-xs font-medium">
               <button
                 onClick={() => setHardwareActiveTab("overview")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
-                  hardwareActiveTab === "overview"
-                    ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
+                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "overview"
+                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
+                  : "text-stone-600 hover:text-stone-900"
+                  }`}
               >
                 Ikhtisar & Foto
               </button>
               <button
                 onClick={() => setHardwareActiveTab("pinout")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
-                  hardwareActiveTab === "pinout"
-                    ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
+                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "pinout"
+                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
+                  : "text-stone-600 hover:text-stone-900"
+                  }`}
               >
                 Pinout Skematik
               </button>
               <button
                 onClick={() => setHardwareActiveTab("firmware")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
-                  hardwareActiveTab === "firmware"
-                    ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                    : "text-stone-600 hover:text-stone-900"
-                }`}
+                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "firmware"
+                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
+                  : "text-stone-600 hover:text-stone-900"
+                  }`}
               >
                 Firmware C++
               </button>

@@ -72,7 +72,7 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 	if s.hub != nil {
 		// All wearable nodes stream telemetry simulation unless overridden by real hardware ingestion packets
 		isSim := true
-		s.hub.StartAcquisition(ses.ID, isSim)
+		s.hub.StartAcquisitionWithDevice(ses.ID, isSim, dev.ID, dev.Name)
 	}
 
 	return ses, nil

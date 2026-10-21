@@ -37,6 +37,14 @@ export default function LiveEEGPage() {
   const [voltageRange, setVoltageRange] = useState<number>(50);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Fetch available devices
+  const { data: devices } = useQuery({
+    queryKey: ["devices"],
+    queryFn: () => deviceService.getDevices(),
+  });
+
+  const activeDevice = (devices || []).find((d) => d.id === selectedDeviceId) || devices?.[0];
+
   const {
     status,
     samples,
@@ -46,20 +54,14 @@ export default function LiveEEGPage() {
     isStreaming,
     isSimulation,
     connectionMode,
+    activeProfile,
     startAcquisition,
     pauseAcquisition,
     resumeAcquisition,
     stopAcquisition,
     resetToReady,
-  } = useEEGStream(false);
-
-  // Fetch available devices
-  const { data: devices } = useQuery({
-    queryKey: ["devices"],
-    queryFn: () => deviceService.getDevices(),
-  });
-
-  const activeDevice = (devices || []).find((d) => d.id === selectedDeviceId) || devices?.[0];
+    setTargetDevice,
+  } = useEEGStream(false, undefined, activeDevice);
 
   // Create session mutation
   const createSessionMutation = useMutation({
@@ -78,7 +80,7 @@ export default function LiveEEGPage() {
       const targetDevice = activeDevice?.id || selectedDeviceId;
       const created = await createSessionMutation.mutateAsync(targetDevice);
       setActiveSessionId(created.id);
-      await startAcquisition(created.id);
+      await startAcquisition(created.id, activeDevice);
 
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
@@ -243,9 +245,15 @@ export default function LiveEEGPage() {
               <div className="flex items-center gap-2.5">
                 <select
                   value={selectedDeviceId}
-                  onChange={(e) => setSelectedDeviceId(e.target.value)}
-                  disabled={status === "ACQUIRING" || status === "PAUSED" || status === "STARTING"}
-                  className="rounded-full border border-stone-200/90 bg-[#FAFBF8] px-3.5 py-1.5 text-xs font-medium text-[#1C1E1A] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20 disabled:opacity-60 cursor-pointer shadow-xs"
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setSelectedDeviceId(newId);
+                    const dev = (devices || []).find((d) => d.id === newId);
+                    if (dev) {
+                      setTargetDevice(dev);
+                    }
+                  }}
+                  className="rounded-full border border-stone-200/90 bg-[#FAFBF8] px-3.5 py-1.5 text-xs font-medium text-[#1C1E1A] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20 cursor-pointer shadow-xs"
                 >
                   {(devices || []).map((d) => (
                     <option key={d.id} value={d.id}>
@@ -260,6 +268,16 @@ export default function LiveEEGPage() {
                 >
                   {status === "ACQUIRING" ? "Acquiring" : "Ready"}
                 </Badge>
+
+                {activeProfile && (
+                  <Badge
+                    variant="default"
+                    size="sm"
+                    className="font-mono text-[10px] text-[#445535] border-[#DEE5D6] bg-[#EDF1E7]/70"
+                  >
+                    Target: {activeProfile.dominantBand} Rhythm
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -560,7 +578,13 @@ export default function LiveEEGPage() {
                 <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
                   <span className="text-stone-500">Device Hardware</span>
                   <span className="font-semibold text-[#1C1E1A]">
-                    {activeDevice?.name || "TGAM1 Wearable Headset Alpha"} (Demo Device)
+                    {activeDevice?.name || "TGAM1 Wearable Headset Alpha"}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Target EEG Band</span>
+                  <span className="font-semibold text-[#2D7A58]">
+                    {activeProfile?.dominantBand || "Alpha"} Wave ({activeProfile?.waveFreq || 10} Hz • {activeProfile?.primaryAmp || 22} µV)
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
