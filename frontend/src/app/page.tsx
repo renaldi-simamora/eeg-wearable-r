@@ -44,6 +44,9 @@ import {
   Filter,
   Laptop,
   ExternalLink,
+  Eye,
+  Maximize2,
+  Download,
 } from "lucide-react";
 
 // Research specifications & experimental numbers
@@ -270,6 +273,7 @@ export default function LandingPage() {
   // Modals
   const [consultModalOpen, setConsultModalOpen] = useState(false);
   const [consultSubmitted, setConsultSubmitted] = useState(false);
+  const [flowchartModalOpen, setFlowchartModalOpen] = useState(false);
   const [selectedHardware, setSelectedHardware] = useState<HardwareItem | null>(null);
   const [hardwareActiveTab, setHardwareActiveTab] = useState<"overview" | "pinout" | "firmware">("overview");
   const [firmwareCopied, setFirmwareCopied] = useState(false);
@@ -1377,51 +1381,58 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Option 5: Model Inferensi Machine Learning (Showcase SVM Saja) */}
+              {/* Option 5: Diagram Alur Kerja & Arsitektur Sistem (Flowchart.drawio.png) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-[#1E201D] block">
-                    5. Model Klasifikasi Terpilih (Machine Learning)
+                    5. Diagram Alur Kerja & Arsitektur Sistem
                   </label>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8ECDF] text-[#3D4C32] font-semibold border border-[#5F6E52]/20">
-                    {SELECTED_ML_MODEL.tag}
+                    Flowchart.drawio
                   </span>
                 </div>
 
-                {/* Showcase Box SVM (Show-only, elegan, informatif & tidak berlebihan) */}
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-stone-50/80 border border-stone-200/90 shadow-2xs space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#5F6E52] text-white flex items-center justify-center text-xs font-mono font-bold shadow-xs">
-                        SVM
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="text-xs font-bold text-[#1E201D]">
-                            {SELECTED_ML_MODEL.name}
-                          </h4>
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-stone-200/70 text-stone-700 border border-stone-300/60 font-medium">
-                            {SELECTED_ML_MODEL.kernel}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-[#77776E] mt-0.5">
-                          {SELECTED_ML_MODEL.role} · Ekstraksi Fitur 1-Kanal
-                        </p>
-                      </div>
+                {/* Showcase Flowchart Image Card */}
+                <div
+                  onClick={() => setFlowchartModalOpen(true)}
+                  className="group relative rounded-2xl overflow-hidden border border-stone-200/90 bg-[#0B0D11] shadow-2xs cursor-pointer transition-all hover:border-[#5F6E52]/60 hover:shadow-md"
+                >
+                  <div className="relative aspect-[16/9] w-full overflow-hidden flex items-center justify-center p-2 bg-[#0A0C10]">
+                    <Image
+                      src="/images/Flowchart.drawio.png"
+                      alt="Diagram Alur Kerja & Arsitektur Sistem EEG Wearable"
+                      width={800}
+                      height={450}
+                      unoptimized
+                      className="object-contain w-full h-full max-h-56 rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                    />
+                    {/* Hover Overlay with Zoom Icon */}
+                    <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-mono backdrop-blur-[2px]">
+                      <Maximize2 className="w-4 h-4 text-[#A8BE93]" />
+                      <span>Klik untuk Memperbesar Flowchart</span>
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-[#55554E] leading-relaxed">
-                    {SELECTED_ML_MODEL.description}
-                  </p>
-
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-stone-200/70 text-[10px] font-mono">
-                    {SELECTED_ML_MODEL.features.map((item, idx) => (
-                      <div key={idx} className="bg-white p-2 rounded-xl border border-stone-200/80">
-                        <span className="text-[#77776E] block text-[8.5px] uppercase tracking-wide">{item.label}</span>
-                        <span className="text-[#1E201D] font-semibold block mt-0.5 truncate">{item.value}</span>
-                      </div>
-                    ))}
+                  <div className="p-3 bg-[#13161C] border-t border-stone-800/80 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-white block truncate">
+                        Alur 4 Lapisan Sistem End-to-End
+                      </span>
+                      <span className="text-[10px] text-stone-400 block mt-0.5 font-mono truncate">
+                        Biosensing TGAM1 · Go Gateway · Storage & ML · Next.js
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFlowchartModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-[11px] font-mono font-medium transition-all shadow-xs shrink-0 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Perbesar</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1559,6 +1570,18 @@ export default function LandingPage() {
               <p className="text-xs text-[#77776E] leading-relaxed max-w-sm">
                 Empat fase terstruktur untuk menangkap mikrovolt biologis, streaming nirkabel, estimasi spektral, dan inferensi model cerdas.
               </p>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setFlowchartModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[rgba(40,40,30,0.12)] text-[11px] font-mono font-medium text-[#1E201D] hover:bg-stone-50 transition-all shadow-2xs cursor-pointer group"
+                >
+                  <Eye className="w-3.5 h-3.5 text-[#5F6E52]" />
+                  <span>Lihat Diagram Flowchart</span>
+                  <ArrowRight className="w-3 h-3 text-[#77776E] transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </div>
             </div>
 
             {/* Right 65%: 4 Step Cards Connected with Arrows (Matching Reference!) */}
@@ -2275,6 +2298,51 @@ export default function LandingPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* MODAL 3: FULL RESOLUTION SYSTEM ARCHITECTURE FLOWCHART */}
+      <Modal
+        isOpen={flowchartModalOpen}
+        onClose={() => setFlowchartModalOpen(false)}
+        title="Diagram Arsitektur Sistem & Alur Kerja NeuroPulse EEG"
+        description="Spesifikasi alur 4 lapisan: Physical Biosensing TGAM1, ESP32 Telemetri, Go Backend API Gateway, PostgreSQL & ML, dan Next.js Presentation."
+        className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col"
+      >
+        <div className="space-y-4 p-1 overflow-y-auto max-h-[75vh]">
+          <div className="relative w-full rounded-2xl overflow-hidden bg-[#0A0C10] border border-stone-800 p-2 sm:p-4 flex items-center justify-center shadow-inner">
+            <Image
+              src="/images/Flowchart.drawio.png"
+              alt="Diagram Lengkap Arsitektur Sistem EEG Wearable"
+              width={1200}
+              height={1800}
+              unoptimized
+              className="w-full h-auto object-contain rounded-xl"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs font-mono text-[#55554E] border-t border-stone-200">
+            <span>Resolusi Asli Draw.io • Desain 4 Pilar Sistem EEG Wearable</span>
+            <div className="flex items-center gap-2">
+              <a
+                href="/images/Flowchart.drawio.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Buka di Tab Baru</span>
+              </a>
+              <a
+                href="/images/Flowchart.drawio.png"
+                download="Flowchart_Arsitektur_NeuroPulse.png"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Gambar</span>
+              </a>
+            </div>
+          </div>
+        </div>
       </Modal>
 
     </div>

@@ -72,6 +72,19 @@ Platform **EEG Wearable** ini dikembangkan sebagai solusi terintegrasi untuk men
 
 Arsitektur platform dirancang dengan prinsip pemisahan tanggung jawab (*separation of concerns*) yang ketat. Frontend tidak pernah berkomunikasi langsung dengan mikrokontroler ESP32 maupun database mentah, melainkan selalu melalui Go API Gateway.
 
+<p align="center">
+  <img src="docs/images/Flowchart.drawio.png" alt="Arsitektur Sistem & Alur Kerja NeuroPulse EEG Wearable" width="100%" style="border-radius: 12px; border: 1px solid #333;" />
+</p>
+
+> **Diagram Alur Kerja & Arsitektur End-to-End (`Flowchart.drawio.png`)**: Menggambarkan integrasi 4 lapisan sistem:
+> 1. **Physical Biosensing & IoT Edge Layer**: Elektroda kering FP1, earclip A1, modul NeuroSky TGAM1 (512 Hz raw ADC, 0.5–50 Hz bandpass, 50 Hz notch), dan mikrokontroler ESP-WROOM-32 (UART 57600 baud, Wi-Fi telemetry).
+> 2. **Go Backend API Gateway (:8080)**: Gin HTTP Router, Gorilla WebSocket Streaming Hub (`/ws/eeg`), JWT & Google OAuth middleware, session & device manager, spectral feature extractor (FFT/PSD), dan graceful in-memory store.
+> 3. **Storage & ML Classification**: Database PostgreSQL 17, Google Identity Services API, dan arsitektur model klasifikasi Support Vector Machine (SVM RBF Kernel), Random Forest, serta XGBoost.
+> 4. **Presentation Web Application (:3000)**: Next.js 16 App Router (React 19 + TypeScript), real-time 60 FPS HTML5 Canvas oscilloscope, spectral energy bands analyzer, dan hardware diagnostics control panel.
+
+<details>
+<summary><b>Lihat Kode Sumber Diagram Mermaid (Teks)</b></summary>
+
 ```mermaid
 flowchart TB
     subgraph HardwareLayer ["1. PHYSICAL BIOSENSING & IOT EDGE LAYER"]
@@ -124,6 +137,7 @@ flowchart TB
     NextClient --- DeviceDiagnostics
     NextClient --- AuthSplitScreen
 ```
+</details>
 
 ---
 
