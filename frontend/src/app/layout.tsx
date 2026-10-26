@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className="antialiased scroll-smooth">
+    <html lang="id" className="antialiased scroll-smooth" data-scroll-behavior="smooth">
       <body className="min-h-screen bg-[#EFEDE8] text-[#262622] flex flex-col font-sans antialiased selection:bg-[#66744F]/20 selection:text-[#262622]">
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
