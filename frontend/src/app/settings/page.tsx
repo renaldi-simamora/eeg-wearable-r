@@ -20,10 +20,10 @@ export default function SettingsPage() {
   const { user, updateUser, logout } = useAuth();
 
   // Profile form state
-  const [name, setName] = useState(user?.name || "Dr. Renaldi Simamora");
+  const [name, setName] = useState(user?.name || "Super Admin NeuroPulse");
   const [email] = useState(user?.email || "admin@gmail.com");
   const [institution, setInstitution] = useState(
-    user?.institution || "Dept. of Electrical & Biomedical Engineering"
+    user?.institution || "IPB University"
   );
   const [savedSuccess, setSavedSuccess] = useState(false);
 

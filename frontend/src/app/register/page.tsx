@@ -178,7 +178,7 @@ function RegisterForm() {
               <input
                 id="name"
                 autoComplete="name"
-                placeholder="Dr. Renaldi Simamora"
+                placeholder="Super Admin NeuroPulse"
                 className={inputClass(!!errors.name)}
                 {...register("name")}
               />
@@ -212,7 +212,7 @@ function RegisterForm() {
             <input
               id="institution"
               autoComplete="organization"
-              placeholder="Biomedical Engineering Laboratory"
+              placeholder="IPB University"
               className={inputClass(!!errors.institution)}
               {...register("institution")}
             />

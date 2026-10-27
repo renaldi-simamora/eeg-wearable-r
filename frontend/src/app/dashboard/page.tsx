@@ -68,7 +68,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/80">
           <div>
             <h2 className="text-2xl sm:text-3xl font-serif text-[#1C1E1A] tracking-tight">
-              Welcome back, {user?.name || "Dr. Renaldi"}
+              Welcome back, {user?.name || "Super Admin NeuroPulse"}
             </h2>
             <p className="text-xs sm:text-sm text-[#5E6659] mt-1">
               Current operational status and telemetry summary of the NeuroPulse research platform.

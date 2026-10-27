@@ -726,8 +726,8 @@ Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
 | :--- | :--- |
 | **Email Peneliti** | `admin@gmail.com` |
 | **Kata Sandi** | `admin123` |
-| **Nama Peneliti** | Dr. Renaldi Simamora |
-| **Institusi** | Dept. of Electrical & Biomedical Engineering |
+| **Nama Peneliti** | Super Admin NeuroPulse |
+| **Institusi** | IPB University |
 | **Peran (Role)** | `researcher` (Full Access) |
 
 ---

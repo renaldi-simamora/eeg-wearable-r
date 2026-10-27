@@ -333,14 +333,14 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
                 className="flex items-center gap-2.5 p-1.5 rounded-full hover:bg-stone-100 transition-colors text-left cursor-pointer border border-transparent hover:border-stone-200"
               >
                 <div className="w-8 h-8 rounded-full bg-[#EDF1E7] border border-[#DEE5D6] text-[#5B6D49] flex items-center justify-center font-bold text-xs shadow-2xs">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "R"}
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "S"}
                 </div>
                 <div className="hidden md:block">
                   <div className="text-xs font-semibold text-[#1C1E1A] leading-tight">
-                    {user?.name || "Researcher"}
+                    {user?.name || "Super Admin NeuroPulse"}
                   </div>
                   <div className="text-[10px] text-stone-500 leading-tight truncate max-w-[130px]">
-                    {user?.institution || "Biomedical Lab"}
+                    {user?.institution || "IPB University"}
                   </div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-stone-400 hidden sm:block" />
@@ -353,7 +353,7 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
                 >
                   <div className="px-4 py-3 border-b border-stone-100">
                     <p className="text-xs font-bold text-[#1C1E1A] truncate">
-                      {user?.name || "Researcher"}
+                      {user?.name || "Super Admin NeuroPulse"}
                     </p>
                     <p className="text-[11px] text-stone-500 truncate">{user?.email}</p>
                     <span className="mt-1.5 inline-block text-[9px] px-2 py-0.5 rounded-full bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6] font-mono uppercase tracking-wider font-semibold">

@@ -80,10 +80,10 @@ All API endpoints return JSON conforming to the following consistent structure:
 **Request Body:**
 ```json
 {
-  "name": "Dr. Renaldi Simamora",
-  "email": "researcher@biomedical.ac.id",
+  "name": "Super Admin NeuroPulse",
+  "email": "admin@gmail.com",
   "password": "SecurePassword123",
-  "institution": "Dept. of Electrical Engineering"
+  "institution": "IPB University"
 }
 ```
 
@@ -96,10 +96,10 @@ All API endpoints return JSON conforming to the following consistent structure:
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "id": "usr-01...",
-      "name": "Dr. Renaldi Simamora",
-      "email": "researcher@biomedical.ac.id",
+      "name": "Super Admin NeuroPulse",
+      "email": "admin@gmail.com",
       "role": "researcher",
-      "institution": "Dept. of Electrical Engineering",
+      "institution": "IPB University",
       "createdAt": "2026-09-30T10:00:00Z",
       "updatedAt": "2026-09-30T10:00:00Z"
     }
@@ -117,8 +117,8 @@ All API endpoints return JSON conforming to the following consistent structure:
 **Request Body:**
 ```json
 {
-  "email": "researcher@biomedical.ac.id",
-  "password": "SecurePassword123"
+  "email": "admin@gmail.com",
+  "password": "admin123"
 }
 ```
 
@@ -131,10 +131,10 @@ All API endpoints return JSON conforming to the following consistent structure:
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "id": "usr-01...",
-      "name": "Dr. Renaldi Simamora",
-      "email": "researcher@biomedical.ac.id",
+      "name": "Super Admin NeuroPulse",
+      "email": "admin@gmail.com",
       "role": "researcher",
-      "institution": "Dept. of Electrical Engineering"
+      "institution": "IPB University"
     }
   }
 }
@@ -153,10 +153,10 @@ All API endpoints return JSON conforming to the following consistent structure:
   "success": true,
   "data": {
     "id": "usr-01...",
-    "name": "Dr. Renaldi Simamora",
-    "email": "researcher@biomedical.ac.id",
+    "name": "Super Admin NeuroPulse",
+    "email": "admin@gmail.com",
     "role": "researcher",
-    "institution": "Dept. of Electrical Engineering"
+    "institution": "IPB University"
   }
 }
 ```
@@ -173,8 +173,8 @@ All API endpoints return JSON conforming to the following consistent structure:
 **Request Body:**
 ```json
 {
-  "name": "Dr. Renaldi Simamora, M.T.",
-  "institution": "Biomedical Signal Processing Laboratory"
+  "name": "Super Admin NeuroPulse",
+  "institution": "IPB University"
 }
 ```
 

@@ -42,11 +42,11 @@ func (m *MemoryStore) seed() {
 	// Seed Admin Researcher User (admin@gmail.com / admin123)
 	adminUser := &models.User{
 		ID:           "user-demo-01",
-		Name:         "Admin Researcher",
+		Name:         "Super Admin NeuroPulse",
 		Email:        "admin@gmail.com",
 		PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
 		Role:         "researcher",
-		Institution:  "Biomedical Engineering Laboratory",
+		Institution:  "IPB University",
 		CreatedAt:    now.Add(-72 * time.Hour),
 		UpdatedAt:    now,
 	}

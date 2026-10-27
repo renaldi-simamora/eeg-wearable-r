@@ -123,7 +123,7 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 	// In local dev/test, bypass external Google tokeninfo ONLY when explicit demo credential is used
 	if credential == "demo-google-oauth-credential" {
 		info.Email = "researcher.google@eeg-wearable.local"
-		info.Name = "Dr. Renaldi (Google Researcher)"
+		info.Name = "Super Admin NeuroPulse (Google)"
 		verified = true
 	} else {
 		// 1. Try Google ID token verification (from GoogleLogin component / GIS ID Token)
@@ -180,7 +180,7 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 			Email:        info.Email,
 			PasswordHash: "oauth2_google_" + uuid.New().String(),
 			Role:         "researcher",
-			Institution:  "Biomedical Research Center",
+			Institution:  "IPB University",
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}

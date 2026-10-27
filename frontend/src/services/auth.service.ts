@@ -51,7 +51,7 @@ export const authService = {
           name: payload.name,
           email: payload.email,
           role: "researcher",
-          institution: payload.institution || "Biomedical Engineering Laboratory",
+          institution: payload.institution || "IPB University",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -84,10 +84,10 @@ export const authService = {
       if (err.message.includes("Network connection failed") || err.message.includes("Failed to fetch")) {
         const mockUser: User = {
           id: "user-demo-01",
-          name: "Dr. Researcher",
+          name: "Super Admin NeuroPulse",
           email: payload.email,
           role: "researcher",
-          institution: "Biomedical Engineering Laboratory",
+          institution: "IPB University",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -120,10 +120,10 @@ export const authService = {
       if (credential === "demo-google-oauth-credential") {
         const mockUser: User = {
           id: "google-demo-user-01",
-          name: "Dr. Renaldi (Demo Researcher)",
+          name: "Super Admin NeuroPulse",
           email: "researcher.demo@eeg-wearable.local",
           role: "researcher",
-          institution: "Biomedical Engineering Laboratory",
+          institution: "IPB University",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

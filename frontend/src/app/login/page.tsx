@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/providers/AuthProvider";
 import { AuthShell } from "@/components/layout/AuthShell";
-import { AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, Fingerprint, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, Fingerprint, RefreshCw, ShieldCheck } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 
 const loginSchema = z.object({
@@ -32,6 +32,7 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,6 +42,13 @@ function LoginForm() {
       rememberMe: false,
     },
   });
+
+  useEffect(() => {
+    if (searchParams.get("demo") === "true") {
+      setValue("email", "admin@gmail.com");
+      setValue("password", "admin123");
+    }
+  }, [searchParams, setValue]);
 
   const onSubmit = async (values: LoginFormValues) => {
     setAuthError(null);
@@ -261,6 +269,69 @@ function LoginForm() {
           >
             Create one →
           </Link>
+        </div>
+
+        {/* Akun Peneliti Bawaan (Demo Credentials) */}
+        <div className="pt-2 border-t border-stone-200/80 space-y-2.5">
+          <div className="p-3.5 rounded-2xl bg-[#FAFBF8] border border-stone-200/90 text-xs space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-semibold text-[#1C1E1A]">
+                <ShieldCheck className="w-4 h-4 text-[#5B6D49]" />
+                <span className="text-[11.5px]">Akun Peneliti Bawaan (Demo Credentials)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setValue("email", "admin@gmail.com");
+                  setValue("password", "admin123");
+                }}
+                className="text-[11px] font-mono font-medium px-2.5 py-1 rounded-full bg-[#EDF1E7] hover:bg-[#DEE5D6] text-[#3D4C32] border border-[#DEE5D6] transition-colors cursor-pointer"
+              >
+                Isi Otomatis
+              </button>
+            </div>
+
+            <p className="text-[11px] text-[#5E6659] leading-relaxed">
+              Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
+            </p>
+
+            <div className="overflow-hidden rounded-xl border border-stone-200/80 bg-white text-[11px]">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#FAFBF8] border-b border-stone-200/70 text-[10px] font-mono text-stone-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-1.5 px-3 w-1/3">Parameter</th>
+                    <th className="py-1.5 px-3">Kredensial Pengujian</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  <tr>
+                    <td className="py-1.5 px-3 font-medium text-stone-600">Email Peneliti</td>
+                    <td className="py-1.5 px-3 font-mono text-[#5B6D49] font-semibold">admin@gmail.com</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-3 font-medium text-stone-600">Kata Sandi</td>
+                    <td className="py-1.5 px-3 font-mono text-stone-700">admin123</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-3 font-medium text-stone-600">Nama Peneliti</td>
+                    <td className="py-1.5 px-3 font-semibold text-[#1C1E1A]">Super Admin NeuroPulse</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-3 font-medium text-stone-600">Institusi</td>
+                    <td className="py-1.5 px-3 text-[#1C1E1A]">IPB University</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-3 font-medium text-stone-600">Peran (Role)</td>
+                    <td className="py-1.5 px-3">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6]">
+                        researcher (Full Access)
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </AuthShell>

@@ -431,7 +431,7 @@ func (s *PostgresStore) SeedInitialData() {
 	var existingUserId string
 	err := s.db.QueryRow("SELECT id FROM users WHERE email = 'admin@gmail.com'").Scan(&existingUserId)
 	if err == nil {
-		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'researcher' WHERE email = 'admin@gmail.com'", adminHash)
+		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'researcher', name = 'Super Admin NeuroPulse', institution = 'IPB University' WHERE email = 'admin@gmail.com'", adminHash)
 	} else {
 		adminId := "user-demo-01"
 		var idTaken bool
@@ -441,11 +441,11 @@ func (s *PostgresStore) SeedInitialData() {
 		}
 		_ = s.CreateUser(&models.User{
 			ID:           adminId,
-			Name:         "Admin Researcher",
+			Name:         "Super Admin NeuroPulse",
 			Email:        "admin@gmail.com",
 			PasswordHash: adminHash,
 			Role:         "researcher",
-			Institution:  "Biomedical Engineering Laboratory",
+			Institution:  "IPB University",
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		})
@@ -536,11 +536,11 @@ func (s *PostgresStore) SeedInitialData() {
 		// Ensure user-demo-01 exists to satisfy foreign key constraint and provide default admin login
 		_ = s.CreateUser(&models.User{
 			ID:           "user-demo-01",
-			Name:         "Admin Researcher",
+			Name:         "Super Admin NeuroPulse",
 			Email:        "admin@gmail.com",
 			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
 			Role:         "researcher",
-			Institution:  "Biomedical Engineering Laboratory",
+			Institution:  "IPB University",
 			CreatedAt:    now.Add(-72 * time.Hour),
 			UpdatedAt:    now,
 		})
