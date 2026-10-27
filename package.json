@@ -7,6 +7,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
     "start:backend": "cd backend && .\\server.exe",
-    "dev:backend": "cd backend && go run ./cmd/server"
+    "dev:backend": "cd backend && go run ./cmd/server",
+    "dev:ml": "cd ml_service && python -m uvicorn app:app --host 127.0.0.1 --port 5000"
   }
 }

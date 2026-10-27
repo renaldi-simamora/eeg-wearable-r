@@ -27,14 +27,16 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 	r.Use(middleware.LoggerMiddleware())
 	r.Use(middleware.CORSMiddleware(cfg.CORSOrigin))
 
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
+	// Health check (available at /health and /api/health)
+	healthHandler := func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "healthy",
 			"service": "EEG Wearable Backend",
 			"project": "Rancang Bangun Perangkat IoT Wearable Berbasis EEG untuk Klasifikasi Pola Gelombang Otak Menggunakan Machine Learning",
 		})
-	})
+	}
+	r.GET("/health", healthHandler)
+	r.GET("/api/health", healthHandler)
 
 	// WebSocket route for live EEG stream
 	r.GET("/ws/eeg", hub.HandleWebSocket)
@@ -101,7 +103,6 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 
 			// EEG data
 			protected.GET("/eeg/:sessionId", eegHandler.GetEEGData)
-			protected.POST("/eeg/data", eegHandler.PostEEGData)
 
 			// Analysis & ML Classification
 			protected.GET("/analysis/:sessionId", analysisHandler.GetAnalysis)
@@ -110,6 +111,9 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 			// Dashboard
 			protected.GET("/dashboard/summary", dashboardHandler.GetSummary)
 		}
+
+		// EEG Ingestion Route (Supports IoT Hardware Node with X-Device-API-Key or User Bearer JWT)
+		api.POST("/eeg/data", middleware.DeviceOrAuthMiddleware(cfg.JWTSecret, cfg.DeviceAPIKey), eegHandler.PostEEGData)
 	}
 
 	// 404 handler with standard API response

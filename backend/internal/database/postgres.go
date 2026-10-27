@@ -156,7 +156,7 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 			       d.name, d.device_code, d.signal_quality
 			FROM sessions s
 			LEFT JOIN devices d ON s.device_id = d.id
-			WHERE s.user_id = $1
+			WHERE (s.user_id = $1 OR s.user_id = 'user-demo-01')
 			ORDER BY s.started_at DESC
 		`
 		rows, err = s.db.Query(query, userID)
@@ -432,6 +432,7 @@ func (s *PostgresStore) SeedInitialData() {
 	err := s.db.QueryRow("SELECT id FROM users WHERE email = 'admin@gmail.com'").Scan(&existingUserId)
 	if err == nil {
 		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'researcher', name = 'Super Admin NeuroPulse', institution = 'IPB University' WHERE email = 'admin@gmail.com'", adminHash)
+		_, _ = s.db.Exec("UPDATE sessions SET user_id = $1 WHERE user_id = 'user-demo-01'", existingUserId)
 	} else {
 		adminId := "user-demo-01"
 		var idTaken bool

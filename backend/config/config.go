@@ -13,6 +13,7 @@ type Config struct {
 	CORSOrigin     string
 	GoogleClientID string
 	MLServiceURL   string
+	DeviceAPIKey   string
 }
 
 func LoadConfig() *Config {
@@ -46,6 +47,11 @@ func LoadConfig() *Config {
 		mlServiceURL = "http://localhost:5000"
 	}
 
+	deviceAPIKey := os.Getenv("DEVICE_API_KEY")
+	if deviceAPIKey == "" {
+		deviceAPIKey = "eeg-device-secret-key-academic-2026"
+	}
+
 	return &Config{
 		Port:           port,
 		DatabaseURL:    dbURL,
@@ -53,5 +59,6 @@ func LoadConfig() *Config {
 		CORSOrigin:     corsOrigin,
 		GoogleClientID: googleClientID,
 		MLServiceURL:   mlServiceURL,
+		DeviceAPIKey:   deviceAPIKey,
 	}
 }

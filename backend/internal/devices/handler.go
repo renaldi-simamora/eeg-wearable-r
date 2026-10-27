@@ -104,6 +104,10 @@ func (h *Handler) GetAll(c *gin.Context) {
 		return
 	}
 
+	if devices == nil {
+		devices = []models.Device{}
+	}
+
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data:    devices,

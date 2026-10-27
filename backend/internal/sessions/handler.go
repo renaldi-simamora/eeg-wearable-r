@@ -122,6 +122,10 @@ func (h *Handler) GetAll(c *gin.Context) {
 		return
 	}
 
+	if sessions == nil {
+		sessions = []models.Session{}
+	}
+
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data:    sessions,

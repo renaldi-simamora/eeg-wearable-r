@@ -113,21 +113,6 @@ func (s *Service) GetEEGBySession(sessionID string) (map[string]interface{}, err
 		return nil, err
 	}
 
-	if len(samples) == 0 {
-		ses, _ := s.store.GetSessionByID(sessionID)
-		devName := ""
-		devCode := ""
-		if ses != nil {
-			devName = ses.DeviceName
-			devCode = ses.DeviceCode
-		}
-		genSamples, genFeature := generatePhysiologicalEEGData(sessionID, devName, devCode)
-		_ = s.store.SaveEEGSamples(genSamples)
-		_ = s.store.SaveBrainwaveFeature(&genFeature)
-		samples = genSamples
-		features = []models.BrainwaveFeature{genFeature}
-	}
-
 	if samples == nil {
 		samples = []models.EEGSample{}
 	}
@@ -160,6 +145,31 @@ func (s *Service) SaveEEGData(req *models.PostEEGDataRequest) error {
 	if req.SessionID == "" {
 		log.Println("[EEG VALIDATION] status: INVALID reason: sessionId is required")
 		return errors.New("sessionId is required")
+	}
+
+	// Ensure session exists to uphold relational integrity (e.g. initial hardware stream)
+	existingSession, err := s.store.GetSessionByID(req.SessionID)
+	if err != nil || existingSession == nil {
+		newSession := models.Session{
+			ID:        req.SessionID,
+			UserID:    "user-demo-01",
+			DeviceID:  "dev-001",
+			StartedAt: time.Now(),
+			Status:    "running",
+			CreatedAt: time.Now(),
+		}
+		_ = s.store.CreateSession(&newSession)
+	}
+
+	// Update device heartbeat and signal quality
+	if len(req.Samples) > 0 {
+		latestQuality := req.Samples[len(req.Samples)-1].SignalQuality
+		if dev, devErr := s.store.GetDeviceByID("dev-001"); devErr == nil && dev != nil {
+			dev.Status = "connected"
+			dev.SignalQuality = latestQuality
+			dev.LastSeen = time.Now()
+			_ = s.store.UpdateDevice(dev)
+		}
 	}
 
 	// Validate raw EEG samples

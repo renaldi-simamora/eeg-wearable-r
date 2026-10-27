@@ -80,3 +80,7 @@ venv/
 env/
 *.pkl
 *.joblib
+
+# 7. Temporary Scratch Scripts & Spec Documents (Keep local for Claude review)
+scratch/
+docs/project-spec/

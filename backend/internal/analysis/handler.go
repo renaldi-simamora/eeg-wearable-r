@@ -136,15 +136,25 @@ func (s *Service) GetAnalysisBySession(sessionID string) (map[string]interface{}
 		return nil, err
 	}
 
-	// If no predictions recorded yet, attempt to classify using ML service or local SVM engine
+	// If no predictions recorded yet, check if session has recorded spectral features
 	if len(predictions) == 0 {
+		features, _ := s.store.GetBrainwaveFeatures(sessionID)
+		if len(features) == 0 {
+			return map[string]interface{}{
+				"sessionId":   sessionID,
+				"status":      "unprocessed",
+				"message":     "No EEG features recorded yet for this session.",
+				"predictions": []models.MLPrediction{},
+				"insights":    []models.AIInsight{},
+			}, nil
+		}
+
 		pred, err := s.ClassifySession(sessionID)
 		if err == nil && pred != nil {
 			predictions = append(predictions, *pred)
 			insights, _ = s.store.GetAIInsights(sessionID)
 		} else {
-			// Local SVM inference fallback
-			features, _ := s.store.GetBrainwaveFeatures(sessionID)
+			// Local SVM inference fallback for real recorded features
 			var feat *models.BrainwaveFeature
 			if len(features) > 0 {
 				feat = &features[len(features)-1]

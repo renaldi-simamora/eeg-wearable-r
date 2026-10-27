@@ -82,3 +82,74 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// DeviceOrAuthMiddleware allows either Device API Key (IoT hardware) or User JWT Bearer token
+func DeviceOrAuthMiddleware(jwtSecret string, deviceAPIKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 1. Check Device API Key header first (IoT Hardware Node ESP32)
+		apiKey := c.GetHeader("X-Device-API-Key")
+		if apiKey == "" {
+			apiKey = c.GetHeader("X-API-Key")
+		}
+
+		if apiKey != "" {
+			if deviceAPIKey != "" && apiKey == deviceAPIKey {
+				c.Set("isDevice", true)
+				c.Set("role", "device")
+				c.Next()
+				return
+			}
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Invalid device API key",
+			})
+			c.Abort()
+			return
+		}
+
+		// 2. Fall back to standard User JWT Bearer token authentication
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Authentication required: provide X-Device-API-Key header or Bearer token",
+			})
+			c.Abort()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Invalid authorization format. Must be Bearer <token>",
+			})
+			c.Abort()
+			return
+		}
+
+		tokenStr := parts[1]
+		claims := &JWTClaims{}
+
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
+			return []byte(jwtSecret), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Invalid or expired token",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("userID", claims.UserID)
+		c.Set("email", claims.Email)
+		c.Set("role", claims.Role)
+		c.Next()
+	}
+}

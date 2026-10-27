@@ -10,6 +10,7 @@ Endpoints:
 
 import os
 import json
+import warnings
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import numpy as np  # type: ignore
@@ -17,6 +18,12 @@ import joblib  # type: ignore
 from fastapi import FastAPI, HTTPException  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from pydantic import BaseModel, Field  # type: ignore
+
+try:
+    from sklearn.exceptions import InconsistentVersionWarning  # type: ignore
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    pass
 
 BASE_DIR = os.path.dirname(__file__)
 MODELS_DIR = os.path.join(BASE_DIR, "models")
