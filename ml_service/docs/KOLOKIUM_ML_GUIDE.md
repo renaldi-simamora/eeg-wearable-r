@@ -57,7 +57,7 @@ Tujuan penyusunan dokumen ini adalah:
 
 ## 2. KONTEKS PENELITIAN TUGAS AKHIR DAN PERAN ML
 
-Penelitian tugas akhir ini merancang dan membangun sistem *IoT wearable biosensing* elektroensefalografi (EEG) kanal tunggal berbiaya terjangkau. Perangkat keras menggunakan sensor NeuroSky TGAM1 dengan elektroda kering dahi pada posisi FP1 (*International 10–20 System*) dan klip telinga A1 sebagai referensi/ground, yang dikendalikan oleh mikrokontroler ESP32 untuk transmisi data telemetri nirkabel.
+Penelitian tugas akhir ini merancang dan membangun sistem *IoT wearable biosensing* elektroensefalografi (EEG) kanal tunggal berbiaya terjangkau. Perangkat keras menggunakan sensor NeuroSky TGAM1 yang dihubungkan ke 3 kabel elektroda snap biopotensial yang ditempel langsung (FP1 aktif pada dahi anterior, referensi REF, dan ground GND tanpa klip telinga maupun headband kaku), yang dikendalikan oleh mikrokontroler ESP32 untuk transmisi data telemetri nirkabel.
 
 ### Peran Machine Learning
 Machine Learning dalam sistem ini bertindak sebagai **agen pengenal pola spektral non-linear** dari biosinyal EEG domain frekuensi untuk membedakan kondisi eksperimental tugas kognitif terstruktur.

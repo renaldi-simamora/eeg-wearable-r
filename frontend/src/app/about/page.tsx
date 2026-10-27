@@ -66,7 +66,7 @@ export default function AboutPage() {
             </h1>
 
             <p className="text-sm sm:text-base text-[#6E7168] leading-relaxed">
-              Platform telemetri biosinyal terintegrasi yang menjembatani elektroda dahi kering presisi tinggi, modul ASIC TGAM1, mikrokontroler nirkabel ESP32, gateway Go Gin berkecepatan tinggi, dan inferensi model machine learning dalam satu ekosistem terbuka.
+              Platform telemetri biosinyal terintegrasi yang menjembatani 3 elektroda snap biopotensial presisi tinggi, modul ASIC TGAM1, mikrokontroler nirkabel ESP32, gateway Go Gin berkecepatan tinggi, dan inferensi model machine learning dalam satu ekosistem terbuka.
             </p>
 
             <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -161,13 +161,13 @@ export default function AboutPage() {
                     Akuisisi Biosinyal Mikrovolt TGAM1 & Telemetri ESP32
                   </h3>
                   <p className="text-xs sm:text-sm text-[#6E7168] leading-relaxed">
-                    Sensor utama menggunakan modul analog front-end NeuroSky TGAM1 yang dipadukan dengan elektroda kering sintered Ag/AgCl biokompatibel pada posisi frontal kiri (FP1) dan klip referensi netral telinga (A1). Mikrokontroler ESP32 membaca frame biner melalui UART 57,600 Baud dan menyiarkannya via Wi-Fi.
+                    Sensor utama menggunakan modul analog front-end NeuroSky TGAM1 yang dipadukan dengan 3 kabel elektroda snap biopotensial yang ditempel langsung (FP1 aktif pada dahi anterior, referensi REF, dan ground GND tanpa klip pegas atau headband). Mikrokontroler ESP32 membaca frame biner melalui UART 57,600 Baud dan menyiarkannya via Wi-Fi.
                   </p>
                   <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
                     <div className="p-3.5 rounded-2xl bg-white border border-[rgba(40,40,30,0.06)] shadow-2xs">
                       <span className="font-mono text-[11px] text-[#58684C] font-semibold block">Impedansi Kontak</span>
-                      <p className="mt-1 font-bold text-[#1E201D] font-mono">4.85 kΩ (Dry Electrode)</p>
-                      <span className="text-[10px] text-[#77776E]">Bebas artefak pasta basah</span>
+                      <p className="mt-1 font-bold text-[#1E201D] font-mono">4.85 kΩ (Snap Lead)</p>
+                      <span className="text-[10px] text-[#77776E]">Kontak tempel stabil tanpa jepit</span>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-white border border-[rgba(40,40,30,0.06)] shadow-2xs">
                       <span className="font-mono text-[11px] text-[#58684C] font-semibold block">Filter Analog Bawaan</span>
@@ -254,7 +254,7 @@ export default function AboutPage() {
                 <Image
                   src={
                     activeTab === "biosensing"
-                      ? "/images/hardware_esp32_bench.jpg"
+                      ? "/images/eeg_snap_leads.jpg"
                       : activeTab === "gateway"
                       ? "/images/bento_telemetry.jpg"
                       : activeTab === "ml"

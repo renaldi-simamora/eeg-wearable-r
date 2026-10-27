@@ -358,7 +358,7 @@ export default function DevicesPage() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Register New Wearable Device"
-        description="Pair an ESP32 wearable headband node with the Go backend gateway."
+        description="Pair an ESP32 wearable EEG node with the Go backend gateway."
       >
         <form onSubmit={handleCreateDevice} className="space-y-4">
           <Input

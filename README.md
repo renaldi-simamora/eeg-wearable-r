@@ -1201,7 +1201,7 @@ Skrip ini memverifikasi 9 titik kritis: Backend health check, ML health check, M
   - Integrasi dua arah Go Backend Gateway ke Python ML Microservice via REST API (`/predict` & `/models`).
 - [ ] **Fase 3: Integrasi Firmware ESP32 & Perakitan Hardware Wearable Fisik (Sedang Berjalan)**
   - Firmware ESP32 TGAM1 (`firmware/esp32_tgam1/esp32_tgam1.ino`) dengan pengurai ThinkGear ASIC dan batch telemetri IoT telah selesai dan teruji melalui protokol ingestion.
-  - Perakitan mekanikal headband 3D printed untuk penempatan modul TGAM1 dan elektroda kering FP1.
+  - Integrasi perkabelan 3 elektroda EEG snap (lead aktif FP1 dahi, referensi REF, dan ground GND tanpa headband/klip) dengan modul sensor TGAM1 dan ESP32.
   - Pengujian transmisi nirkabel pada subjek manusia nyata saat modul fisik siap disambungkan.
 
 ---

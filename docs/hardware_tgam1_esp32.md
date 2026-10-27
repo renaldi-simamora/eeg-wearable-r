@@ -43,8 +43,11 @@
 | **B** | Reset / Baud | *Unconnected* | Default 57,600 baud mode |
 
 ### Electrode Placement (International 10-20 System)
-- **Active Electrode**: Positioned at **FP1** (Frontal Pole 1, left forehead, ~2.5 cm above the eyebrow).
-- **Reference & Ground**: Dual-contact earclip placed on the **A1** (Left Earlobe).
+Sistem menggunakan **3 kabel elektroda EEG snap (pure ditempel langsung menggunakan adhesive snap pads, tanpa headband dan tanpa earclip)**:
+- **Active Electrode (FP1)**: Snap lead aktif yang ditempel pada **FP1** (Frontal Pole 1, dahi kiri anterior, ~2.5 cm di atas alis).
+- **Reference Electrode (REF)**: Snap lead referensi yang ditempel pada area **Mastoid** (tulang belakang telinga) atau dahi sebagai titik acuan biopotensial.
+- **Ground Electrode (GND)**: Snap lead ground yang ditempel pada kulit subjek sebagai common ground sensor untuk meredam derau interferensi.
+*(Semua elektroda menggunakan snap button lead wire standar biomedis yang tersambung ke disposable/reusable adhesive patch tempel)*.
 
 ---
 

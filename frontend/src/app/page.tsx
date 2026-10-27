@@ -152,8 +152,9 @@ const HARDWARE_SHOWCASE: HardwareItem[] = [
       { pin: "Pin 2 (GND)", name: "Ground", func: "Common signal ground reference" },
       { pin: "Pin 3 (TXD)", name: "UART TX", func: "Serial data out @ 57,600 Baud" },
       { pin: "Pin 4 (RXD)", name: "UART RX", func: "Konfigurasi register ASIC" },
-      { pin: "Lead 1", name: "EEG FP1", func: "Elektroda aktif dahi kiri" },
-      { pin: "Lead 2", name: "REF A1", func: "Klip referensi cuping telinga" },
+      { pin: "Lead 1 (EEG)", name: "EEG FP1", func: "Elektroda snap aktif dahi anterior (FP1)" },
+      { pin: "Lead 2 (REF)", name: "REF Biopotensial", func: "Elektroda snap referensi tempel (Mastoid/Dahi)" },
+      { pin: "Lead 3 (GND)", name: "GND Sensor", func: "Elektroda snap ground netral tempel" },
     ],
     firmwareSnippet: `// TGAM1 Serial Parser Header (ESP32)
 #define TGAM_SYNC 0xAA
@@ -214,31 +215,33 @@ void loop() {
 }`,
   },
   {
-    id: "headband",
-    badge: "Dry FP1 + A1 Ref",
-    title: "Headband Ergonomis Elektroda Kering",
+    id: "electrodes",
+    badge: "3-Lead Snap FP1 + Ref/Gnd",
+    title: "Konfigurasi 3 Elektroda EEG Snap",
     description:
-      "Desain lingkar kepala fleksibel dengan elektroda dahi perak biokompatibel dan klip referensi cuping telinga A1.",
-    image: "/images/project_wearable_wood.jpg",
+      "Desain 3 kabel elektroda snap yang ditempel langsung (FP1 aktif, referensi, dan ground) murni dengan patch perekat tanpa klip maupun headband.",
+    image: "/images/eeg_snap_leads.jpg",
     specs: [
       { label: "Standar Posisi", value: "International 10-20 FP1" },
-      { label: "Bahan Kontak", value: "Sintered Ag/AgCl Alloy" },
-      { label: "Elektroda Referensi", value: "A1 Dual-Shield Clip" },
-      { label: "Bobot Total", value: "Hanya 68 gram" },
+      { label: "Tipe Kontak", value: "3x Snap Button Leads (Tempel)" },
+      { label: "Koneksi Referensi", value: "Mastoid / Frontal Tempel" },
+      { label: "Bebas Jepit/Band", value: "100% Patch Tempel (No Clip)" },
     ],
     details:
-      "Headband dirancang secara ergonomis untuk penelitian jangka panjang tanpa memerlukan pasta gel lengket. Tekanan elastis yang terkalibrasi menjaga kontak stabil bahkan saat subjek bergerak ringan.",
+      "Sistem elektroda menggunakan 3 kabel lead kancing snap standar medis yang ditempel langsung ke permukaan kulit subjek menggunakan patch/pad berperekat biokompatibel. Desain ini murni menggunakan patch tempel tanpa rangka headband yang menekan kepala dan tanpa klip pegas telinga, memberikan kenyamanan maksimal serta kontak impedansi yang stabil selama perekaman sinyal EEG.",
     pinouts: [
-      { pin: "Frontal Lead", name: "Sensor FP1", func: "Kontak dahi anterior biokompatibel" },
-      { pin: "Ear Clip", name: "Ground A1", func: "Klip pegas referensi netral" },
-      { pin: "Chassis", name: "Shield Cable", func: "Kabel terpilin berpelindung derau RF" },
-      { pin: "Strap Frame", name: "Silicone 3D", func: "Rangka lentur cetak 3D medical grade" },
+      { pin: "Lead FP1 (Aktif)", name: "Sensor FP1 Dahi", func: "Ditempel pada dahi kiri anterior (~2.5 cm atas alis)" },
+      { pin: "Lead REF (Referensi)", name: "Referensi Biopotensial", func: "Ditempel pada area mastoid / dahi sebagai titik referensi" },
+      { pin: "Lead GND (Ground)", name: "Common Ground Sensor", func: "Ditempel pada kulit sebagai ground isolasi derau" },
+      { pin: "Shielded Cable", name: "Low-Noise Lead Wire", func: "Kabel fleksibel berpelindung derau EMI dan artefak gerak" },
     ],
-    firmwareSnippet: `// Karakteristik Impedansi Elektroda Kering
-struct ContactImpedance {
-  float rawOhms = 4850.0;     // Khas elektroda kering Ag/AgCl
-  float snrDb = 24.8;         // Signal to Noise Ratio
-  bool isArtifactFree = true; // Bebas artefak gerakan mata
+    firmwareSnippet: `// Karakteristik Impedansi & Konfigurasi 3 Lead Snap Tempel
+struct SnapElectrodeConfig {
+  const char* activeLead = "FP1 (Dahi Anterior Kiri)";
+  const char* refLead = "Mastoid / Frontal REF (Tempel)";
+  const char* gndLead = "Common Ground GND (Tempel)";
+  float contactImpedanceKOhms = 4.8; // Impedansi kontak elektroda snap
+  bool isLeadAttached = true;        // Kontak stabil tanpa klip / headband
 };`,
   },
 ];
@@ -683,7 +686,7 @@ export default function LandingPage() {
               </div>
 
               <p className="text-[14.5px] leading-relaxed text-[#6E7168] max-w-[430px]">
-                Platform pemantauan biosinyal non-invasif dengan sampling 512 SPS kontinu, elektroda kering tanpa pasta gel, dan transmisi nirkabel instan untuk riset elektroensefalografi modern.
+                Platform pemantauan biosinyal non-invasif dengan sampling 512 SPS kontinu, konfigurasi 3 elektroda snap tempel presisi, dan transmisi nirkabel instan untuk riset elektroensefalografi modern.
               </p>
 
               {/* Action Buttons: Matching Reference "Рассчитать проект (+)" Button */}
@@ -982,7 +985,7 @@ export default function LandingPage() {
               </h2>
 
               <p className="text-[14.5px] text-[#6E7168] leading-relaxed">
-                Kami menggabungkan analog front-end berpresisi tinggi, elektroda kering tanpa pasta gel, serta pipa telemetri nirkabel berkecepatan tinggi untuk menghasilkan data elektroensefalografi yang bersih dan siap diolah oleh model kecerdasan buatan.
+                Kami menggabungkan analog front-end berpresisi tinggi, 3 elektroda EEG snap berperekat langsung tanpa beban headband atau penjepit klip, serta pipa telemetri nirkabel berkecepatan tinggi untuk menghasilkan data elektroensefalografi yang bersih dan siap diolah oleh model kecerdasan buatan.
               </p>
 
               <div>
@@ -1007,7 +1010,7 @@ export default function LandingPage() {
                     Bahan Medis Biokompatibel
                   </span>
                   <span className="text-[11.5px] text-[#77776E] block mt-0.5">
-                    Elektroda kering ramah kulit, bebas pasta, aman untuk pemakaian berkelanjutan.
+                    Elektroda snap tempel ramah kulit, praktis tanpa headband kaku atau penjepit telinga.
                   </span>
                 </div>
               </div>
@@ -1598,7 +1601,7 @@ export default function LandingPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-[#1E201D]">Deteksi Biosinyal</h3>
                   <p className="text-[11px] text-[#77776E] mt-1 leading-relaxed">
-                    Elektroda kering FP1 menangkap mikrovolt aksi potensial korteks dahi.
+                    Elektroda snap FP1 menangkap mikrovolt aksi potensial korteks dahi secara langsung.
                   </p>
                 </div>
                 <span className="text-[10px] font-mono text-[#58684C] font-medium pt-1.5 border-t border-[rgba(40,40,30,0.06)]">
