@@ -36,8 +36,9 @@
    - [7.3 Konfigurasi Environment Variables (.env)](#73-konfigurasi-environment-variables-env)
    - [7.4 Menjalankan Backend (Go API Gateway)](#74-menjalankan-backend-go-api-gateway)
    - [7.5 Menjalankan Frontend (Next.js Web App)](#75-menjalankan-frontend-nextjs-web-app)
-   - [7.6 Shortcut Eksekusi via Root package.json](#76-shortcut-eksekusi-via-root-packagejson)
-   - [7.7 Menjalankan via Docker & Docker Compose](#77-menjalankan-via-docker--docker-compose)
+   - [7.6 Menjalankan Layanan Machine Learning (Python FastAPI)](#76-menjalankan-layanan-machine-learning-python-fastapi)
+   - [7.7 Shortcut Eksekusi via Root package.json](#77-shortcut-eksekusi-via-root-packagejson)
+   - [7.8 Menjalankan via Docker & Docker Compose](#78-menjalankan-via-docker--docker-compose)
 8. [Panduan Integrasi Google OAuth 2.0 (Google Cloud Platform)](#8-panduan-integrasi-google-oauth-20-google-cloud-platform)
 9. [Sistem Otentikasi & Proteksi Route (Server-Side Middleware)](#9-sistem-otentikasi--proteksi-route-server-side-middleware)
 10. [State Machine & Alur Sesi Akuisisi Live EEG](#10-state-machine--alur-sesi-akuisisi-live-eeg)
@@ -349,7 +350,24 @@ eeg-wearable-r/
 ├── docker-compose.yml             # Orkestrasi Docker untuk PostgreSQL, Backend, & Frontend
 ├── package.json                   # Shortcut eksekusi perintah root (npm scripts)
 ├── docs/
-│   └── api.md                     # Spesifikasi lengkap REST API & protokol WebSocket
+│   ├── api.md                     # Spesifikasi lengkap REST API & protokol WebSocket
+│   └── hardware_tgam1_esp32.md    # Panduan pinout & perakitan hardware TGAM1 + ESP32
+│
+├── firmware/                      # Kode Sumber Mikrokontroler IoT
+│   └── esp32_tgam1/
+│       └── esp32_tgam1.ino        # Firmware ESP32 Arduino C++ (UART2 57600 baud, ThinkGear parser, Wi-Fi HTTP client)
+│
+├── ml_service/                    # Layanan Inferensi Machine Learning (FastAPI & scikit-learn)
+│   ├── app.py                     # Microservice FastAPI (:5000) untuk /health, /models, /predict
+│   ├── train.py                   # Script pelatihan model SVM, Random Forest, & Logistic Regression
+│   ├── requirements.txt           # Dependensi Python (fastapi, uvicorn, scikit-learn, joblib, pydantic)
+│   ├── Dockerfile                 # Konfigurasi containerisasi ML microservice
+│   └── models/                    # Bobot model terlatih & artefak scaler
+│       ├── svm_model.joblib       # Model Support Vector Machine (RBF kernel terkalibrasi)
+│       ├── rf_model.joblib        # Model Random Forest (100 estimators)
+│       ├── lr_model.joblib        # Model Logistic Regression (L2 regularized baseline)
+│       ├── scaler.joblib          # StandardScaler untuk normalisasi 5 pita spektral
+│       └── metadata.json          # Metrik evaluasi 5-fold cross-validation & versi dataset
 │
 ├── backend/                       # Layanan Backend API Gateway (Golang)
 │   ├── .env                       # File konfigurasi lokal backend
@@ -362,9 +380,9 @@ eeg-wearable-r/
 │   │   └── server/
 │   │       └── main.go            # Entry point utama aplikasi Go
 │   ├── config/
-│   │   └── config.go              # Loader environment variables (Port, DB URL, JWT, Google ID)
+│   │   └── config.go              # Loader environment variables (Port, DB URL, JWT, Google ID, Device API Key)
 │   ├── internal/                  # Paket privat logika internal server
-│   │   ├── analysis/              # Handler & logika model klasifikasi ML
+│   │   ├── analysis/              # Handler & klien microservice model klasifikasi ML
 │   │   ├── auth/                  # Layanan registrasi, login, JWT & Google OAuth verification
 │   │   ├── dashboard/             # Agregasi data metrik & kartu ringkasan dashboard
 │   │   ├── database/              # Abstraksi store (PostgreSQL & In-Memory Fallback)
@@ -373,8 +391,8 @@ eeg-wearable-r/
 │   │   │   ├── postgres.go        # Implementasi query SQL PostgreSQL murni
 │   │   │   └── store.go           # Interface kontrak Store
 │   │   ├── devices/               # Manajemen inventaris perangkat IoT EEG
-│   │   ├── eeg/                   # Penyimpanan sinyal mentah & ekstraksi band power
-│   │   ├── middleware/            # JWT Auth, CORS, & Logger Middleware
+│   │   ├── eeg/                   # Ingestion sinyal mentah, validasi numerik, & broadcast
+│   │   ├── middleware/            # Device API Key, JWT Auth, CORS, & Logger Middleware
 │   │   ├── sessions/              # Manajemen siklus sesi akuisisi (Start, Stop, Summary)
 │   │   ├── users/                 # Profil akun peneliti & institusi
 │   │   └── websocket/             # WebSocket Hub untuk broadcast streaming sinyal EEG
@@ -483,8 +501,10 @@ DATABASE_URL=postgres://postgres:password_postgres_anda@localhost:5432/eeg_db?ss
 JWT_SECRET=eeg-platform-secure-jwt-academic-secret-key-32chars
 CORS_ORIGIN=http://localhost:3000
 GOOGLE_CLIENT_ID=524835681476-cnvohi484a5tk54koattq2sd4rbl3u9f.apps.googleusercontent.com
+ML_SERVICE_URL=http://localhost:5000
+DEVICE_API_KEY=eeg-device-secret-key-academic-2026
 ```
-*(Ganti `password_postgres_anda` dengan kata sandi akun postgres lokal Anda)*.
+*(Ganti `password_postgres_anda` dengan kata sandi akun postgres lokal Anda, dan sesuaikan `DEVICE_API_KEY` untuk autentikasi hardware IoT)*.
 
 #### B. Konfigurasi Frontend (`frontend/.env.local`)
 Salin file template pada folder frontend:
@@ -563,7 +583,29 @@ Buka peramban (browser) dan akses alamat:
 
 ---
 
-### 7.6 Shortcut Eksekusi via Root `package.json`
+### 7.6 Menjalankan Layanan Machine Learning (Python FastAPI)
+
+Layanan inferensi Machine Learning dijalankan secara mandiri sebagai microservice FastAPI pada port `5000`:
+
+```bash
+cd ml_service
+pip install -r requirements.txt
+python -m uvicorn app:app --host 127.0.0.1 --port 5000
+```
+*(Atau gunakan shortcut root: `npm run dev:ml`)*.
+
+**Output Terminal ML Service yang Berhasil:**
+```text
+INFO:     Started server process
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:5000 (Press CTRL+C to quit)
+```
+Microservice kini aktif melayani inferensi di **`http://127.0.0.1:5000`** (`GET /health`, `GET /models`, `POST /predict`).
+
+---
+
+### 7.7 Shortcut Eksekusi via Root `package.json`
 
 Pada direktori root repositori, telah tersedia skrip pintas:
 
@@ -574,10 +616,11 @@ Pada direktori root repositori, telah tersedia skrip pintas:
 | `npm run build:frontend` | Melakukan kompilasi bundel produksi frontend Next.js. |
 | `npm run start:backend` | Menjalankan server executable backend Go (`backend/server.exe`). |
 | `npm run dev:backend` | Mengompilasi dan mengeksekusi kode Go dari source (`go run ./cmd/server`). |
+| `npm run dev:ml` | Menjalankan microservice Python ML FastAPI di port 5000. |
 
 ---
 
-### 7.7 Menjalankan via Docker & Docker Compose
+### 7.8 Menjalankan via Docker & Docker Compose
 
 Bila di komputer Anda telah terpasang **Docker Desktop**, Anda dapat menjalankan PostgreSQL, Go Backend, dan Next.js secara simultan dengan satu perintah:
 
@@ -801,7 +844,7 @@ Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
 | `GET` | `/api/sessions/:id` | Protected | Mengambil detail spesifik sesi perekaman |
 | `POST` | `/api/sessions/:id/stop` | Protected | Menghentikan sesi perekaman dan menghitung durasi |
 | `GET` | `/api/eeg/:sessionId` | Protected | Mengambil data titik voltase sinyal EEG per sesi |
-| `POST` | `/api/eeg/data` | Protected | Mengunggah paket sampel sinyal dari mikrokontroler |
+| `POST` | `/api/eeg/data` | Protected (Device Key / JWT) | Ingestion batch sampel voltase mentah & fitur spektral dari ESP32 (Header: `X-Device-API-Key`) atau JWT Peneliti |
 | `GET` | `/api/dashboard/summary` | Protected | Agregasi data metrik untuk kartu KPI dashboard |
 | `GET` | `/api/models` | Publik | Daftar model Machine Learning dan status kesiapannya |
 | `GET` | `/api/analysis/:sessionId` | Protected | Hasil ekstraksi fitur spektral & inferensi ML sesi |
@@ -851,6 +894,18 @@ curl -X POST http://localhost:8080/api/auth/login \
 ```bash
 curl -X GET http://localhost:8080/api/devices \
   -H "Authorization: Bearer <TOKEN_JWT_DARI_LOGIN>"
+```
+
+#### 4. Uji Pengiriman Data EEG dari IoT Firmware ESP32 (Dengan X-Device-API-Key):
+```bash
+curl -X POST http://localhost:8080/api/eeg/data \
+  -H "Content-Type: application/json" \
+  -H "X-Device-API-Key: eeg-device-secret-key-academic-2026" \
+  -d "{\"sessionId\":\"ses-001\",\"samples\":[{\"timestamp\":1790757000000,\"rawEEG\":18.5,\"signalQuality\":94}],\"features\":{\"delta\":16.5,\"theta\":22.1,\"alpha\":38.4,\"beta\":16.8,\"gamma\":6.2}}"
+```
+Respon:
+```json
+{"success":true,"message":"EEG data persisted and broadcasted successfully"}
 ```
 
 ---
@@ -951,30 +1006,77 @@ erDiagram
           │
           ▼
 [Preprocessing & Filtering]
-  - 50 Hz Notch Filter (Eliminasi Derau Jala-Jala Listrik PLN)
-  - 0.5–50 Hz 4th Order Butterworth Bandpass Filter
+  - 50 Hz Hardware Notch Filter (Eliminasi Derau Jala-Jala Listrik PLN pada TGAM1)
+  - 0.5–50 Hz Bandpass Filter bawaan TGAM1 ASIC Chip
           │
           ▼
-[Signal Windowing]
-  - Jendela geser 2 detik (2-second sliding window) dengan 50% overlap (1024 sampel @ 512 Hz)
+[Feature Extraction (Spectral Bands Power)]
+  - Ekstraksi 5 pita gelombang otak: Delta, Theta, Alpha, Beta, Gamma
+  - Normalisasi Daya Relatif: (Band Power / Total Power) * 100%
           │
           ▼
-[Feature Extraction (Spectral & Temporal)]
-  - Fast Fourier Transform (FFT) / Welch Power Spectral Density (PSD)
-  - Logarithmic Band Power: Delta, Theta, Alpha, Beta, Gamma
-  - Ratios: Theta/Beta Ratio (TBR), Engagement Index: Beta / (Alpha + Theta)
-  - Spectral Entropy & Signal Standard Deviation
+[ML Inference Microservice (:5000)]
+  ├── Support Vector Machine (SVM) — Hyperplane optimal dengan RBF Kernel (svm_model.joblib)
+  ├── Random Forest Classifier — Ensemble 100 pohon keputusan (rf_model.joblib)
+  └── Logistic Regression — Model L2-regularized baseline (lr_model.joblib)
           │
           ▼
-[Candidate ML Classifiers]
-  ├── Support Vector Machine (SVM) — Hyperplane optimal dengan RBF Kernel
-  ├── Random Forest Classifier — Ensemble 100 pohon keputusan
-  └── XGBoost Classifier — Gradient boosting berkinerja tinggi
-          │
-          ▼
-[Classification Output]
-  - Kelas: Focused (Fokus) | Relaxed (Rileks) | Drowsy (Mengantuk) | Active Cognitive
-  - Probabilitas / Confidence Level (0.00 – 1.00)
+[Classification Output (JSON)]
+  - Target Classes:
+    1. "Relaxed / High Alpha"
+    2. "Focused / High Beta"
+    3. "Drowsy / High Theta"
+    4. "Baseline / Mixed Rhythms"
+  - Output: predicted_class, confidence (0.00 – 1.00), class_probabilities dictionary
+```
+
+### Spesifikasi Kontrak API Machine Learning (`ml_service`):
+
+| Endpoint | Metode | Deskripsi |
+| :--- | :--- | :--- |
+| `/health` | `GET` | Health check & daftar model yang dimuat ke memori |
+| `/models` | `GET` | Model cards lengkap dengan metrik cross-validation aktual |
+| `/predict` | `POST` | Inferensi klasifikasi pola kognitif berdasarkan vektor 5 pita frekuensi |
+
+**Format Request `POST /predict`**:
+```json
+{
+  "session_id": "ses-001",
+  "model_name": "svm",
+  "features": {
+    "delta": 10.5,
+    "theta": 15.0,
+    "alpha": 48.0,
+    "beta": 18.0,
+    "gamma": 8.5
+  }
+}
+```
+
+**Format Response `POST /predict`**:
+```json
+{
+  "session_id": "ses-001",
+  "model_name": "Support Vector Machine (SVM)",
+  "model_version": "v1.0.0",
+  "training_dataset_version": "EEG-Normative-v1",
+  "predicted_class": "Relaxed / High Alpha",
+  "confidence": 0.9876,
+  "class_probabilities": {
+    "Relaxed / High Alpha": 0.9876,
+    "Focused / High Beta": 0.0031,
+    "Drowsy / High Theta": 0.0039,
+    "Baseline / Mixed Rhythms": 0.0055
+  },
+  "features": {
+    "delta": 10.5,
+    "theta": 15.0,
+    "alpha": 48.0,
+    "beta": 18.0,
+    "gamma": 8.5
+  },
+  "processed_at": "2026-10-27T15:49:10.997111+00:00"
+}
 ```
 
 ---
@@ -1035,23 +1137,72 @@ taskkill /F /PID <NOMOR_PID>
 
 ---
 
+### T7: Mengapa ESP32 menerima HTTP Error 401 Unauthorized saat mengirim data EEG?
+**Jawaban**: Endpoint `POST /api/eeg/data` dilindungi oleh middleware autentikasi ganda (`DeviceOrAuthMiddleware`). Node firmware ESP32 wajib menyertakan header HTTP:
+```text
+X-Device-API-Key: <nilai_DEVICE_API_KEY>
+```
+Pastikan konstanta `DEVICE_API_KEY` pada file `firmware/esp32_tgam1/esp32_tgam1.ino` memiliki nilai yang identik dengan `DEVICE_API_KEY` pada file `backend/.env`.
+
+---
+
+### T8: Mengapa ESP32 gagal menghubungi backend jika menggunakan URL `http://localhost:8080`?
+**Jawaban**: Mikrokontroler ESP32 adalah entitas fisik terpisah di jaringan Wi-Fi. Bagi ESP32, kata `localhost` atau `127.0.0.1` merujuk ke chip ESP32 itu sendiri, bukan ke laptop/PC server.
+**Solusi**:
+1. Buka Command Prompt / PowerShell di PC, ketik `ipconfig`.
+2. Temukan **IPv4 Address** adapter Wi-Fi Anda (contoh: `192.168.1.50`).
+3. Pada file `firmware/esp32_tgam1/esp32_tgam1.ino`, set:
+   ```cpp
+   const char* BACKEND_API_URL = "http://192.168.1.50:8080/api/eeg/data";
+   ```
+4. Pastikan PC dan ESP32 terhubung pada Access Point / router Wi-Fi yang sama, dan port 8080 tidak diblokir oleh Windows Firewall.
+
+---
+
+### T9: Bagaimana cara menjalankan ML Microservice dan menguji inferensinya?
+**Jawaban**:
+Jalankan service ML dari root project:
+```powershell
+npm run dev:ml
+```
+Atau manual:
+```powershell
+cd ml_service
+python -m uvicorn app:app --host 127.0.0.1 --port 5000
+```
+Periksa status kesehatan dan inferensi:
+- Health check: `curl http://127.0.0.1:5000/health`
+- Prediksi via Backend Go: `curl -X POST http://localhost:8080/api/analysis/ses-001/classify -H "Authorization: Bearer <TOKEN>"`
+
+---
+
+### T10: Bagaimana cara menguji seluruh integrasi sistem (End-to-End Test Suite)?
+**Jawaban**: Jalankan skrip verifikasi otomatis yang telah disiapkan di folder `scratch`:
+```powershell
+python scratch/verify_all.py
+```
+Skrip ini memverifikasi 9 titik kritis: Backend health check, ML health check, ML inferensi langsung, otentikasi login admin, pembacaan agregasi dasbor, proxy model backend, penyerapan batch data ESP32 via `X-Device-API-Key`, pembacaan data tersimpan, dan ketersediaan Frontend Next.js.
+
+---
+
 ## 17. Roadmap Pengembangan Sistem
 
 - [x] **Fase 1: Fondasi Arsitektur & Antarmuka Pengguna (Selesai)**
-  - Desain & implementasi Dark Biomedical UI Next.js 16.
-  - Komponen Canvas Oscilloscope 60 FPS untuk rendering voltase mentah.
+  - Desain & implementasi Dark Biomedical UI Next.js 16 (React 19).
+  - Komponen Canvas Oscilloscope 60 FPS untuk rendering voltase biopotensial mentah.
   - Go Gin Backend Gateway dengan autentikasi JWT dan Gorilla WebSocket Hub.
   - Integrasi resmi Google OAuth 2.0 (Google Identity Services).
   - Server-side route protection Next.js Middleware (`src/middleware.ts`).
   - Explicit Live EEG Session State Machine (`READY`, `STARTING`, `ACQUIRING`, `PAUSED`, `STOPPING`, `COMPLETED`).
-- [ ] **Fase 2: Integrasi Firmware ESP32 & Perakitan Hardware Wearable (Sedang Berjalan)**
-  - Pembuatan casing headband 3D printed yang ergonomis untuk penempatan modul TGAM1 dan elektroda kering FP1.
-  - Pengujian stabilitas transmisi Wi-Fi ESP32 pada sampling rate 512 Hz tanpa packet loss.
-  - Kalibrasi impedansi kontak elektroda telinga (*reference ground*).
-- [ ] **Fase 3: Pelatihan & Penerapan Model Machine Learning (Tahap Berikutnya)**
-  - Pengambilan dataset sinyal dari sejumlah subjek uji sukarelawan dengan protokol eksperimen standar.
-  - Pelatihan model klasifikasi multi-kelas (SVM, Random Forest, XGBoost) menggunakan library Python Scikit-Learn.
-  - Penerapan microservice inferensi real-time berbasis Python FastAPI yang terhubung langsung ke Go Gateway.
+- [x] **Fase 2: Layanan Machine Learning & Klasifikasi Cerdas (Selesai)**
+  - Dataset normatif fisiologis 5 band daya spektral (*EEG-Normative-v1*, 1.200 sampel).
+  - Pelatihan 3 model klasifikasi: Support Vector Machine (RBF kernel), Random Forest (100 estimators), dan Multinomial Logistic Regression.
+  - Microservice inferensi berbasis Python FastAPI (`ml_service/app.py`) pada port 5000.
+  - Integrasi dua arah Go Backend Gateway ke Python ML Microservice via REST API (`/predict` & `/models`).
+- [ ] **Fase 3: Integrasi Firmware ESP32 & Perakitan Hardware Wearable Fisik (Sedang Berjalan)**
+  - Firmware ESP32 TGAM1 (`firmware/esp32_tgam1/esp32_tgam1.ino`) dengan pengurai ThinkGear ASIC dan batch telemetri IoT telah selesai dan teruji melalui protokol ingestion.
+  - Perakitan mekanikal headband 3D printed untuk penempatan modul TGAM1 dan elektroda kering FP1.
+  - Pengujian transmisi nirkabel pada subjek manusia nyata saat modul fisik siap disambungkan.
 
 ---
 

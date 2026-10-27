@@ -366,7 +366,7 @@ All API endpoints return JSON conforming to the following consistent structure:
 ### 7.2 Push EEG Data Batch (IoT / Firmware Ingestion)
 - **Method**: `POST`
 - **Path**: `/api/eeg/data`
-- **Auth Required**: Yes (or Device API Token)
+- **Auth Required**: Yes (`X-Device-API-Key: <key>` for IoT Firmware Node, or `Bearer <JWT_TOKEN>` for Researchers)
 
 **Request Body:**
 ```json
