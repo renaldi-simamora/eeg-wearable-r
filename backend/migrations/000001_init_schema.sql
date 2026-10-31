@@ -34,8 +34,11 @@ CREATE TABLE IF NOT EXISTS sessions (
     ended_at TIMESTAMP WITH TIME ZONE,
     duration INT NOT NULL DEFAULT 0, -- in seconds
     status VARCHAR(50) NOT NULL DEFAULT 'running', -- running, completed, cancelled
+    target_band VARCHAR(20) NOT NULL DEFAULT 'ALPHA', -- DELTA, THETA, ALPHA, BETA, GAMMA
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS target_band VARCHAR(20) NOT NULL DEFAULT 'ALPHA';
 
 CREATE TABLE IF NOT EXISTS eeg_samples (
     id VARCHAR(36) PRIMARY KEY,

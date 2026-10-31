@@ -29,7 +29,7 @@ export function CardHeader({
       className={cn("px-5 py-4 border-b border-stone-100 flex items-center justify-between", className)}
       {...props}
     >
-      {children}
+      {children}~~
     </div>
   );
 }

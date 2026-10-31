@@ -52,6 +52,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
           <thead className="bg-[#FAFBF8] text-[10px] uppercase tracking-wider text-stone-500 font-mono font-semibold border-b border-stone-200/80">
             <tr>
               <th className="py-3 px-6">Session</th>
+              <th className="py-3 px-6">Target</th>
               <th className="py-3 px-6">Device</th>
               <th className="py-3 px-6">Duration</th>
               <th className="py-3 px-6">Signal Quality</th>
@@ -65,6 +66,17 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
               <tr key={s.id} className="hover:bg-stone-50/70 transition-colors">
                 <td className="py-4 px-6 font-mono font-semibold text-[#1C1E1A]">
                   #{s.id.slice(-6)}
+                </td>
+                <td className="py-4 px-6">
+                  {s.targetBand ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-[#EDF1E7] text-[#3D4C32] border border-[#DEE5D6]">
+                      {s.targetBand}
+                    </span>
+                  ) : (
+                    <span className="text-stone-400 font-mono text-[10px]">
+                      Belum tersedia
+                    </span>
+                  )}
                 </td>
                 <td className="py-4 px-6">
                   <span className="font-medium text-[#1C1E1A] block">

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // User domain model
 type User struct {
@@ -30,14 +33,15 @@ type Device struct {
 
 // Session domain model
 type Session struct {
-	ID        string     `json:"id" db:"id"`
-	UserID    string     `json:"userId" db:"user_id"`
-	DeviceID  string     `json:"deviceId" db:"device_id"`
-	StartedAt time.Time  `json:"startedAt" db:"started_at"`
-	EndedAt   *time.Time `json:"endedAt,omitempty" db:"ended_at"`
-	Duration  int        `json:"duration" db:"duration"` // in seconds
-	Status    string     `json:"status" db:"status"`     // 'running' | 'completed' | 'cancelled'
-	CreatedAt time.Time  `json:"createdAt" db:"created_at"`
+	ID         string     `json:"id" db:"id"`
+	UserID     string     `json:"userId" db:"user_id"`
+	DeviceID   string     `json:"deviceId" db:"device_id"`
+	StartedAt  time.Time  `json:"startedAt" db:"started_at"`
+	EndedAt    *time.Time `json:"endedAt,omitempty" db:"ended_at"`
+	Duration   int        `json:"duration" db:"duration"` // in seconds
+	Status     string     `json:"status" db:"status"`     // 'running' | 'completed' | 'cancelled'
+	TargetBand string     `json:"targetBand" db:"target_band"` // 'DELTA' | 'THETA' | 'ALPHA' | 'BETA' | 'GAMMA'
+	CreatedAt  time.Time  `json:"createdAt" db:"created_at"`
 
 	// Relational details populated when fetched
 	DeviceName    string `json:"deviceName,omitempty"`
@@ -130,8 +134,38 @@ type UpdateDeviceRequest struct {
 	SignalQuality *int   `json:"signalQuality"`
 }
 
+// EEGTarget enum definitions
+type EEGTarget string
+
+const (
+	TargetDelta EEGTarget = "DELTA"
+	TargetTheta EEGTarget = "THETA"
+	TargetAlpha EEGTarget = "ALPHA"
+	TargetBeta  EEGTarget = "BETA"
+	TargetGamma EEGTarget = "GAMMA"
+)
+
+// NormalizeTargetBand validates and normalizes target band strings into standard uppercase enum
+func NormalizeTargetBand(target string) (string, bool) {
+	switch strings.ToUpper(strings.TrimSpace(target)) {
+	case "DELTA":
+		return string(TargetDelta), true
+	case "THETA":
+		return string(TargetTheta), true
+	case "ALPHA", "ALFA":
+		return string(TargetAlpha), true
+	case "BETA":
+		return string(TargetBeta), true
+	case "GAMMA":
+		return string(TargetGamma), true
+	default:
+		return "", false
+	}
+}
+
 type CreateSessionRequest struct {
-	DeviceID string `json:"deviceId" binding:"required"`
+	DeviceID   string `json:"deviceId" binding:"required"`
+	TargetBand string `json:"targetBand"`
 }
 
 type PostEEGDataRequest struct {

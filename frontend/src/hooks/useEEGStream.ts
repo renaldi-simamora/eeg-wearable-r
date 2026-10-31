@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { EEGSample, BrainwaveFeature } from "@/types";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { EEGSample, BrainwaveFeature, EEGTarget } from "@/types";
 import { config } from "@/config";
 
 export type EEGSessionStatus =
@@ -12,6 +12,25 @@ export type EEGSessionStatus =
   | "STOPPING"
   | "COMPLETED"
   | "ERROR";
+
+export function calculateMeasuredDominantBand(bands: BrainwaveFeature): EEGTarget {
+  let maxVal = -1;
+  let dominant: EEGTarget = "ALPHA";
+  const list: [EEGTarget, number][] = [
+    ["DELTA", bands.delta ?? 0],
+    ["THETA", bands.theta ?? 0],
+    ["ALPHA", bands.alpha ?? 0],
+    ["BETA", bands.beta ?? 0],
+    ["GAMMA", bands.gamma ?? 0],
+  ];
+  for (const [band, val] of list) {
+    if (val > maxVal) {
+      maxVal = val;
+      dominant = band;
+    }
+  }
+  return dominant;
+}
 
 export interface SimProfile {
   name: string;
@@ -234,6 +253,8 @@ export function calculateOscillatingBands(
 
 export interface EEGStreamState {
   status: EEGSessionStatus;
+  sessionTarget: EEGTarget;
+  measuredDominantBand: EEGTarget;
   samples: EEGSample[];
   bands: BrainwaveFeature;
   signalQuality: number | null;
@@ -244,12 +265,13 @@ export interface EEGStreamState {
   activeSessionId: string | null;
   activeProfile: SimProfile | null;
   errorMessage: string | null;
-  startAcquisition: (sessionId?: string, dev?: any) => Promise<void>;
+  startAcquisition: (sessionId?: string, dev?: any, targetBand?: EEGTarget) => Promise<void>;
   pauseAcquisition: () => void;
   resumeAcquisition: () => void;
   stopAcquisition: () => Promise<void>;
   resetToReady: () => void;
   setTargetDevice: (device: any) => void;
+  setSessionTarget: (target: EEGTarget) => void;
   // Backwards compatibility aliases
   startStream: () => void;
   pauseStream: () => void;
@@ -269,11 +291,15 @@ export const ZERO_BANDS: BrainwaveFeature = {
 export function useEEGStream(
   autoStart: boolean = false,
   initialSessionId?: string,
-  initialTargetDevice?: any
+  initialTargetDevice?: any,
+  initialTargetBand: EEGTarget = "ALPHA"
 ): EEGStreamState {
   const initialProf = getProfileForDevice(initialTargetDevice, initialSessionId);
 
   const [status, setStatus] = useState<EEGSessionStatus>(autoStart ? "ACQUIRING" : "READY");
+  const [sessionTarget, setSessionTargetState] = useState<EEGTarget>(initialTargetBand);
+  const sessionTargetRef = useRef<EEGTarget>(initialTargetBand);
+
   const [samples, setSamples] = useState<EEGSample[]>(() =>
     generateInitialBuffer(initialProf, BUFFER_MAX)
   );
@@ -298,6 +324,21 @@ export function useEEGStream(
   const timeRef = useRef<number>(0);
   const sampleCounterRef = useRef<number>(120);
   const activeSessionIdRef = useRef<string | null>(initialSessionId || null);
+
+  // Measured dominant band derived strictly from real/incoming feature vector
+  const measuredDominantBand = useMemo(() => {
+    return calculateMeasuredDominantBand(bands);
+  }, [bands]);
+
+  // Target band setter: strictly disabled/immutable during running sessions
+  const setSessionTarget = useCallback((target: EEGTarget) => {
+    if (status === "READY" || status === "COMPLETED") {
+      sessionTargetRef.current = target;
+      setSessionTargetState(target);
+    } else {
+      console.warn(`[IMMUTABLE TARGET] Target alteration rejected: session is currently ${status}. Locked target: ${sessionTargetRef.current}`);
+    }
+  }, [status]);
   const targetDeviceRef = useRef<any>(initialTargetDevice || null);
   const profileRef = useRef<SimProfile>(initialProf);
 
@@ -367,6 +408,7 @@ export function useEEGStream(
               JSON.stringify({
                 action: "start",
                 sessionId: activeSessionIdRef.current || undefined,
+                targetBand: sessionTargetRef.current,
                 deviceId: curDev?.id,
                 deviceName: curDev?.name,
                 deviceCode: curDev?.deviceCode,
@@ -379,6 +421,13 @@ export function useEEGStream(
         ws.onmessage = (event) => {
           try {
             const packet = JSON.parse(event.data);
+            if (packet.targetBand && typeof packet.targetBand === "string") {
+              const tb = packet.targetBand.toUpperCase() as EEGTarget;
+              if (["DELTA", "THETA", "ALPHA", "BETA", "GAMMA"].includes(tb)) {
+                sessionTargetRef.current = tb;
+                setSessionTargetState(tb);
+              }
+            }
             if (packet.type === "eeg_sample") {
               // Strict packet validation
               const isNumber = (n: any) => typeof n === "number" && !isNaN(n) && isFinite(n);
@@ -529,9 +578,14 @@ export function useEEGStream(
     } catch {}
   }, [status]);
 
-  const startAcquisition = useCallback(async (sessionId?: string, dev?: any) => {
+  const startAcquisition = useCallback(async (sessionId?: string, dev?: any, targetBand?: EEGTarget) => {
     setErrorMessage(null);
     setStatus("STARTING");
+
+    if (targetBand) {
+      sessionTargetRef.current = targetBand;
+      setSessionTargetState(targetBand);
+    }
 
     if (dev) {
       targetDeviceRef.current = dev;
@@ -564,6 +618,7 @@ export function useEEGStream(
           JSON.stringify({
             action: "start",
             sessionId: activeSessionIdRef.current || undefined,
+            targetBand: sessionTargetRef.current,
             deviceId: curDev?.id,
             deviceName: curDev?.name,
             deviceCode: curDev?.deviceCode,
@@ -647,6 +702,8 @@ export function useEEGStream(
 
   return {
     status,
+    sessionTarget,
+    measuredDominantBand,
     samples,
     bands,
     signalQuality,
@@ -663,6 +720,7 @@ export function useEEGStream(
     stopAcquisition,
     resetToReady,
     setTargetDevice,
+    setSessionTarget,
     startStream,
     pauseStream,
     clearBuffer,

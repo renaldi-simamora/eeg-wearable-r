@@ -151,12 +151,13 @@ func (s *Service) SaveEEGData(req *models.PostEEGDataRequest) error {
 	existingSession, err := s.store.GetSessionByID(req.SessionID)
 	if err != nil || existingSession == nil {
 		newSession := models.Session{
-			ID:        req.SessionID,
-			UserID:    "user-demo-01",
-			DeviceID:  "dev-001",
-			StartedAt: time.Now(),
-			Status:    "running",
-			CreatedAt: time.Now(),
+			ID:         req.SessionID,
+			UserID:     "user-demo-01",
+			DeviceID:   "dev-001",
+			StartedAt:  time.Now(),
+			Status:     "running",
+			TargetBand: "ALPHA",
+			CreatedAt:  time.Now(),
 		}
 		_ = s.store.CreateSession(&newSession)
 	}

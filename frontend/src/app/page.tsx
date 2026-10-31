@@ -7,6 +7,8 @@ import { useAuth } from "@/providers/AuthProvider";
 import { WaveformChart } from "@/components/eeg/WaveformChart";
 import { generateMockEEGSeries } from "@/lib/mock/eeg";
 import { Modal } from "@/components/ui/modal";
+import { HardwareDetailModal } from "@/components/hardware/HardwareDetailModal";
+import { Device3DGallery } from "@/components/hardware/Device3DGallery";
 import {
   Activity,
   ArrowRight,
@@ -134,11 +136,11 @@ interface HardwareItem {
 const HARDWARE_SHOWCASE: HardwareItem[] = [
   {
     id: "tgam1",
-    badge: "TGAM1 ASIC · 512 Hz",
+    badge: "TGAM1 ASIC R2.9 / R2.4A · 512 Hz",
     title: "Analog Front-End ASIC TGAM1",
     description:
       "Pemrosesan biosinyal diferensial dengan filter bandpass analog bawaan dan integrasi UART 57,600 Baud.",
-    image: "/images/chip_macro_real.jpg",
+    image: "/images/tgam1_module.jpg",
     specs: [
       { label: "Sampling Rate", value: "512 SPS Raw ADC" },
       { label: "Baud Rate", value: "57,600 Baud UART" },
@@ -277,7 +279,8 @@ export default function LandingPage() {
   const [consultModalOpen, setConsultModalOpen] = useState(false);
   const [consultSubmitted, setConsultSubmitted] = useState(false);
   const [flowchartModalOpen, setFlowchartModalOpen] = useState(false);
-  const [selectedHardware, setSelectedHardware] = useState<HardwareItem | null>(null);
+  const [schematicModalOpen, setSchematicModalOpen] = useState(false);
+  const [selectedHardwareId, setSelectedHardwareId] = useState<"tgam1" | "esp32" | "electrodes" | null>(null);
   const [hardwareActiveTab, setHardwareActiveTab] = useState<"overview" | "pinout" | "firmware">("overview");
   const [firmwareCopied, setFirmwareCopied] = useState(false);
 
@@ -709,44 +712,46 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* Social Proof Avatar Group (Exact match to reference: 3 avatars + text) */}
-              <div className="pt-2 flex items-center gap-3.5">
-                <div className="flex -space-x-2.5 overflow-hidden">
-                  <div className="inline-block h-9 w-9 rounded-full ring-2 ring-[#FAF9F6] relative overflow-hidden bg-stone-200">
-                    <Image
-                      src="/images/avatar1.jpg"
-                      alt="Researcher Dr. Maya"
-                      fill
-                      className="object-cover"
-                      sizes="36px"
-                    />
-                  </div>
-                  <div className="inline-block h-9 w-9 rounded-full ring-2 ring-[#FAF9F6] relative overflow-hidden bg-stone-200">
-                    <Image
-                      src="/images/avatar2.jpg"
-                      alt="Engineer David"
-                      fill
-                      className="object-cover"
-                      sizes="36px"
-                    />
-                  </div>
-                  <div className="inline-block h-9 w-9 rounded-full ring-2 ring-[#FAF9F6] relative overflow-hidden bg-stone-200">
-                    <Image
-                      src="/images/avatar3.jpg"
-                      alt="Neuroscientist Dr. Chen"
-                      fill
-                      className="object-cover"
-                      sizes="36px"
-                    />
-                  </div>
+              {/* Technical Identity Mini-Cards (Replacing unverified social proof) */}
+              <div className="pt-2 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#5F6E52] animate-pulse" />
+                  <span className="text-xs font-semibold text-[#1E201D] font-mono">
+                    Purwarupa Riset Biosinyal Berbasis IoT
+                  </span>
                 </div>
-                <div className="text-xs">
-                  <span className="font-semibold text-[#1E201D] block leading-tight">
-                    Lebih dari 150+ Peneliti & Klinisi
-                  </span>
-                  <span className="text-[11px] text-[#77776E]">
-                    menggunakan metodologi biosinyal terbuka kami
-                  </span>
+                <p className="text-xs text-[#6E7168] leading-relaxed max-w-lg">
+                  Sistem akuisisi sinyal EEG, pemrosesan data, dan klasifikasi pola gelombang otak menggunakan Machine Learning.
+                </p>
+
+                {/* 3 Technical Mini-Cards: FP1, TGAM1, ESP32 */}
+                <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-0.5 text-left">
+                    <span className="text-xs sm:text-sm font-bold text-[#1E201D] font-mono block">
+                      FP1
+                    </span>
+                    <span className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-wider text-[#77776E] block font-medium">
+                      EEG CHANNEL
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-0.5 text-left">
+                    <span className="text-xs sm:text-sm font-bold text-[#1E201D] font-mono block">
+                      TGAM1
+                    </span>
+                    <span className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-wider text-[#77776E] block font-medium">
+                      ANALOG FRONT-END
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-0.5 text-left">
+                    <span className="text-xs sm:text-sm font-bold text-[#1E201D] font-mono block">
+                      ESP32
+                    </span>
+                    <span className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-wider text-[#77776E] block font-medium">
+                      IoT GATEWAY
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1151,15 +1156,12 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* 3 Large Showcase Cards (Matching Reference layout) */}
+          {/* 3 Large Showcase Cards (Linking to Dedicated Detail Pages) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {HARDWARE_SHOWCASE.map((item) => (
-              <div
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setSelectedHardware(item);
-                  setHardwareActiveTab("overview");
-                }}
+                href={`/hardware/${item.id}`}
                 className="bg-white rounded-[26px] p-4 sm:p-5 border border-[rgba(40,40,30,0.08)] shadow-xs flex flex-col justify-between space-y-4 transition-transform hover:-translate-y-1 duration-300 cursor-pointer group/card"
               >
                 {/* Photo with rounded-2xl and frosted top-left badge */}
@@ -1186,19 +1188,19 @@ export default function LandingPage() {
                   </p>
                 </div>
 
-                {/* Bottom link with circular plus button */}
+                {/* Bottom link with circular arrow button */}
                 <div className="pt-3 border-t border-[rgba(40,40,30,0.06)] flex items-center justify-between">
                   <span className="font-mono text-[11px] text-[#77776E]">
                     {item.specs[0].value}
                   </span>
                   <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#58684C] group-hover/card:text-[#3D4C32]">
-                    <span>Detail Spesifikasi</span>
-                    <div className="w-6 h-6 rounded-full bg-[#E8ECDF] flex items-center justify-center transition-transform group-hover/card:rotate-45">
-                      <Plus className="w-3.5 h-3.5 text-[#58684C] stroke-[2.5]" />
+                    <span>Buka Halaman Detail</span>
+                    <div className="w-6 h-6 rounded-full bg-[#E8ECDF] flex items-center justify-center transition-transform group-hover/card:translate-x-0.5">
+                      <ArrowRight className="w-3.5 h-3.5 text-[#58684C]" />
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
@@ -1215,6 +1217,9 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+
+        {/* 3D DEVICE VISUALIZATION (Visualisasi 3D Perangkat: 3d_1.png, 3d_2.png, 3d_3.png) */}
+        <Device3DGallery />
 
         {/* NEW INTERACTIVE PANEL: RESEARCH EXPERIMENT CONFIGURATOR & ESTIMATOR ("Kalkulator Riset") */}
         <section
@@ -1384,52 +1389,67 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Option 5: Diagram Alur Kerja & Arsitektur Sistem (Flowchart.drawio.png) */}
+              {/* Option 5: Skema Rangkaian Perangkat EEG (skema rangkaian_eeg.png) */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[#1E201D] block">
-                    5. Diagram Alur Kerja & Arsitektur Sistem
-                  </label>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8ECDF] text-[#3D4C32] font-semibold border border-[#5F6E52]/20">
-                    Flowchart.drawio
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <label className="text-xs font-semibold text-[#1E201D] block">
+                      5. Skema Rangkaian Perangkat EEG
+                    </label>
+                    <span className="text-[11px] text-[#6E7168] block">
+                      Konfigurasi koneksi komponen utama pada perangkat IoT Wearable EEG.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8ECDF] text-[#3D4C32] font-semibold border border-[#5F6E52]/20">
+                      skema rangkaian_eeg.png
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFlowchartModalOpen(true)}
+                      className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer border border-stone-200"
+                      title="Lihat Diagram Arsitektur Alur Sistem (Flowchart)"
+                    >
+                      Lihat Flowchart Sistem
+                    </button>
+                  </div>
                 </div>
 
-                {/* Showcase Flowchart Image Card */}
+                {/* Showcase Schematic Image Card */}
                 <div
-                  onClick={() => setFlowchartModalOpen(true)}
-                  className="group relative rounded-2xl overflow-hidden border border-stone-200/90 bg-[#0B0D11] shadow-2xs cursor-pointer transition-all hover:border-[#5F6E52]/60 hover:shadow-md"
+                  onClick={() => setSchematicModalOpen(true)}
+                  className="group relative rounded-2xl overflow-hidden border border-stone-200/90 bg-white shadow-2xs cursor-pointer transition-all hover:border-[#5F6E52]/60 hover:shadow-md"
                 >
-                  <div className="relative aspect-[16/9] w-full overflow-hidden flex items-center justify-center p-2 bg-[#0A0C10]">
+                  <div className="relative aspect-[16/9] w-full overflow-hidden flex items-center justify-center p-3 bg-white">
                     <Image
-                      src="/images/Flowchart.drawio.png"
-                      alt="Diagram Alur Kerja & Arsitektur Sistem EEG Wearable"
-                      width={800}
-                      height={450}
+                      src="/images/skema_rangkaian_eeg.png"
+                      alt="Skema Rangkaian Perangkat EEG Wearable"
+                      width={1000}
+                      height={600}
                       unoptimized
-                      className="object-contain w-full h-full max-h-56 rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                      className="object-contain w-full h-full max-h-60 rounded-lg transition-transform duration-300 group-hover:scale-[1.01]"
                     />
                     {/* Hover Overlay with Zoom Icon */}
-                    <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-mono backdrop-blur-[2px]">
+                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-mono backdrop-blur-[2px]">
                       <Maximize2 className="w-4 h-4 text-[#A8BE93]" />
-                      <span>Klik untuk Memperbesar Flowchart</span>
+                      <span>Klik untuk Memperbesar Skema Rangkaian</span>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-[#13161C] border-t border-stone-800/80 flex items-center justify-between gap-3">
+                  <div className="p-3 bg-stone-50 border-t border-stone-200/80 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-white block truncate">
-                        Alur 4 Lapisan Sistem End-to-End
+                      <span className="text-xs font-semibold text-[#1E201D] block truncate">
+                        Skema koneksi TGAM1, ESP32, elektroda EEG, dan komponen pendukung sesuai rancangan perangkat.
                       </span>
-                      <span className="text-[10px] text-stone-400 block mt-0.5 font-mono truncate">
-                        Biosensing TGAM1 · Go Gateway · Storage & ML · Next.js
+                      <span className="text-[10px] text-stone-500 block mt-0.5 font-mono truncate">
+                        UART2 GPIO16/17 · I2C GPIO21/22 · Button GPIO18 · 3-Lead Snap FP1
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setFlowchartModalOpen(true);
+                        setSchematicModalOpen(true);
                       }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-[11px] font-mono font-medium transition-all shadow-xs shrink-0 cursor-pointer"
                     >
@@ -2176,132 +2196,13 @@ export default function LandingPage() {
         )}
       </Modal>
 
-      {/* MODAL 2: INTERACTIVE HARDWARE COMPONENT DETAILS WITH TABS */}
-      <Modal
-        isOpen={!!selectedHardware}
-        onClose={() => setSelectedHardware(null)}
-        title={selectedHardware?.title || "Spesifikasi Hardware"}
-        description={selectedHardware?.badge}
-      >
-        {selectedHardware && (
-          <div className="space-y-4">
-
-            {/* Modal Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl border border-stone-200/80 text-xs font-medium">
-              <button
-                onClick={() => setHardwareActiveTab("overview")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "overview"
-                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                  : "text-stone-600 hover:text-stone-900"
-                  }`}
-              >
-                Ikhtisar & Foto
-              </button>
-              <button
-                onClick={() => setHardwareActiveTab("pinout")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "pinout"
-                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                  : "text-stone-600 hover:text-stone-900"
-                  }`}
-              >
-                Pinout Skematik
-              </button>
-              <button
-                onClick={() => setHardwareActiveTab("firmware")}
-                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${hardwareActiveTab === "firmware"
-                  ? "bg-white text-[#1E201D] shadow-2xs font-semibold"
-                  : "text-stone-600 hover:text-stone-900"
-                  }`}
-              >
-                Firmware C++
-              </button>
-            </div>
-
-            {/* Tab 1: Overview */}
-            {hardwareActiveTab === "overview" && (
-              <div className="space-y-4">
-                <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden border border-stone-200">
-                  <Image
-                    src={selectedHardware.image}
-                    alt={selectedHardware.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 600px) 100vw, 500px"
-                  />
-                </div>
-
-                <p className="text-xs text-[#6E7168] leading-relaxed">
-                  {selectedHardware.details}
-                </p>
-
-                <div className="space-y-2 pt-2 border-t border-stone-100">
-                  <span className="text-xs font-semibold text-[#1E201D] font-mono uppercase tracking-wider block">
-                    Parameter Operasional
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {selectedHardware.specs.map((s, idx) => (
-                      <div key={idx} className="p-2.5 rounded-xl bg-stone-50 border border-stone-100">
-                        <span className="text-[10px] text-[#77776E] block font-mono">{s.label}</span>
-                        <span className="text-xs font-semibold text-[#1E201D] block mt-0.5 font-mono">{s.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 2: Pinout Diagram */}
-            {hardwareActiveTab === "pinout" && (
-              <div className="space-y-3">
-                <span className="text-xs font-semibold text-[#1E201D] font-mono uppercase tracking-wider block">
-                  Konfigurasi Pin & Sinyal Elektrik
-                </span>
-                <div className="divide-y divide-stone-100 border border-stone-200 rounded-xl overflow-hidden bg-white text-xs">
-                  {selectedHardware.pinouts.map((p, idx) => (
-                    <div key={idx} className="p-3 flex items-start justify-between gap-3 bg-stone-50/50 hover:bg-stone-50 transition-colors">
-                      <div className="space-y-0.5">
-                        <span className="font-mono font-bold text-[#5F6E52] text-xs block">{p.pin}</span>
-                        <span className="font-medium text-[#1E201D] block">{p.name}</span>
-                      </div>
-                      <span className="text-[11px] text-[#77776E] text-right max-w-[200px]">{p.func}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tab 3: Firmware Snippet */}
-            {hardwareActiveTab === "firmware" && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#1E201D] font-mono uppercase tracking-wider">
-                    Cuplikan Firmware Driver
-                  </span>
-                  <button
-                    onClick={() => handleCopyFirmware(selectedHardware.firmwareSnippet)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 hover:bg-stone-200 text-[11px] font-mono text-[#1E201D] transition-colors cursor-pointer"
-                  >
-                    {firmwareCopied ? <Check className="w-3 h-3 text-[#5F6E52]" /> : <Copy className="w-3 h-3 text-[#77776E]" />}
-                    <span>{firmwareCopied ? "Tersalin!" : "Salin Kode"}</span>
-                  </button>
-                </div>
-                <div className="p-3.5 rounded-xl bg-stone-900 text-stone-200 font-mono text-[11px] overflow-x-auto max-h-[220px] border border-stone-800">
-                  <pre>{selectedHardware.firmwareSnippet}</pre>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setSelectedHardware(null)}
-                className="px-5 py-2 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-xs font-medium transition-colors"
-              >
-                Tutup Spesifikasi
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* MODAL 2: INTERACTIVE HARDWARE COMPONENT DETAILS WITH 3 DEDICATED TABS */}
+      <HardwareDetailModal
+        hardwareId={selectedHardwareId}
+        onClose={() => setSelectedHardwareId(null)}
+        onSelectHardware={(id) => setSelectedHardwareId(id)}
+        initialTab={hardwareActiveTab}
+      />
 
       {/* MODAL 3: FULL RESOLUTION SYSTEM ARCHITECTURE FLOWCHART */}
       <Modal
@@ -2342,6 +2243,51 @@ export default function LandingPage() {
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Unduh Gambar</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL 4: FULL RESOLUTION HARDWARE SCHEMATIC MODAL */}
+      <Modal
+        isOpen={schematicModalOpen}
+        onClose={() => setSchematicModalOpen(false)}
+        title="Skema Rangkaian Perangkat EEG Wearable IoT"
+        description="Skema koneksi TGAM1, ESP32, elektroda EEG, dan komponen pendukung sesuai rancangan perangkat."
+        className="max-w-5xl max-h-[94vh] overflow-hidden flex flex-col"
+      >
+        <div className="space-y-4 p-1 overflow-y-auto max-h-[78vh]">
+          <div className="relative w-full rounded-2xl overflow-hidden bg-white border border-stone-200 p-2 sm:p-4 flex items-center justify-center shadow-inner">
+            <Image
+              src="/images/skema_rangkaian_eeg.png"
+              alt="Skema Rangkaian Perangkat EEG Resolusi Penuh"
+              width={1600}
+              height={1000}
+              unoptimized
+              className="w-full h-auto object-contain rounded-xl"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs font-mono text-[#55554E] border-t border-stone-200">
+            <span>Aset Rangkaian: skema rangkaian_eeg.png • Resolusi Penuh</span>
+            <div className="flex items-center gap-2">
+              <a
+                href="/images/skema_rangkaian_eeg.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Buka di Tab Baru</span>
+              </a>
+              <a
+                href="/images/skema_rangkaian_eeg.png"
+                download="skema_rangkaian_eeg.png"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Skema</span>
               </a>
             </div>
           </div>

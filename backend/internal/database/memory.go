@@ -135,6 +135,7 @@ func (m *MemoryStore) seed() {
 			EndedAt:       &s1Ended,
 			Duration:      900,
 			Status:        "completed",
+			TargetBand:    "ALPHA",
 			CreatedAt:     now.Add(-45 * time.Minute),
 			DeviceName:    "TGAM1 Wearable Headset Alpha",
 			DeviceCode:    "EEG-001",
@@ -148,6 +149,7 @@ func (m *MemoryStore) seed() {
 			EndedAt:       &s2Ended,
 			Duration:      1200,
 			Status:        "completed",
+			TargetBand:    "BETA",
 			CreatedAt:     now.Add(-140 * time.Minute),
 			DeviceName:    "TGAM1 Wearable Headset Beta",
 			DeviceCode:    "EEG-002",
@@ -161,6 +163,7 @@ func (m *MemoryStore) seed() {
 			EndedAt:       &s3Ended,
 			Duration:      720,
 			Status:        "completed",
+			TargetBand:    "GAMMA",
 			CreatedAt:     now.Add(-252 * time.Minute),
 			DeviceName:    "TGAM1 Wearable Headset Gamma",
 			DeviceCode:    "EEG-003",
@@ -174,6 +177,7 @@ func (m *MemoryStore) seed() {
 			EndedAt:       &s4Ended,
 			Duration:      1500,
 			Status:        "completed",
+			TargetBand:    "DELTA",
 			CreatedAt:     now.Add(-385 * time.Minute),
 			DeviceName:    "TGAM1 Wearable Headset Delta",
 			DeviceCode:    "EEG-004",
@@ -187,6 +191,7 @@ func (m *MemoryStore) seed() {
 			EndedAt:       &s5Ended,
 			Duration:      1080,
 			Status:        "completed",
+			TargetBand:    "THETA",
 			CreatedAt:     now.Add(-498 * time.Minute),
 			DeviceName:    "TGAM1 Wearable Headset Theta",
 			DeviceCode:    "EEG-005",
@@ -455,6 +460,9 @@ func (m *MemoryStore) GetSessionByID(id string) (*models.Session, error) {
 func (m *MemoryStore) CreateSession(session *models.Session) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if session.TargetBand == "" {
+		session.TargetBand = "ALPHA"
+	}
 	m.sessions[session.ID] = session
 	return nil
 }

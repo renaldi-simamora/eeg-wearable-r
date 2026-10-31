@@ -1,10 +1,11 @@
 import { apiClient } from "./api";
-import { Session } from "@/types";
+import { Session, EEGTarget } from "@/types";
 import { mockSessions } from "@/lib/mock/sessions";
 import { mockDevices } from "@/lib/mock/devices";
 
 export interface CreateSessionDTO {
   deviceId: string;
+  targetBand?: EEGTarget;
 }
 
 export const sessionService = {
@@ -38,13 +39,23 @@ export const sessionService = {
     const found = mockSessions.find((s) => s.id === id);
     if (found) return found;
 
-    // Deterministically infer the target device from id
+    // Deterministically infer the target device and default target band from id
     let dev = mockDevices[0];
+    let targetBand: EEGTarget = "ALPHA";
     const idLower = id.toLowerCase();
-    if (idLower.includes("002") || idLower.includes("beta")) dev = mockDevices[1];
-    else if (idLower.includes("003") || idLower.includes("gamma")) dev = mockDevices[2];
-    else if (idLower.includes("004") || idLower.includes("delta")) dev = mockDevices[3];
-    else if (idLower.includes("005") || idLower.includes("theta")) dev = mockDevices[4];
+    if (idLower.includes("002") || idLower.includes("beta")) {
+      dev = mockDevices[1];
+      targetBand = "BETA";
+    } else if (idLower.includes("003") || idLower.includes("gamma")) {
+      dev = mockDevices[2];
+      targetBand = "GAMMA";
+    } else if (idLower.includes("004") || idLower.includes("delta")) {
+      dev = mockDevices[3];
+      targetBand = "DELTA";
+    } else if (idLower.includes("005") || idLower.includes("theta")) {
+      dev = mockDevices[4];
+      targetBand = "THETA";
+    }
 
     return {
       id,
@@ -54,6 +65,7 @@ export const sessionService = {
       endedAt: new Date().toISOString(),
       duration: 900,
       status: "completed",
+      targetBand,
       deviceName: dev.name,
       deviceCode: dev.deviceCode,
       signalQuality: dev.signalQuality,
@@ -63,10 +75,11 @@ export const sessionService = {
 
   async createSession(payload: CreateSessionDTO): Promise<Session> {
     let created: Session | null = null;
+    const target = payload.targetBand || "ALPHA";
     try {
       created = await apiClient<Session>("/sessions", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, targetBand: target }),
       });
     } catch {
       // Backend unavailable; create authentic local session
@@ -79,6 +92,7 @@ export const sessionService = {
         endedAt: null,
         duration: 0,
         status: "running",
+        targetBand: target,
         deviceName: dev.name,
         deviceCode: dev.deviceCode,
         signalQuality: dev.signalQuality,

@@ -25,6 +25,7 @@ var upgrader = websocket.Upgrader{
 type StreamPacket struct {
 	Type          string  `json:"type"`          // "eeg_sample" | "device_status" | "heartbeat" | "session_state"
 	SessionID     string  `json:"sessionId,omitempty"`
+	TargetBand    string  `json:"targetBand,omitempty"`  // Session immutable target band
 	Timestamp     int64   `json:"timestamp"`     // Epoch ms
 	RawEEG        float64 `json:"rawEEG"`        // Microvolts (uV)
 	SignalQuality int     `json:"signalQuality"` // 0 - 100%
@@ -41,6 +42,7 @@ type StreamPacket struct {
 type WSControlMessage struct {
 	Action       string `json:"action"` // "start" | "pause" | "resume" | "stop" | "set_device"
 	SessionID    string `json:"sessionId,omitempty"`
+	TargetBand   string `json:"targetBand,omitempty"`
 	DeviceID     string `json:"deviceId,omitempty"`
 	DeviceName   string `json:"deviceName,omitempty"`
 	DeviceCode   string `json:"deviceCode,omitempty"`
@@ -48,32 +50,34 @@ type WSControlMessage struct {
 }
 
 type Hub struct {
-	clients         map[*websocket.Conn]bool
-	broadcast       chan []byte
-	register        chan *websocket.Conn
-	unregister      chan *websocket.Conn
-	mu              sync.RWMutex
-	isAcquiring     bool
-	isPaused        bool
-	isSimulation    bool
-	activeSessionID string
-	simTime         float64
-	sampleCounter   int64
-	currentProfile  SimProfile
+	clients          map[*websocket.Conn]bool
+	broadcast        chan []byte
+	register         chan *websocket.Conn
+	unregister       chan *websocket.Conn
+	mu               sync.RWMutex
+	isAcquiring      bool
+	isPaused         bool
+	isSimulation     bool
+	activeSessionID  string
+	activeTargetBand string
+	simTime          float64
+	sampleCounter    int64
+	currentProfile   SimProfile
 }
 
 func NewHub() *Hub {
 	h := &Hub{
-		clients:         make(map[*websocket.Conn]bool),
-		broadcast:       make(chan []byte, 256),
-		register:        make(chan *websocket.Conn),
-		unregister:      make(chan *websocket.Conn),
-		isAcquiring:     false,
-		isPaused:        false,
-		isSimulation:    false,
-		activeSessionID: "",
-		simTime:         0.0,
-		currentProfile:  simProfiles[0],
+		clients:          make(map[*websocket.Conn]bool),
+		broadcast:        make(chan []byte, 256),
+		register:         make(chan *websocket.Conn),
+		unregister:       make(chan *websocket.Conn),
+		isAcquiring:      false,
+		isPaused:         false,
+		isSimulation:     false,
+		activeSessionID:  "",
+		activeTargetBand: "ALPHA",
+		simTime:          0.0,
+		currentProfile:   simProfiles[0],
 	}
 	go h.run()
 	go h.startSimulationGenerator()
@@ -114,23 +118,33 @@ func (h *Hub) run() {
 
 // StartAcquisition transitions stream to active state
 func (h *Hub) StartAcquisition(sessionID string, isSim bool) {
-	h.StartAcquisitionWithDevice(sessionID, isSim, "", "")
+	h.StartAcquisitionWithDeviceAndTarget(sessionID, isSim, "", "", "ALPHA")
 }
 
 // StartAcquisitionWithDevice transitions stream to active state with targeted device profile
 func (h *Hub) StartAcquisitionWithDevice(sessionID string, isSim bool, deviceID string, deviceName string) {
+	h.StartAcquisitionWithDeviceAndTarget(sessionID, isSim, deviceID, deviceName, "ALPHA")
+}
+
+// StartAcquisitionWithDeviceAndTarget transitions stream to active state with targeted device and immutable target band
+func (h *Hub) StartAcquisitionWithDeviceAndTarget(sessionID string, isSim bool, deviceID string, deviceName string, targetBand string) {
 	h.mu.Lock()
 	h.isAcquiring = true
 	h.isPaused = false
 	h.isSimulation = isSim
 	h.activeSessionID = sessionID
+	if targetBand != "" {
+		h.activeTargetBand = targetBand
+	} else if h.activeTargetBand == "" {
+		h.activeTargetBand = "ALPHA"
+	}
 	h.simTime = 0.0
 	h.currentProfile = getProfileForDevice(deviceID, deviceName, sessionID)
 	profileName := h.currentProfile.Name
 	dominantBand := h.currentProfile.DominantBand
 	h.mu.Unlock()
 
-	log.Printf("[SESSION] status: ACQUIRING session_id: %s device: %s %s", sessionID, deviceID, deviceName)
+	log.Printf("[SESSION] status: ACQUIRING session_id: %s target_band: %s device: %s %s", sessionID, h.activeTargetBand, deviceID, deviceName)
 	log.Printf("[SIMULATION] enabled: %v, session_id: %s, profile: %s, dominant: %s", isSim, sessionID, profileName, dominantBand)
 	h.BroadcastState("ACQUIRING", sessionID)
 }
@@ -138,6 +152,12 @@ func (h *Hub) StartAcquisitionWithDevice(sessionID string, isSim bool, deviceID 
 // SetDevice dynamically switches the simulation profile to match the selected target device
 func (h *Hub) SetDevice(deviceID string, deviceName string) {
 	h.mu.Lock()
+	if h.isAcquiring {
+		// Session is actively acquiring: device and target are immutable
+		h.mu.Unlock()
+		log.Printf("[DEVICE] Ignored set_device during active acquisition for session %s", h.activeSessionID)
+		return
+	}
 	h.currentProfile = getProfileForDevice(deviceID, deviceName, h.activeSessionID)
 	profileName := h.currentProfile.Name
 	dominantBand := h.currentProfile.DominantBand
@@ -195,13 +215,19 @@ func (h *Hub) GetActiveSessionID() string {
 
 // BroadcastState sends session state update to all clients
 func (h *Hub) BroadcastState(state string, sessionID string) {
+	h.mu.RLock()
+	targetBand := h.activeTargetBand
+	isSim := h.isSimulation
+	h.mu.RUnlock()
+
 	packet := StreamPacket{
 		Type:         "session_state",
 		SessionID:    sessionID,
+		TargetBand:   targetBand,
 		Timestamp:    time.Now().UnixMilli(),
 		State:        state,
 		DeviceStatus: "connected",
-		IsSimulation: h.isSimulation,
+		IsSimulation: isSim,
 	}
 	bytes, err := json.Marshal(packet)
 	if err == nil {
@@ -347,6 +373,7 @@ func (h *Hub) startSimulationGenerator() {
 		active := h.isAcquiring && !h.isPaused && h.isSimulation
 		clientCount := len(h.clients)
 		sessionID := h.activeSessionID
+		targetBand := h.activeTargetBand
 		profile := h.currentProfile
 		h.simTime += 0.04
 		t := h.simTime
@@ -403,6 +430,7 @@ func (h *Hub) startSimulationGenerator() {
 		packet := StreamPacket{
 			Type:          "eeg_sample",
 			SessionID:     sessionID,
+			TargetBand:    targetBand,
 			Timestamp:     time.Now().UnixMilli(),
 			RawEEG:        signal,
 			SignalQuality: 92 + rand.Intn(7),
@@ -446,7 +474,7 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 			if err := json.Unmarshal(msgBytes, &ctrl); err == nil {
 				switch ctrl.Action {
 				case "start":
-					h.StartAcquisitionWithDevice(ctrl.SessionID, ctrl.IsSimulation, ctrl.DeviceID, ctrl.DeviceName)
+					h.StartAcquisitionWithDeviceAndTarget(ctrl.SessionID, ctrl.IsSimulation, ctrl.DeviceID, ctrl.DeviceName, ctrl.TargetBand)
 				case "set_device":
 					h.SetDevice(ctrl.DeviceID, ctrl.DeviceName)
 				case "pause":

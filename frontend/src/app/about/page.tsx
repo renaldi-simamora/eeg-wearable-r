@@ -285,69 +285,6 @@ export default function AboutPage() {
 
         </section>
 
-        {/* 11. Akun Peneliti Bawaan (Demo Credentials) */}
-        <section className="bg-[#FAF9F6] rounded-[32px] sm:rounded-[36px] border border-[rgba(40,40,30,0.06)] p-6 sm:p-10 lg:p-12 shadow-[0_16px_40px_-20px_rgba(50,48,38,0.08)] space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(40,40,30,0.06)] pb-5">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[11px] font-mono tracking-[0.14em] uppercase text-[#77776E]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#58684C]" />
-                <span>AKSES PENGUJIAN PENELITI</span>
-              </div>
-              <h2 className="font-serif font-medium text-2xl sm:text-3xl text-[#1E201D]">
-                Akun Peneliti Bawaan (Demo Credentials)
-              </h2>
-            </div>
-            <Link
-              href="/login?demo=true"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-xs font-semibold transition-all shadow-xs shrink-0 self-start sm:self-auto"
-            >
-              <span>Uji Coba Langsung di Login</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <p className="text-xs sm:text-sm text-[#6E7168] leading-relaxed">
-            Untuk memfasilitasi pengujian cepat tanpa Google OAuth atau registrasi mandiri:
-          </p>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm border-collapse rounded-2xl overflow-hidden bg-white border border-[rgba(40,40,30,0.08)] shadow-2xs">
-              <thead>
-                <tr className="bg-stone-50/80 border-b border-[rgba(40,40,30,0.08)] text-[11px] font-mono uppercase tracking-wider text-[#77776E]">
-                  <th className="py-3 px-4 sm:px-6 w-1/3">Parameter</th>
-                  <th className="py-3 px-4 sm:px-6">Kredensial Pengujian</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[rgba(40,40,30,0.06)] font-sans">
-                <tr>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1E201D]">Email Peneliti</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-mono text-[#58684C] font-medium">admin@gmail.com</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1E201D]">Kata Sandi</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-mono text-stone-700">admin123</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1E201D]">Nama Peneliti</td>
-                  <td className="py-3.5 px-4 sm:px-6 font-medium text-[#1E201D]">Super Admin NeuroPulse</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1E201D]">Institusi</td>
-                  <td className="py-3.5 px-4 sm:px-6 text-[#1E201D]">IPB University</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 sm:px-6 font-semibold text-[#1E201D]">Peran (Role)</td>
-                  <td className="py-3.5 px-4 sm:px-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-[#E8ECDF] text-[#445338] border border-[rgba(102,116,79,0.25)]">
-                      researcher (Full Access)
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
       </main>
 
       {/* Footer */}

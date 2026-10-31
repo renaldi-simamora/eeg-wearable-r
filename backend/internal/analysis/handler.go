@@ -15,8 +15,8 @@ import (
 )
 
 type Service struct {
-	store database.Store
-	mlURL string
+	store  database.Store
+	mlURL  string
 	client *http.Client
 }
 
@@ -34,22 +34,22 @@ func NewService(store database.Store, mlURL string) *Service {
 }
 
 type MLPredictRequest struct {
-	SessionID  string                  `json:"session_id"`
-	ModelName  string                  `json:"model_name"`
+	SessionID  string                   `json:"session_id"`
+	ModelName  string                   `json:"model_name"`
 	Features   *models.BrainwaveFeature `json:"features,omitempty"`
-	RawSamples []float64               `json:"raw_samples,omitempty"`
+	RawSamples []float64                `json:"raw_samples,omitempty"`
 }
 
 type MLPredictResponse struct {
-	SessionID              string                 `json:"session_id"`
-	ModelName              string                 `json:"model_name"`
-	ModelVersion           string                 `json:"model_version"`
-	TrainingDatasetVersion string                 `json:"training_dataset_version"`
-	PredictedClass         string                 `json:"predicted_class"`
-	Confidence             float64                `json:"confidence"`
-	ClassProbabilities     map[string]float64     `json:"class_probabilities"`
-	Features               map[string]float64     `json:"features"`
-	ProcessedAt            string                 `json:"processed_at"`
+	SessionID              string             `json:"session_id"`
+	ModelName              string             `json:"model_name"`
+	ModelVersion           string             `json:"model_version"`
+	TrainingDatasetVersion string             `json:"training_dataset_version"`
+	PredictedClass         string             `json:"predicted_class"`
+	Confidence             float64            `json:"confidence"`
+	ClassProbabilities     map[string]float64 `json:"class_probabilities"`
+	Features               map[string]float64 `json:"features"`
+	ProcessedAt            string             `json:"processed_at"`
 }
 
 func (s *Service) ClassifySession(sessionID string) (*models.MLPrediction, error) {

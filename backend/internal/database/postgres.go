@@ -152,7 +152,8 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 
 	if userID != "" {
 		query = `
-			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status, s.created_at,
+			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+			       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 			       d.name, d.device_code, d.signal_quality
 			FROM sessions s
 			LEFT JOIN devices d ON s.device_id = d.id
@@ -162,7 +163,8 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 		rows, err = s.db.Query(query, userID)
 	} else {
 		query = `
-			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status, s.created_at,
+			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+			       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 			       d.name, d.device_code, d.signal_quality
 			FROM sessions s
 			LEFT JOIN devices d ON s.device_id = d.id
@@ -183,7 +185,7 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 		var devName, devCode sql.NullString
 		var sigQuality sql.NullInt32
 
-		if err := rows.Scan(&s.ID, &s.UserID, &s.DeviceID, &s.StartedAt, &endedAt, &s.Duration, &s.Status, &s.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
+		if err := rows.Scan(&s.ID, &s.UserID, &s.DeviceID, &s.StartedAt, &endedAt, &s.Duration, &s.Status, &s.TargetBand, &s.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
 			return nil, err
 		}
 		if endedAt.Valid {
@@ -208,7 +210,8 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 
 func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 	query := `
-		SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status, s.created_at,
+		SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+		       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 		       d.name, d.device_code, d.signal_quality
 		FROM sessions s
 		LEFT JOIN devices d ON s.device_id = d.id
@@ -221,7 +224,7 @@ func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 	var devName, devCode sql.NullString
 	var sigQuality sql.NullInt32
 
-	if err := row.Scan(&ses.ID, &ses.UserID, &ses.DeviceID, &ses.StartedAt, &endedAt, &ses.Duration, &ses.Status, &ses.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
+	if err := row.Scan(&ses.ID, &ses.UserID, &ses.DeviceID, &ses.StartedAt, &endedAt, &ses.Duration, &ses.Status, &ses.TargetBand, &ses.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -243,11 +246,14 @@ func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 }
 
 func (s *PostgresStore) CreateSession(session *models.Session) error {
+	if session.TargetBand == "" {
+		session.TargetBand = "ALPHA"
+	}
 	query := `
-		INSERT INTO sessions (id, user_id, device_id, started_at, duration, status, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO sessions (id, user_id, device_id, started_at, duration, status, target_band, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	_, err := s.db.Exec(query, session.ID, session.UserID, session.DeviceID, session.StartedAt, session.Duration, session.Status, session.CreatedAt)
+	_, err := s.db.Exec(query, session.ID, session.UserID, session.DeviceID, session.StartedAt, session.Duration, session.Status, session.TargetBand, session.CreatedAt)
 	return err
 }
 

@@ -29,6 +29,23 @@ export interface Device {
 
 export type SessionStatus = "running" | "completed" | "cancelled";
 
+export type EEGTarget = "DELTA" | "THETA" | "ALPHA" | "BETA" | "GAMMA";
+
+export interface EEGSession {
+  sessionId: string;
+  targetBand: EEGTarget;
+  startedAt: string;
+  endedAt?: string;
+  status: "READY" | "RUNNING" | "COMPLETED" | "CANCELLED";
+}
+
+export interface EEGSessionResult {
+  sessionTarget: EEGTarget;
+  measuredDominantBand: EEGTarget | null;
+  predictedClass: string | null;
+  confidence: number | null;
+}
+
 export interface Session {
   id: string;
   userId: string;
@@ -37,6 +54,7 @@ export interface Session {
   endedAt: string | null;
   duration: number; // in seconds
   status: SessionStatus;
+  targetBand?: EEGTarget;
   createdAt?: string;
   deviceName?: string;
   deviceCode?: string;
@@ -129,6 +147,8 @@ export interface ApiResponse<T = any> {
 
 export interface StreamPacket {
   type: string;
+  sessionId?: string;
+  targetBand?: EEGTarget;
   timestamp: number;
   rawEEG: number;
   signalQuality: number;
@@ -139,4 +159,5 @@ export interface StreamPacket {
   gamma: number;
   deviceStatus: string;
   isSimulation: boolean;
+  state?: string;
 }

@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -46,6 +47,16 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 		return nil, errors.New("device not found")
 	}
 
+	// Validate targetBand against allowed enum: DELTA, THETA, ALPHA, BETA, GAMMA
+	targetBand := "ALPHA"
+	if req.TargetBand != "" {
+		normalized, ok := models.NormalizeTargetBand(req.TargetBand)
+		if !ok {
+			return nil, fmt.Errorf("invalid target band '%s'; allowed values are DELTA, THETA, ALPHA, BETA, GAMMA", req.TargetBand)
+		}
+		targetBand = normalized
+	}
+
 	now := time.Now()
 	sigQuality := dev.SignalQuality
 	if sigQuality == 0 {
@@ -59,6 +70,7 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 		StartedAt:     now,
 		Duration:      0,
 		Status:        "running",
+		TargetBand:    targetBand,
 		CreatedAt:     now,
 		DeviceName:    dev.Name,
 		DeviceCode:    dev.DeviceCode,
@@ -72,7 +84,7 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 	if s.hub != nil {
 		// All wearable nodes stream telemetry simulation unless overridden by real hardware ingestion packets
 		isSim := true
-		s.hub.StartAcquisitionWithDevice(ses.ID, isSim, dev.ID, dev.Name)
+		s.hub.StartAcquisitionWithDeviceAndTarget(ses.ID, isSim, dev.ID, dev.Name, targetBand)
 	}
 
 	return ses, nil

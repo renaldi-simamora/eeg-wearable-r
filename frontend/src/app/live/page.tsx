@@ -27,8 +27,10 @@ import {
   ArrowRight,
   RotateCcw,
   Radio,
+  Lock,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
+import { EEGTarget } from "@/types";
 
 const DEFAULT_DEVICES = [
   { id: "dev-001", deviceCode: "EEG-001", name: "TGAM1 Wearable Headset Alpha" },
@@ -42,6 +44,7 @@ export default function LiveEEGPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedDeviceId, setSelectedDeviceId] = useState("dev-001");
+  const [selectedTargetBand, setSelectedTargetBand] = useState<EEGTarget>("ALPHA");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [voltageRange, setVoltageRange] = useState<number>(50);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -57,6 +60,8 @@ export default function LiveEEGPage() {
 
   const {
     status,
+    sessionTarget,
+    measuredDominantBand,
     samples,
     bands,
     signalQuality,
@@ -71,7 +76,8 @@ export default function LiveEEGPage() {
     stopAcquisition,
     resetToReady,
     setTargetDevice,
-  } = useEEGStream(false, undefined, activeDevice);
+    setSessionTarget,
+  } = useEEGStream(false, undefined, activeDevice, selectedTargetBand);
 
   // Synchronize target device whenever activeDevice changes
   useEffect(() => {
@@ -82,7 +88,8 @@ export default function LiveEEGPage() {
 
   // Create session mutation
   const createSessionMutation = useMutation({
-    mutationFn: (deviceId: string) => sessionService.createSession({ deviceId }),
+    mutationFn: (payload: { deviceId: string; targetBand: EEGTarget }) =>
+      sessionService.createSession(payload),
   });
 
   // Stop session mutation
@@ -95,16 +102,19 @@ export default function LiveEEGPage() {
     setActionError(null);
     try {
       const targetDevice = activeDevice?.id || selectedDeviceId;
-      const created = await createSessionMutation.mutateAsync(targetDevice);
+      const created = await createSessionMutation.mutateAsync({
+        deviceId: targetDevice,
+        targetBand: selectedTargetBand,
+      });
       setActiveSessionId(created.id);
-      await startAcquisition(created.id, activeDevice);
+      await startAcquisition(created.id, activeDevice, selectedTargetBand);
 
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     } catch (err: any) {
       console.warn("Backend session creation note:", err.message);
       // Seamlessly acquire in demo mode if backend is initializing
-      await startAcquisition(undefined, activeDevice);
+      await startAcquisition(undefined, activeDevice, selectedTargetBand);
     }
   };
 
@@ -141,6 +151,7 @@ export default function LiveEEGPage() {
               id: activeSessionId,
               userId: "user-demo-01",
               deviceId: activeDevice?.id || "dev-001",
+              targetBand: sessionTarget,
               startedAt: new Date(Date.now() - Math.max(1, sessionSeconds) * 1000).toISOString(),
               endedAt: new Date().toISOString(),
               duration: Math.max(1, sessionSeconds),
@@ -291,8 +302,54 @@ export default function LiveEEGPage() {
 
         {/* 2. Dedicated Session Control Bar */}
         <div className="p-5 rounded-3xl bg-white border border-stone-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Left: Device Selection & Hardware Spec */}
+          {/* Left: Target Band Selector, Device Selection & Hardware Spec */}
           <div className="flex flex-wrap items-center gap-4">
+            {/* Target EEG Band Selector (IMMUTABLE WHILE ACTIVE) */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase text-stone-500 font-semibold flex items-center gap-1.5">
+                <span>Session Target Band</span>
+                {status !== "READY" && (
+                  <span className="inline-flex items-center gap-1 text-[9px] text-[#3D4C32] font-mono bg-[#EDF1E7] px-1.5 py-0.5 rounded border border-[#DEE5D6] font-semibold">
+                    <Lock className="w-2.5 h-2.5" />
+                    LOCKED
+                  </span>
+                )}
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={status === "READY" ? selectedTargetBand : sessionTarget}
+                  disabled={status !== "READY"}
+                  onChange={(e) => {
+                    const val = e.target.value as EEGTarget;
+                    setSelectedTargetBand(val);
+                    setSessionTarget(val);
+                  }}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold font-mono transition-colors shadow-xs ${
+                    status === "READY"
+                      ? "border-stone-200/90 bg-[#FAFBF8] text-[#1C1E1A] cursor-pointer hover:border-[#5B6D49] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20"
+                      : "border-[#DEE5D6] bg-[#EDF1E7]/70 text-[#3D4C32] cursor-not-allowed opacity-95"
+                  }`}
+                >
+                  <option value="ALPHA">ALPHA (8–13 Hz • Berger Spindles)</option>
+                  <option value="BETA">BETA (13–30 Hz • Active Cognition)</option>
+                  <option value="THETA">THETA (4–8 Hz • Meditative Drowsy)</option>
+                  <option value="DELTA">DELTA (0.5–4 Hz • Restorative Slow)</option>
+                  <option value="GAMMA">GAMMA (30–50 Hz • Cognitive Binding)</option>
+                </select>
+
+                <Badge
+                  variant={status === "ACQUIRING" ? "success" : "neutral"}
+                  size="sm"
+                  className="font-mono text-[10px] tracking-wider uppercase font-semibold"
+                >
+                  SESSION TARGET: {sessionTarget}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="hidden sm:block h-8 w-px bg-stone-200 mx-1 self-center mt-3" />
+
+            {/* Target Device */}
             <div className="space-y-1">
               <label className="text-[10px] font-mono uppercase text-stone-500 font-semibold block">
                 Target Device
@@ -300,6 +357,7 @@ export default function LiveEEGPage() {
               <div className="flex items-center gap-2.5">
                 <select
                   value={selectedDeviceId}
+                  disabled={status !== "READY"}
                   onChange={(e) => {
                     const newId = e.target.value;
                     setSelectedDeviceId(newId);
@@ -308,7 +366,11 @@ export default function LiveEEGPage() {
                       setTargetDevice(dev);
                     }
                   }}
-                  className="rounded-full border border-stone-200/90 bg-[#FAFBF8] px-3.5 py-1.5 text-xs font-medium text-[#1C1E1A] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20 cursor-pointer shadow-xs"
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors shadow-xs ${
+                    status === "READY"
+                      ? "border-stone-200/90 bg-[#FAFBF8] text-[#1C1E1A] cursor-pointer hover:border-[#5B6D49] focus:outline-none focus:ring-2 focus:ring-[#5B6D49]/20"
+                      : "border-stone-200 bg-stone-100 text-stone-500 cursor-not-allowed"
+                  }`}
                 >
                   {deviceList.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -316,23 +378,6 @@ export default function LiveEEGPage() {
                     </option>
                   ))}
                 </select>
-
-                <Badge
-                  variant={status === "ACQUIRING" ? "success" : "neutral"}
-                  size="sm"
-                >
-                  {status === "ACQUIRING" ? "Acquiring" : "Ready"}
-                </Badge>
-
-                {activeProfile && (
-                  <Badge
-                    variant="default"
-                    size="sm"
-                    className="font-mono text-[10px] text-[#445535] border-[#DEE5D6] bg-[#EDF1E7]/70"
-                  >
-                    Target: {activeProfile.dominantBand} Rhythm
-                  </Badge>
-                )}
               </div>
             </div>
 
@@ -450,7 +495,46 @@ export default function LiveEEGPage() {
         </div>
 
         {/* 3. Horizontal Session Status Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Session Target (Immutable) */}
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-stone-500 uppercase font-mono block">
+                Session Target
+              </span>
+              {status !== "READY" && (
+                <span className="inline-flex items-center gap-0.5 text-[8px] font-mono text-[#3D4C32] bg-[#EDF1E7] px-1.5 py-0.2 rounded font-semibold">
+                  <Lock className="w-2 h-2" />
+                  LOCKED
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-1.5 font-mono text-xl font-bold text-[#1C1E1A]">
+              <span className="text-[#2D7A58]">{sessionTarget}</span>
+            </div>
+            <span className="text-[10px] text-stone-400 font-mono block mt-0.5">
+              Immutable session goal
+            </span>
+          </div>
+
+          {/* Measured Dominant Band */}
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+            <span className="text-[10px] text-stone-500 uppercase font-mono block">
+              Measured Dominant
+            </span>
+            <div className="flex items-center gap-2 mt-1.5 font-mono text-xl font-bold text-[#1C1E1A]">
+              <span>{measuredDominantBand || "--"}</span>
+              <span className="text-xs text-stone-500 font-normal">
+                {measuredDominantBand
+                  ? `(${bands[measuredDominantBand.toLowerCase() as keyof typeof bands] || 0}%)`
+                  : "(--)"}
+              </span>
+            </div>
+            <span className="text-[10px] text-stone-400 font-mono block mt-0.5">
+              Live spectral calculation
+            </span>
+          </div>
+
           {/* Signal Quality */}
           <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
             <span className="text-[10px] text-stone-500 uppercase font-mono block">
@@ -472,6 +556,9 @@ export default function LiveEEGPage() {
                 </div>
               )}
             </div>
+            <span className="text-[10px] text-stone-400 font-mono block mt-0.5">
+              Electrode impedance
+            </span>
           </div>
 
           {/* Session Duration */}
@@ -483,31 +570,26 @@ export default function LiveEEGPage() {
               <Clock className="w-4 h-4 text-stone-400" />
               <span>{formatDuration(sessionSeconds)}</span>
             </div>
-          </div>
-
-          {/* Transport Bridge */}
-          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
-            <span className="text-[10px] text-stone-500 uppercase font-mono block">
-              Transport Bridge
+            <span className="text-[10px] text-stone-400 font-mono block mt-0.5">
+              Active recording time
             </span>
-            <div className="flex items-center gap-2 mt-1.5 text-[#1C1E1A] font-mono text-xs font-semibold">
-              <Wifi className="w-4 h-4 text-[#5B6D49]" />
-              <span>
-                {status === "READY"
-                  ? "Disconnected / Ready"
-                  : connectionMode === "websocket"
-                  ? "WS: Connected"
-                  : "Local Sim (50Hz)"}
-              </span>
-            </div>
           </div>
 
           {/* Recording State */}
-          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+          <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs col-span-2 sm:col-span-1">
             <span className="text-[10px] text-stone-500 uppercase font-mono block mb-1">
               Recording State
             </span>
-            {renderRecordingStateBadge()}
+            <div className="mt-1">
+              {renderRecordingStateBadge()}
+            </div>
+            <span className="text-[10px] text-stone-400 font-mono block mt-1.5">
+              {status === "READY"
+                ? "Standby / Unstarted"
+                : connectionMode === "websocket"
+                ? "WS: Connected"
+                : "Simulation Active"}
+            </span>
           </div>
         </div>
 
@@ -522,12 +604,14 @@ export default function LiveEEGPage() {
                 <h4 className="text-sm font-semibold text-[#1C1E1A]">
                   Recording Session Completed Successfully
                 </h4>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-[#5E6659] font-mono mt-0.5">
-                  <span>Duration: <strong className="text-[#1C1E1A]">{formatDuration(sessionSeconds)}</strong></span>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#5E6659] font-mono mt-1">
+                  <span>Target Sesi: <strong className="text-[#1C1E1A] font-semibold">{sessionTarget || "ALPHA"}</strong></span>
                   <span className="text-stone-300">•</span>
-                  <span>Signal Quality: <strong className="text-[#2D7A58]">{signalQuality || 94}%</strong></span>
+                  <span>Hasil Pengukuran Dominan: <strong className="text-[#2D7A58] font-semibold">{measuredDominantBand ? `${measuredDominantBand} (${bands[measuredDominantBand.toLowerCase() as keyof typeof bands] || 0}%)` : "Menunggu Sinyal"}</strong></span>
                   <span className="text-stone-300">•</span>
-                  <span>Protocol: FP1 512 SPS</span>
+                  <span>Durasi: <strong className="text-[#1C1E1A]">{formatDuration(sessionSeconds)}</strong></span>
+                  <span className="text-stone-300">•</span>
+                  <span>Kualitas Sinyal: <strong className="text-[#2D7A58]">{signalQuality || 94}%</strong></span>
                 </div>
               </div>
             </div>
@@ -637,9 +721,15 @@ export default function LiveEEGPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
-                  <span className="text-stone-500">Target EEG Band</span>
-                  <span className="font-semibold text-[#2D7A58]">
-                    {activeProfile?.dominantBand || "Alpha"} Wave ({activeProfile?.waveFreq || 10} Hz • {activeProfile?.primaryAmp || 22} µV)
+                  <span className="text-stone-500">Konfigurasi Target Sesi</span>
+                  <span className="font-semibold font-mono text-[#2D7A58] px-2 py-0.5 rounded-full bg-[#EDF1E7] border border-[#DEE5D6]">
+                    SESSION TARGET: {sessionTarget} {status !== "READY" ? "(LOCKED)" : ""}
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">
+                  <span className="text-stone-500">Pengukuran Dominan (Aktual)</span>
+                  <span className="font-semibold font-mono text-[#1C1E1A]">
+                    {measuredDominantBand ? `${measuredDominantBand} Wave (${bands[measuredDominantBand.toLowerCase() as keyof typeof bands] || 0}%)` : "Menunggu Sinyal"}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-[#FAFBF8] border border-stone-200/80 flex items-center justify-between">

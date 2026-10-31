@@ -76,3 +76,38 @@ func TestEEGSamplesIngestionAndRetrieval(t *testing.T) {
 		t.Errorf("Expected Alpha 42.0, got %f", latestFeat.Alpha)
 	}
 }
+
+func TestEEGDataIngestionPreservesSessionTarget(t *testing.T) {
+	memStore := database.NewMemoryStore()
+	hub := ws.NewHub()
+	eegService := eeg.NewService(memStore, hub)
+
+	sessionID := "ses-preserve-target"
+	// Create session with ALPHA
+	targetSes := &models.Session{
+		ID:         sessionID,
+		UserID:     "user-demo-01",
+		DeviceID:   "dev-001",
+		StartedAt:  time.Now(),
+		Status:     "running",
+		TargetBand: "ALPHA",
+		CreatedAt:  time.Now(),
+	}
+	_ = memStore.CreateSession(targetSes)
+
+	// Ingest EEG data with beta dominant features
+	_ = eegService.SaveEEGData(&models.PostEEGDataRequest{
+		SessionID: sessionID,
+		Samples: []models.EEGSample{
+			{Timestamp: time.Now().UnixMilli(), RawEEG: 10.0, SignalQuality: 95},
+		},
+		Features: &models.BrainwaveFeature{
+			Delta: 5.0, Theta: 10.0, Alpha: 15.0, Beta: 60.0, Gamma: 10.0,
+		},
+	})
+
+	sesAfter, _ := memStore.GetSessionByID(sessionID)
+	if sesAfter == nil || sesAfter.TargetBand != "ALPHA" {
+		t.Errorf("EEG ingestion modified targetBand! Expected 'ALPHA', got '%v'", sesAfter)
+	}
+}
