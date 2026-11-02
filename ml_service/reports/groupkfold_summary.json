@@ -1,0 +1,187 @@
+{
+  "n_splits": 5,
+  "total_samples": 7439,
+  "total_unique_subjects": 51,
+  "validation_strategy": "Subject-Independent GroupKFold (grouped by student_id)",
+  "leakage_verification": {
+    "status": "PASSED_ZERO_LEAKAGE",
+    "total_folds_verified": 5,
+    "total_unique_subjects": 51,
+    "is_leakage_free": true,
+    "fold_audits": [
+      {
+        "fold": 1,
+        "train_subject_count": 41,
+        "val_subject_count": 10,
+        "overlap_count": 0,
+        "leakage_free": true
+      },
+      {
+        "fold": 2,
+        "train_subject_count": 40,
+        "val_subject_count": 11,
+        "overlap_count": 0,
+        "leakage_free": true
+      },
+      {
+        "fold": 3,
+        "train_subject_count": 41,
+        "val_subject_count": 10,
+        "overlap_count": 0,
+        "leakage_free": true
+      },
+      {
+        "fold": 4,
+        "train_subject_count": 41,
+        "val_subject_count": 10,
+        "overlap_count": 0,
+        "leakage_free": true
+      },
+      {
+        "fold": 5,
+        "train_subject_count": 41,
+        "val_subject_count": 10,
+        "overlap_count": 0,
+        "leakage_free": true
+      }
+    ]
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "train_samples": 5951,
+      "val_samples": 1488,
+      "train_sample_pct": 80.0,
+      "val_sample_pct": 20.0,
+      "train_subjects_count": 41,
+      "val_subjects_count": 10,
+      "train_class_0_count": 2120,
+      "train_class_1_count": 3831,
+      "train_class_0_ratio": 0.3562,
+      "val_class_0_count": 462,
+      "val_class_1_count": 1026,
+      "val_class_0_ratio": 0.3105,
+      "val_subjects_list": [
+        "1911018",
+        "1911028",
+        "2111023",
+        "2211010",
+        "2211014",
+        "2302007",
+        "2302087",
+        "2304128",
+        "2311024",
+        "2311027"
+      ]
+    },
+    {
+      "fold": 2,
+      "train_samples": 5972,
+      "val_samples": 1467,
+      "train_sample_pct": 80.28,
+      "val_sample_pct": 19.72,
+      "train_subjects_count": 40,
+      "val_subjects_count": 11,
+      "train_class_0_count": 2042,
+      "train_class_1_count": 3930,
+      "train_class_0_ratio": 0.3419,
+      "val_class_0_count": 540,
+      "val_class_1_count": 927,
+      "val_class_0_ratio": 0.3681,
+      "val_subjects_list": [
+        "1903020",
+        "1911013",
+        "1911019",
+        "2104041",
+        "2211022",
+        "2211023",
+        "2302032",
+        "2306013",
+        "2311004",
+        "2311016",
+        "2401001"
+      ]
+    },
+    {
+      "fold": 3,
+      "train_samples": 5941,
+      "val_samples": 1498,
+      "train_sample_pct": 79.86,
+      "val_sample_pct": 20.14,
+      "train_subjects_count": 41,
+      "val_subjects_count": 10,
+      "train_class_0_count": 2026,
+      "train_class_1_count": 3915,
+      "train_class_0_ratio": 0.341,
+      "val_class_0_count": 556,
+      "val_class_1_count": 942,
+      "val_class_0_ratio": 0.3712,
+      "val_subjects_list": [
+        "1910016",
+        "1911017",
+        "2011018",
+        "2211015",
+        "2302077",
+        "2302128",
+        "2304113",
+        "2304127",
+        "2311019",
+        "2311026"
+      ]
+    },
+    {
+      "fold": 4,
+      "train_samples": 5952,
+      "val_samples": 1487,
+      "train_sample_pct": 80.01,
+      "val_sample_pct": 19.99,
+      "train_subjects_count": 41,
+      "val_subjects_count": 10,
+      "train_class_0_count": 2072,
+      "train_class_1_count": 3880,
+      "train_class_0_ratio": 0.3481,
+      "val_class_0_count": 510,
+      "val_class_1_count": 977,
+      "val_class_0_ratio": 0.343,
+      "val_subjects_list": [
+        "2011022",
+        "2111013",
+        "2211005",
+        "2211024",
+        "2301071",
+        "2302069",
+        "2311003",
+        "2311005",
+        "2311007",
+        "2401002"
+      ]
+    },
+    {
+      "fold": 5,
+      "train_samples": 5940,
+      "val_samples": 1499,
+      "train_sample_pct": 79.85,
+      "val_sample_pct": 20.15,
+      "train_subjects_count": 41,
+      "val_subjects_count": 10,
+      "train_class_0_count": 2068,
+      "train_class_1_count": 3872,
+      "train_class_0_ratio": 0.3481,
+      "val_class_0_count": 514,
+      "val_class_1_count": 985,
+      "val_class_0_ratio": 0.3429,
+      "val_subjects_list": [
+        "1909017",
+        "1910013",
+        "1911016",
+        "2102090",
+        "2111017",
+        "2211021",
+        "2304121",
+        "2311006",
+        "2311017",
+        "2312002"
+      ]
+    }
+  ]
+}
