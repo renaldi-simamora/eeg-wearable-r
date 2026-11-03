@@ -25,3 +25,23 @@ export function formatDate(dateString: string): string {
     return dateString;
   }
 }
+
+/**
+ * Formats TGAM1 ThinkGear byte 0x02 Poor Signal Quality metric.
+ * 0 = Good Contact (optimal skin-electrode contact, minimal noise)
+ * 1-199 = Poor Signal / Noise Level (higher value indicates higher noise artifact)
+ * 200 = Lead-off (electrodes completely off skin)
+ * null / undefined = Not Available (telemetry unreceived or device offline)
+ */
+export function formatSignalQuality(quality: number | null | undefined): string {
+  if (quality === null || quality === undefined) {
+    return "Not Available";
+  }
+  if (quality >= 200) {
+    return "Lead-off";
+  }
+  if (quality === 0) {
+    return "Good Contact";
+  }
+  return `Noise Level ${quality}/200`;
+}

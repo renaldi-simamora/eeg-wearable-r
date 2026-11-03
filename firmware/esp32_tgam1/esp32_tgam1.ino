@@ -307,35 +307,50 @@ bool connectWiFi(uint32_t timeoutMs = 15000) {
 bool postJson(const String& path, JsonDocument& doc) {
   if (!connectWiFi()) return false;
 
-  HTTPClient http;
-  String fullUrl = String(BACKEND_BASE_URL) + path;
-
-  if (!http.begin(fullUrl)) {
-    Serial.printf("[HTTP] Gagal inisialisasi koneksi ke: %s\n", fullUrl.c_str());
-    return false;
-  }
-
-  http.setConnectTimeout(8000);
-  http.setTimeout(12000);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
-  http.addHeader("X-Device-ID", DEVICE_ID);
-
   String requestBody;
   serializeJson(doc, requestBody);
 
-  int httpCode = http.POST(requestBody);
-  bool success = (httpCode >= 200 && httpCode < 300);
+  constexpr int MAX_RETRIES = 2;
+  int retryDelayMs = 500;
 
-  if (success) {
-    Serial.printf("[HTTP POST OK] %s (Status: %d)\n", path.c_str(), httpCode);
-  } else {
-    Serial.printf("[HTTP POST FAIL] %s (Code: %d, Error: %s)\n",
-                  path.c_str(), httpCode, http.errorToString(httpCode).c_str());
+  for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      Serial.printf("[HTTP RETRY] Upaya ke-%d setelah jeda %d ms: %s\n", attempt, retryDelayMs, path.c_str());
+      delay(retryDelayMs);
+      retryDelayMs *= 2; // Exponential backoff: 500ms, 1000ms
+      if (!connectWiFi()) continue;
+    }
+
+    HTTPClient http;
+    String fullUrl = String(BACKEND_BASE_URL) + path;
+
+    if (!http.begin(fullUrl)) {
+      Serial.printf("[HTTP] Gagal inisialisasi koneksi ke: %s\n", fullUrl.c_str());
+      continue;
+    }
+
+    http.setConnectTimeout(8000);
+    http.setTimeout(12000);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
+    http.addHeader("X-Device-ID", DEVICE_ID);
+
+    int httpCode = http.POST(requestBody);
+    bool success = (httpCode >= 200 && httpCode < 300);
+
+    if (success) {
+      Serial.printf("[HTTP POST OK] %s (Status: %d)\n", path.c_str(), httpCode);
+      http.end();
+      return true;
+    } else {
+      Serial.printf("[HTTP POST FAIL] %s (Code: %d, Error: %s)\n",
+                    path.c_str(), httpCode, http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
   }
 
-  http.end();
-  return success;
+  return false;
 }
 
 // ======================================================================================
@@ -413,14 +428,20 @@ bool sendBatch() {
   doc["sample_count"]   = sampleCount;
   doc["signal_quality"] = telemetry.signalQuality;
 
-  // Sertakan agregasi band power bila tersedia
+  // Sertakan agregasi dan 8 sub-band ASIC power bila tersedia
   if (telemetry.bandPowerUpdated) {
     JsonObject bp = doc["band_power"].to<JsonObject>();
-    bp["delta"] = telemetry.bandPower.delta;
-    bp["theta"] = telemetry.bandPower.theta;
-    bp["alpha"] = telemetry.bandPower.aggAlpha();
-    bp["beta"]  = telemetry.bandPower.aggBeta();
-    bp["gamma"] = telemetry.bandPower.aggGamma();
+    bp["delta"]      = telemetry.bandPower.delta;
+    bp["theta"]      = telemetry.bandPower.theta;
+    bp["low_alpha"]  = telemetry.bandPower.lowAlpha;
+    bp["high_alpha"] = telemetry.bandPower.highAlpha;
+    bp["low_beta"]   = telemetry.bandPower.lowBeta;
+    bp["high_beta"]  = telemetry.bandPower.highBeta;
+    bp["low_gamma"]  = telemetry.bandPower.lowGamma;
+    bp["mid_gamma"]  = telemetry.bandPower.midGamma;
+    bp["alpha"]      = telemetry.bandPower.aggAlpha();
+    bp["beta"]       = telemetry.bandPower.aggBeta();
+    bp["gamma"]      = telemetry.bandPower.aggGamma();
   }
 
   JsonArray samples = doc["samples"].to<JsonArray>();

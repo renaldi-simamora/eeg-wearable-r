@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatSignalQuality } from "@/lib/utils";
 import {
   Cpu,
   BatteryCharging,
@@ -36,7 +36,7 @@ export default function DevicesPage() {
     mutationFn: ({ id, status }: { id: string; status: "connected" | "disconnected" }) =>
       deviceService.updateDevice(id, {
         status,
-        signalQuality: status === "connected" ? 94 : 0,
+        signalQuality: status === "connected" ? 0 : null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -159,7 +159,7 @@ export default function DevicesPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6 font-mono text-[#1C1E1A]">
-                      {dev.signalQuality > 0 ? `${dev.signalQuality}% Good` : "—"}
+                      {formatSignalQuality(dev.signalQuality)}
                     </td>
                     <td className="py-4 px-6 font-mono text-stone-500">
                       {dev.firmwareVersion}
@@ -239,9 +239,9 @@ export default function DevicesPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Signal</span>
+                    <span className="text-[10px] text-stone-500 uppercase font-mono block">Signal Contact</span>
                     <span className="font-mono font-semibold text-[#1C1E1A]">
-                      {dev.signalQuality > 0 ? `${dev.signalQuality}%` : "No Signal"}
+                      {formatSignalQuality(dev.signalQuality)}
                     </span>
                   </div>
                   <div>

@@ -40,7 +40,7 @@ func (s *Service) Create(req *models.CreateDeviceRequest) (*models.Device, error
 		Name:            req.Name,
 		Status:          "connected",
 		BatteryLevel:    100,
-		SignalQuality:   95,
+		SignalQuality:   nil,
 		FirmwareVersion: firmware,
 		LastSeen:        now,
 		CreatedAt:       now,
@@ -72,7 +72,7 @@ func (s *Service) Update(id string, req *models.UpdateDeviceRequest) (*models.De
 		dev.BatteryLevel = *req.BatteryLevel
 	}
 	if req.SignalQuality != nil {
-		dev.SignalQuality = *req.SignalQuality
+		dev.SignalQuality = req.SignalQuality
 	}
 	dev.LastSeen = time.Now()
 

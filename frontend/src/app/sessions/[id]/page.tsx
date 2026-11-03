@@ -13,7 +13,7 @@ import { FrequencyBandsChart, calculateDominantBand } from "@/components/eeg/Fre
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDate, formatDuration, formatSignalQuality } from "@/lib/utils";
 import {
   ArrowLeft,
   Activity,
@@ -204,7 +204,7 @@ export default function SessionDetailPage() {
         features: activeFeature,
       }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["eeg-data", sessionId] });
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [eegData?.samples, activeSamples, activeFeature, sessionId, queryClient]);
 
@@ -236,23 +236,23 @@ export default function SessionDetailPage() {
   const predictions = (analysisData?.predictions && analysisData.predictions.length > 0)
     ? analysisData.predictions
     : [
-        {
-          id: `pred-${sessionId.slice(-6)}`,
-          sessionId,
-          timestamp: Date.now(),
-          modelName: "Support Vector Machine (SVM)",
-          modelVersion: "v1.0.0",
-          predictedClass: measuredDominantBand === "BETA"
-            ? "Focused / High Beta"
-            : measuredDominantBand === "THETA"
+      {
+        id: `pred-${sessionId.slice(-6)}`,
+        sessionId,
+        timestamp: 1700000000000,
+        modelName: "Support Vector Machine (SVM)",
+        modelVersion: "v1.0.0",
+        predictedClass: measuredDominantBand === "BETA"
+          ? "Focused / High Beta"
+          : measuredDominantBand === "THETA"
             ? "Drowsy / High Theta"
             : measuredDominantBand === "DELTA"
-            ? "Baseline / Mixed Rhythms"
-            : "Relaxed / High Alpha",
-          confidence: 0.88,
-          createdAt: session?.startedAt || new Date().toISOString(),
-        },
-      ];
+              ? "Baseline / Mixed Rhythms"
+              : "Relaxed / High Alpha",
+        confidence: 0.88,
+        createdAt: session?.startedAt || "2026-01-01T00:00:00.000Z",
+      },
+    ];
 
   const primaryPrediction = predictions[0];
   const predictedClassStr = primaryPrediction?.predictedClass || "Relaxed / High Alpha";
@@ -260,14 +260,14 @@ export default function SessionDetailPage() {
   const insights = (analysisData?.insights && analysisData.insights.length > 0)
     ? analysisData.insights
     : [
-        {
-          id: `ins-${sessionId.slice(-6)}`,
-          sessionId,
-          title: `Classified Pattern: ${predictedClassStr}`,
-          summary: `Supervised pattern recognition classified active spectral features (FP1 channel). Dominant frequency: ${measuredDominantBand} (${dominantValNum.toFixed(1)}%). Session target configuration: ${sessionTarget}. Academic research observation only.`,
-          createdAt: session?.startedAt || new Date().toISOString(),
-        },
-      ];
+      {
+        id: `ins-${sessionId.slice(-6)}`,
+        sessionId,
+        title: `Classified Pattern: ${predictedClassStr}`,
+        summary: `Supervised pattern recognition classified active spectral features (FP1 channel). Dominant frequency: ${measuredDominantBand} (${dominantValNum.toFixed(1)}%). Session target configuration: ${sessionTarget}. Academic research observation only.`,
+        createdAt: session?.startedAt || "2026-01-01T00:00:00.000Z",
+      },
+    ];
 
   return (
     <AppShell title={`Session #${sessionId.slice(-6)}`}>
@@ -319,7 +319,7 @@ export default function SessionDetailPage() {
             <span className="text-[10px] text-stone-500 uppercase font-mono block">
               Start Time
             </span>
-            <span className="font-semibold text-[#1C1E1A] block mt-1 truncate">
+            <span className="font-semibold text-[#1C1E1A] block mt-1 truncate" suppressHydrationWarning>
               {session?.startedAt ? formatDate(session.startedAt) : "—"}
             </span>
           </div>
@@ -328,7 +328,7 @@ export default function SessionDetailPage() {
             <span className="text-[10px] text-stone-500 uppercase font-mono block">
               End Time
             </span>
-            <span className="font-semibold text-[#1C1E1A] block mt-1 truncate">
+            <span className="font-semibold text-[#1C1E1A] block mt-1 truncate" suppressHydrationWarning>
               {session?.endedAt ? formatDate(session.endedAt) : "Completed"}
             </span>
           </div>
@@ -337,7 +337,7 @@ export default function SessionDetailPage() {
             <span className="text-[10px] text-stone-500 uppercase font-mono block">
               Total Duration
             </span>
-            <span className="font-bold font-mono text-[#1C1E1A] block mt-1">
+            <span className="font-bold font-mono text-[#1C1E1A] block mt-1" suppressHydrationWarning>
               {session?.duration !== undefined ? formatDuration(session.duration) : "15m 00s"}
             </span>
           </div>
@@ -366,7 +366,7 @@ export default function SessionDetailPage() {
             </span>
             <div className="flex items-center gap-1.5 mt-1 font-mono font-semibold text-[#2D7A58]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A58]" />
-              <span>{session?.signalQuality || 94}% Good</span>
+              <span>{formatSignalQuality(session?.signalQuality)}</span>
             </div>
           </div>
         </div>
@@ -546,7 +546,7 @@ export default function SessionDetailPage() {
                     <span className="text-[10px] uppercase text-stone-500 block">
                       Mean Amplitude
                     </span>
-                    <span className="text-base font-bold text-[#1C1E1A] block mt-1">
+                    <span className="text-base font-bold text-[#1C1E1A] block mt-1" suppressHydrationWarning>
                       {meanAmpStr}
                     </span>
                   </div>
@@ -554,7 +554,7 @@ export default function SessionDetailPage() {
                     <span className="text-[10px] uppercase text-stone-500 block">
                       Standard Deviation
                     </span>
-                    <span className="text-base font-bold text-[#1C1E1A] block mt-1">
+                    <span className="text-base font-bold text-[#1C1E1A] block mt-1" suppressHydrationWarning>
                       {stdDevStr}
                     </span>
                   </div>
@@ -562,7 +562,7 @@ export default function SessionDetailPage() {
                     <span className="text-[10px] uppercase text-stone-500 block">
                       Peak-to-Peak (Vp-p)
                     </span>
-                    <span className="text-base font-bold text-[#1C1E1A] block mt-1">
+                    <span className="text-base font-bold text-[#1C1E1A] block mt-1" suppressHydrationWarning>
                       {vppStr}
                     </span>
                   </div>
@@ -570,7 +570,7 @@ export default function SessionDetailPage() {
                     <span className="text-[10px] uppercase text-stone-500 block">
                       Dominant Band
                     </span>
-                    <span className="text-base font-bold text-[#5B6D49] block mt-1">
+                    <span className="text-base font-bold text-[#5B6D49] block mt-1" suppressHydrationWarning>
                       {dominantBandStr}
                     </span>
                   </div>

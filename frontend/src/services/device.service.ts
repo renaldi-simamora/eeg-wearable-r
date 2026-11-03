@@ -12,7 +12,7 @@ export interface UpdateDeviceDTO {
   name?: string;
   status?: string;
   batteryLevel?: number;
-  signalQuality?: number;
+  signalQuality?: number | null;
 }
 
 export const deviceService = {

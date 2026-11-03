@@ -9,7 +9,7 @@ import { deviceService } from "@/services/device.service";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDate, formatDuration, formatSignalQuality } from "@/lib/utils";
 import {
   Search,
   Eye,
@@ -213,7 +213,7 @@ export default function SessionsPage() {
                       <td className="py-4 px-6">
                         <span className="inline-flex items-center gap-1.5 text-[#2D7A58] font-mono text-xs font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A58]" />
-                          <span>{s.signalQuality || 94}% Good</span>
+                          <span>{formatSignalQuality(s.signalQuality)}</span>
                         </span>
                       </td>
                       <td className="py-4 px-6">
@@ -303,7 +303,7 @@ export default function SessionsPage() {
 
                   <div className="pt-2 flex items-center justify-between border-t border-stone-100 text-xs">
                     <span className="font-mono text-[#2D7A58] text-xs font-medium">
-                      Sig {s.signalQuality || 94}% Good
+                      {formatSignalQuality(s.signalQuality)}
                     </span>
                     <Link href={`/sessions/${s.id}`}>
                       <Button variant="outline" size="sm" className="h-7 text-xs gap-1 rounded-full border-stone-200">

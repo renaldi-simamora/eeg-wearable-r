@@ -42,24 +42,29 @@ func (s *Service) GetSummary(userID string) (*models.DashboardSummary, error) {
 	}
 
 	deviceStatus := "Disconnected"
-	signalQuality := "No Signal"
-	signalQualityVal := 0
+	signalQuality := "Not Available"
+	var signalQualityVal *int
 	if activeDevice != nil {
+		signalQualityVal = activeDevice.SignalQuality
 		switch activeDevice.Status {
 		case "connected":
 			deviceStatus = "Connected"
-			signalQualityVal = activeDevice.SignalQuality
-			if signalQualityVal >= 80 {
-				signalQuality = "Good"
-			} else if signalQualityVal >= 50 {
-				signalQuality = "Fair"
+			// ThinkGear POOR_SIGNAL (byte 0x02): 0 = Good Contact, 1-199 = Poor Signal / Noise level, 200 = Lead-off
+			if activeDevice.SignalQuality == nil {
+				signalQuality = "Not Available"
 			} else {
-				signalQuality = "Poor"
+				sq := *activeDevice.SignalQuality
+				if sq == 0 {
+					signalQuality = "Good Contact"
+				} else if sq < 200 {
+					signalQuality = fmt.Sprintf("Poor Signal / Noise (%d/200)", sq)
+				} else {
+					signalQuality = "Lead-off"
+				}
 			}
 		case "warning":
 			deviceStatus = "Warning"
-			signalQuality = "Weak"
-			signalQualityVal = activeDevice.SignalQuality
+			signalQuality = "Poor Signal"
 		}
 	}
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Session } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatDuration, formatDate } from "@/lib/utils";
+import { formatDuration, formatDate, formatSignalQuality } from "@/lib/utils";
 import { ArrowRight, Eye, Clock } from "lucide-react";
 
 interface RecentSessionsTableProps {
@@ -92,7 +92,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
                 <td className="py-4 px-6">
                   <span className="inline-flex items-center gap-1.5 text-[#2D7A58] font-mono text-xs font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A58]" />
-                    <span>{s.signalQuality || 94}% Good</span>
+                    <span>{formatSignalQuality(s.signalQuality)}</span>
                   </span>
                 </td>
                 <td className="py-4 px-6">
@@ -174,7 +174,7 @@ export function RecentSessionsTable({ sessions }: RecentSessionsTableProps) {
 
             <div className="pt-2 flex items-center justify-between border-t border-stone-100">
               <span className="text-xs text-[#2D7A58] font-mono font-medium">
-                Sig {s.signalQuality || 94}% Good
+                {formatSignalQuality(s.signalQuality)}
               </span>
               <Link href={`/sessions/${s.id}`}>
                 <Button variant="outline" size="sm" className="h-7 text-xs gap-1 rounded-full border-stone-200">

@@ -154,71 +154,14 @@ func (s *Service) GetAnalysisBySession(sessionID string) (map[string]interface{}
 			predictions = append(predictions, *pred)
 			insights, _ = s.store.GetAIInsights(sessionID)
 		} else {
-			// Local SVM inference fallback for real recorded features
-			var feat *models.BrainwaveFeature
-			if len(features) > 0 {
-				feat = &features[len(features)-1]
-			}
-			dominantBand := "Alpha"
-			highestPct := 48.0
-			if feat != nil {
-				dominantBand = "Alpha"
-				highestPct = feat.Alpha
-				if feat.Beta > highestPct {
-					dominantBand = "Beta"
-					highestPct = feat.Beta
-				}
-				if feat.Gamma > highestPct {
-					dominantBand = "Gamma"
-					highestPct = feat.Gamma
-				}
-				if feat.Delta > highestPct {
-					dominantBand = "Delta"
-					highestPct = feat.Delta
-				}
-				if feat.Theta > highestPct {
-					dominantBand = "Theta"
-					highestPct = feat.Theta
-				}
-			}
-
-			predClass := fmt.Sprintf("%s Dominant Cognitive State", dominantBand)
-			switch dominantBand {
-			case "Delta":
-				predClass = "Deep Restorative Slow-Wave State"
-			case "Theta":
-				predClass = "Meditative Hypnagogic State"
-			case "Beta":
-				predClass = "Active Cognitive Focus & Workload"
-			case "Gamma":
-				predClass = "High Working Memory Binding"
-			case "Alpha":
-				predClass = "Relaxed Wakefulness (Alpha Dominance)"
-			}
-
-			now := time.Now()
-			localPred := models.MLPrediction{
-				ID:             uuid.New().String(),
-				SessionID:      sessionID,
-				Timestamp:      now.UnixMilli(),
-				ModelName:      "Support Vector Machine (SVM)",
-				ModelVersion:   "v1.2.0-rbf-kernel",
-				PredictedClass: predClass,
-				Confidence:     0.942,
-				CreatedAt:      now,
-			}
-			_ = s.store.SaveMLPrediction(&localPred)
-			predictions = append(predictions, localPred)
-
-			localInsight := models.AIInsight{
-				ID:        uuid.New().String(),
-				SessionID: sessionID,
-				Title:     fmt.Sprintf("Classified Pattern: %s", predClass),
-				Summary:   fmt.Sprintf("Automated Support Vector Machine (SVM with RBF kernel) classified 5-band spectral density at 94.2%% confidence (%s dominant at %.1f%%). Academic research observation only; does not constitute clinical diagnosis.", dominantBand, highestPct),
-				CreatedAt: now,
-			}
-			_ = s.store.SaveAIInsight(&localInsight)
-			insights = append(insights, localInsight)
+			// Honest handling: ML model is offline/unconnected
+			return map[string]interface{}{
+				"sessionId":   sessionID,
+				"status":      "unavailable",
+				"message":     "ML prediction unavailable: Machine Learning service is offline or classification model not connected.",
+				"predictions": []models.MLPrediction{},
+				"insights":    []models.AIInsight{},
+			}, nil
 		}
 	}
 

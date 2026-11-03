@@ -20,9 +20,11 @@ export interface Device {
   name: string;
   status: DeviceStatus;
   batteryLevel: number;
-  signalQuality: number;
+  signalQuality?: number | null;
+  signalQualityUpdatedAt?: string | null;
   firmwareVersion: string;
   lastSeen: string;
+  lastEEGStreamAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -58,7 +60,7 @@ export interface Session {
   createdAt?: string;
   deviceName?: string;
   deviceCode?: string;
-  signalQuality?: number;
+  signalQuality?: number | null;
 }
 
 export interface EEGSample {

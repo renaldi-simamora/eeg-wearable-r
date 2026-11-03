@@ -22,6 +22,7 @@ type Store interface {
 	GetSessions(userID string) ([]models.Session, error)
 	GetSessionByID(id string) (*models.Session, error)
 	CreateSession(session *models.Session) error
+	UpdateSession(session *models.Session) error
 	StopSession(id string) (*models.Session, error)
 
 	// EEG & Brainwave methods

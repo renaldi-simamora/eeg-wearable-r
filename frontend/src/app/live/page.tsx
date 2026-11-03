@@ -29,7 +29,7 @@ import {
   Radio,
   Lock,
 } from "lucide-react";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, formatSignalQuality, cn } from "@/lib/utils";
 import { EEGTarget } from "@/types";
 
 const DEFAULT_DEVICES = [
@@ -158,7 +158,7 @@ export default function LiveEEGPage() {
               status: "completed",
               deviceName: activeDevice?.name || "TGAM1 Wearable Headset Alpha",
               deviceCode: activeDevice?.deviceCode || "EEG-001",
-              signalQuality: signalQuality || 94,
+              signalQuality: signalQuality !== null && signalQuality !== undefined ? signalQuality : null,
               createdAt: new Date(Date.now() - Math.max(1, sessionSeconds) * 1000).toISOString(),
             }));
           } catch {}
@@ -541,13 +541,12 @@ export default function LiveEEGPage() {
               Signal Quality
             </span>
             <div className="flex items-center gap-2 mt-1.5">
-              {signalQuality !== null ? (
+              {signalQuality !== null && signalQuality !== undefined ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-[#5B6D49]" />
-                  <span className="text-xl font-bold text-[#1C1E1A] font-mono">
-                    {signalQuality}%
+                  <span className={cn("w-2 h-2 rounded-full", signalQuality >= 200 ? "bg-red-500" : signalQuality === 0 ? "bg-[#2D7A58]" : "bg-amber-500")} />
+                  <span className="text-base font-bold text-[#1C1E1A] font-mono">
+                    {formatSignalQuality(signalQuality)}
                   </span>
-                  <span className="text-xs text-[#2D7A58] font-medium">Good</span>
                 </>
               ) : (
                 <div className="flex items-center gap-1.5 text-xs text-stone-400 font-mono">
@@ -611,7 +610,7 @@ export default function LiveEEGPage() {
                   <span className="text-stone-300">•</span>
                   <span>Durasi: <strong className="text-[#1C1E1A]">{formatDuration(sessionSeconds)}</strong></span>
                   <span className="text-stone-300">•</span>
-                  <span>Kualitas Sinyal: <strong className="text-[#2D7A58]">{signalQuality || 94}%</strong></span>
+                  <span>Kontak Sinyal: <strong className="text-[#2D7A58]">{formatSignalQuality(signalQuality)}</strong></span>
                 </div>
               </div>
             </div>

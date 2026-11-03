@@ -60,7 +60,7 @@ func (m *MemoryStore) seed() {
 			Name:            "TGAM1 Wearable Headset Alpha",
 			Status:          "connected",
 			BatteryLevel:    88,
-			SignalQuality:   94,
+			SignalQuality:   nil,
 			FirmwareVersion: "v1.2.0-esp32",
 			LastSeen:        now,
 			CreatedAt:       now.Add(-72 * time.Hour),
@@ -72,7 +72,7 @@ func (m *MemoryStore) seed() {
 			Name:            "TGAM1 Wearable Headset Beta",
 			Status:          "connected",
 			BatteryLevel:    82,
-			SignalQuality:   91,
+			SignalQuality:   nil,
 			FirmwareVersion: "v1.1.4-esp32",
 			LastSeen:        now,
 			CreatedAt:       now.Add(-120 * time.Hour),
@@ -84,7 +84,7 @@ func (m *MemoryStore) seed() {
 			Name:            "TGAM1 Wearable Headset Gamma",
 			Status:          "connected",
 			BatteryLevel:    85,
-			SignalQuality:   93,
+			SignalQuality:   nil,
 			FirmwareVersion: "v1.2.0-esp32",
 			LastSeen:        now,
 			CreatedAt:       now.Add(-48 * time.Hour),
@@ -96,7 +96,7 @@ func (m *MemoryStore) seed() {
 			Name:            "TGAM1 Wearable Headset Delta",
 			Status:          "connected",
 			BatteryLevel:    94,
-			SignalQuality:   96,
+			SignalQuality:   nil,
 			FirmwareVersion: "v1.2.0-esp32",
 			LastSeen:        now,
 			CreatedAt:       now.Add(-36 * time.Hour),
@@ -108,7 +108,19 @@ func (m *MemoryStore) seed() {
 			Name:            "TGAM1 Wearable Headset Theta",
 			Status:          "connected",
 			BatteryLevel:    87,
-			SignalQuality:   92,
+			SignalQuality:   nil,
+			FirmwareVersion: "v1.2.0-esp32",
+			LastSeen:        now,
+			CreatedAt:       now.Add(-24 * time.Hour),
+			UpdatedAt:       now,
+		},
+		{
+			ID:              "esp32-eeg-gateway-01",
+			DeviceCode:      "ESP32-HW-01",
+			Name:            "ESP32 TGAM1 Hardware Gateway",
+			Status:          "connected",
+			BatteryLevel:    100,
+			SignalQuality:   nil,
 			FirmwareVersion: "v1.2.0-esp32",
 			LastSeen:        now,
 			CreatedAt:       now.Add(-24 * time.Hour),
@@ -128,74 +140,94 @@ func (m *MemoryStore) seed() {
 
 	sessions := []models.Session{
 		{
-			ID:            "ses-001",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-001",
-			StartedAt:     now.Add(-45 * time.Minute),
-			EndedAt:       &s1Ended,
-			Duration:      900,
-			Status:        "completed",
-			TargetBand:    "ALPHA",
-			CreatedAt:     now.Add(-45 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Alpha",
-			DeviceCode:    "EEG-001",
-			SignalQuality: 94,
+			ID:              "ses-001",
+			UserID:          "user-demo-01",
+			DeviceID:        "dev-001",
+			ParticipantName: "Subject A-01",
+			Title:           "Baseline Relaxed Alpha Recording",
+			Notes:           "Closed-eyes resting condition measurement",
+			AcquisitionMode: "simulated",
+			StartedAt:       now.Add(-45 * time.Minute),
+			EndedAt:         &s1Ended,
+			Duration:        900,
+			Status:          "completed",
+			TargetBand:      "ALPHA",
+			CreatedAt:       now.Add(-45 * time.Minute),
+			DeviceName:      "TGAM1 Wearable Headset Alpha",
+			DeviceCode:      "EEG-001",
+			SignalQuality:   nil,
 		},
 		{
-			ID:            "ses-002",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-002",
-			StartedAt:     now.Add(-140 * time.Minute),
-			EndedAt:       &s2Ended,
-			Duration:      1200,
-			Status:        "completed",
-			TargetBand:    "BETA",
-			CreatedAt:     now.Add(-140 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Beta",
-			DeviceCode:    "EEG-002",
-			SignalQuality: 91,
+			ID:              "ses-002",
+			UserID:          "user-demo-01",
+			DeviceID:        "dev-002",
+			ParticipantName: "Subject B-04",
+			Title:           "Arithmetic Task Focus Session",
+			Notes:           "Mental subtraction math task measurement",
+			AcquisitionMode: "simulated",
+			StartedAt:       now.Add(-140 * time.Minute),
+			EndedAt:         &s2Ended,
+			Duration:        1200,
+			Status:          "completed",
+			TargetBand:      "BETA",
+			CreatedAt:       now.Add(-140 * time.Minute),
+			DeviceName:      "TGAM1 Wearable Headset Beta",
+			DeviceCode:      "EEG-002",
+			SignalQuality:   nil,
 		},
 		{
-			ID:            "ses-003",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-003",
-			StartedAt:     now.Add(-252 * time.Minute),
-			EndedAt:       &s3Ended,
-			Duration:      720,
-			Status:        "completed",
-			TargetBand:    "GAMMA",
-			CreatedAt:     now.Add(-252 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Gamma",
-			DeviceCode:    "EEG-003",
-			SignalQuality: 89,
+			ID:              "ses-003",
+			UserID:          "user-demo-01",
+			DeviceID:        "dev-003",
+			ParticipantName: "Subject C-12",
+			Title:           "Gamma Synchrony Visual Task",
+			Notes:           "High visual attention stimulus",
+			AcquisitionMode: "simulated",
+			StartedAt:       now.Add(-252 * time.Minute),
+			EndedAt:         &s3Ended,
+			Duration:        720,
+			Status:          "completed",
+			TargetBand:      "GAMMA",
+			CreatedAt:       now.Add(-252 * time.Minute),
+			DeviceName:      "TGAM1 Wearable Headset Gamma",
+			DeviceCode:      "EEG-003",
+			SignalQuality:   nil,
 		},
 		{
-			ID:            "ses-004",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-004",
-			StartedAt:     now.Add(-385 * time.Minute),
-			EndedAt:       &s4Ended,
-			Duration:      1500,
-			Status:        "completed",
-			TargetBand:    "DELTA",
-			CreatedAt:     now.Add(-385 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Delta",
-			DeviceCode:    "EEG-004",
-			SignalQuality: 96,
+			ID:              "ses-004",
+			UserID:          "user-demo-01",
+			DeviceID:        "dev-004",
+			ParticipantName: "Subject D-09",
+			Title:           "Drowsiness & Slow Wave Session",
+			Notes:           "Deep restful slow-wave monitoring",
+			AcquisitionMode: "simulated",
+			StartedAt:       now.Add(-385 * time.Minute),
+			EndedAt:         &s4Ended,
+			Duration:        1500,
+			Status:          "completed",
+			TargetBand:      "DELTA",
+			CreatedAt:       now.Add(-385 * time.Minute),
+			DeviceName:      "TGAM1 Wearable Headset Delta",
+			DeviceCode:      "EEG-004",
+			SignalQuality:   nil,
 		},
 		{
-			ID:            "ses-005",
-			UserID:        "user-demo-01",
-			DeviceID:      "dev-005",
-			StartedAt:     now.Add(-498 * time.Minute),
-			EndedAt:       &s5Ended,
-			Duration:      1080,
-			Status:        "completed",
-			TargetBand:    "THETA",
-			CreatedAt:     now.Add(-498 * time.Minute),
-			DeviceName:    "TGAM1 Wearable Headset Theta",
-			DeviceCode:    "EEG-005",
-			SignalQuality: 93,
+			ID:              "ses-005",
+			UserID:          "user-demo-01",
+			DeviceID:        "dev-005",
+			ParticipantName: "Subject E-15",
+			Title:           "Hypnagogic Theta Exploration",
+			Notes:           "Meditative state monitoring",
+			AcquisitionMode: "simulated",
+			StartedAt:       now.Add(-498 * time.Minute),
+			EndedAt:         &s5Ended,
+			Duration:        1080,
+			Status:          "completed",
+			TargetBand:      "THETA",
+			CreatedAt:       now.Add(-498 * time.Minute),
+			DeviceName:      "TGAM1 Wearable Headset Theta",
+			DeviceCode:      "EEG-005",
+			SignalQuality:   nil,
 		},
 	}
 	for i := range sessions {
@@ -304,12 +336,16 @@ func (m *MemoryStore) seed() {
 			}
 			val += (rand.Float64()*2.0 - 1.0) * 0.8
 
+			sqVal := 0
+			if s.SignalQuality != nil {
+				sqVal = *s.SignalQuality
+			}
 			samples[i] = models.EEGSample{
 				ID:            fmt.Sprintf("s%d-%d", sIdx+1, i),
 				SessionID:     s.ID,
 				Timestamp:     s.StartedAt.UnixMilli() + int64(i*20),
 				RawEEG:        math.Round(val*100) / 100,
-				SignalQuality: s.SignalQuality,
+				SignalQuality: sqVal,
 				CreatedAt:     s.StartedAt,
 			}
 		}
@@ -408,8 +444,10 @@ func (m *MemoryStore) UpdateDevice(device *models.Device) error {
 	d.Status = device.Status
 	d.BatteryLevel = device.BatteryLevel
 	d.SignalQuality = device.SignalQuality
+	d.SignalQualityUpdatedAt = device.SignalQualityUpdatedAt
 	d.UpdatedAt = time.Now()
 	d.LastSeen = device.LastSeen
+	d.LastEEGStreamAt = device.LastEEGStreamAt
 	return nil
 }
 
@@ -463,7 +501,35 @@ func (m *MemoryStore) CreateSession(session *models.Session) error {
 	if session.TargetBand == "" {
 		session.TargetBand = "ALPHA"
 	}
+	if session.ParticipantName == "" {
+		session.ParticipantName = "Anonymous Subject"
+	}
+	if session.Title == "" {
+		session.Title = "EEG Recording Session"
+	}
+	if session.AcquisitionMode == "" {
+		session.AcquisitionMode = "simulated"
+	}
 	m.sessions[session.ID] = session
+	return nil
+}
+
+func (m *MemoryStore) UpdateSession(session *models.Session) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.sessions[session.ID]
+	if !ok {
+		return fmt.Errorf("session not found")
+	}
+	if session.ParticipantName != "" {
+		s.ParticipantName = session.ParticipantName
+	}
+	if session.Title != "" {
+		s.Title = session.Title
+	}
+	if session.Notes != "" {
+		s.Notes = session.Notes
+	}
 	return nil
 }
 
@@ -494,8 +560,24 @@ func (m *MemoryStore) StopSession(id string) (*models.Session, error) {
 func (m *MemoryStore) SaveEEGSamples(samples []models.EEGSample) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if len(samples) == 0 {
+		return nil
+	}
+	sessID := samples[0].SessionID
+	existingMap := make(map[string]bool)
+	for _, existingSample := range m.eegSamples[sessID] {
+		if existingSample.ID != "" {
+			existingMap[existingSample.ID] = true
+		}
+	}
 	for _, sample := range samples {
-		m.eegSamples[sample.SessionID] = append(m.eegSamples[sample.SessionID], sample)
+		if sample.ID != "" && existingMap[sample.ID] {
+			continue // Deduplicate on retry
+		}
+		m.eegSamples[sessID] = append(m.eegSamples[sessID], sample)
+		if sample.ID != "" {
+			existingMap[sample.ID] = true
+		}
 	}
 	return nil
 }
@@ -509,6 +591,12 @@ func (m *MemoryStore) GetEEGSamples(sessionID string) ([]models.EEGSample, error
 func (m *MemoryStore) SaveBrainwaveFeature(feature *models.BrainwaveFeature) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	for i, existing := range m.brainwaves[feature.SessionID] {
+		if existing.ID != "" && existing.ID == feature.ID {
+			m.brainwaves[feature.SessionID][i] = *feature
+			return nil
+		}
+	}
 	m.brainwaves[feature.SessionID] = append(m.brainwaves[feature.SessionID], *feature)
 	return nil
 }

@@ -99,7 +99,9 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 			protected.GET("/sessions", sessionsHandler.GetAll)
 			protected.GET("/sessions/:id", sessionsHandler.GetByID)
 			protected.POST("/sessions", sessionsHandler.Create)
+			protected.PUT("/sessions/:id", sessionsHandler.Update)
 			protected.POST("/sessions/:id/stop", sessionsHandler.Stop)
+			protected.GET("/sessions/:id/report", sessionsHandler.GetReport)
 
 			// EEG data
 			protected.GET("/eeg/:sessionId", eegHandler.GetEEGData)
@@ -114,6 +116,26 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 
 		// EEG Ingestion Route (Supports IoT Hardware Node with X-Device-API-Key or User Bearer JWT)
 		api.POST("/eeg/data", middleware.DeviceOrAuthMiddleware(cfg.JWTSecret, cfg.DeviceAPIKey), eegHandler.PostEEGData)
+
+		// IoT ESP32 TGAM1 Dedicated Hardware Ingestion Endpoints (/api/v1/eeg/*)
+		// Requires authentic X-Device-API-Key. User JWTs are strictly rejected.
+		v1EEG := api.Group("/v1/eeg")
+		v1EEG.Use(middleware.HardwareDeviceAuthMiddleware(cfg.DeviceAPIKey))
+		{
+			v1EEG.POST("/sessions/start", eegHandler.DeviceStartSession)
+			v1EEG.POST("/samples", eegHandler.DeviceIngestSamples)
+			v1EEG.POST("/sessions/finish", eegHandler.DeviceFinishSession)
+		}
+	}
+
+	// Alias for top-level /v1/eeg/* endpoints (supports ESP32 firmware configured without /api prefix)
+	// Requires authentic X-Device-API-Key. User JWTs are strictly rejected.
+	topV1 := r.Group("/v1/eeg")
+	topV1.Use(middleware.HardwareDeviceAuthMiddleware(cfg.DeviceAPIKey))
+	{
+		topV1.POST("/sessions/start", eegHandler.DeviceStartSession)
+		topV1.POST("/samples", eegHandler.DeviceIngestSamples)
+		topV1.POST("/sessions/finish", eegHandler.DeviceFinishSession)
 	}
 
 	// 404 handler with standard API response

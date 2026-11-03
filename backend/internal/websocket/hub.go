@@ -28,7 +28,7 @@ type StreamPacket struct {
 	TargetBand    string  `json:"targetBand,omitempty"`  // Session immutable target band
 	Timestamp     int64   `json:"timestamp"`     // Epoch ms
 	RawEEG        float64 `json:"rawEEG"`        // Microvolts (uV)
-	SignalQuality int     `json:"signalQuality"` // 0 - 100%
+	SignalQuality int     `json:"signalQuality"` // ThinkGear byte 0x02: 0 = Good contact, 1-199 = Noise level, 200 = Lead-off
 	Delta         float64 `json:"delta"`
 	Theta         float64 `json:"theta"`
 	Alpha         float64 `json:"alpha"`
@@ -433,7 +433,7 @@ func (h *Hub) startSimulationGenerator() {
 			TargetBand:    targetBand,
 			Timestamp:     time.Now().UnixMilli(),
 			RawEEG:        signal,
-			SignalQuality: 92 + rand.Intn(7),
+			SignalQuality: 0, // Simulated optimal electrode contact (0 noise)
 			Delta:         relDelta,
 			Theta:         relTheta,
 			Alpha:         relAlpha,

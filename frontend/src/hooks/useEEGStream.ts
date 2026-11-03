@@ -209,7 +209,8 @@ export function generatePhysiologicalVoltage(
     }
   }
 
-  const noise = (Math.random() * 2.0 - 1.0) * noiseAmp;
+  // Deterministic pseudo-random noise derived from index to guarantee 100% hydration consistency between SSR and client
+  const noise = Math.sin(index * 37.71 + 1.23) * noiseAmp;
   return Math.round((val + noise) * 100) / 100;
 }
 
@@ -217,14 +218,14 @@ export function generateInitialBuffer(
   profile: SimProfile,
   count: number = 120
 ): EEGSample[] {
-  const now = Date.now();
+  const baseTimestamp = 1700000000000;
   const samples: EEGSample[] = [];
   for (let i = 0; i < count; i++) {
     const rawVal = generatePhysiologicalVoltage(profile, i, 0.8);
     samples.push({
-      timestamp: now - (count - i) * 20,
+      timestamp: baseTimestamp + i * 20,
       rawEEG: rawVal,
-      signalQuality: 94 + Math.floor(Math.random() * 5),
+      signalQuality: 94,
     });
   }
   return samples;
@@ -234,12 +235,12 @@ export function calculateOscillatingBands(
   profile: SimProfile,
   t: number
 ): BrainwaveFeature {
-  // Gentle biological micro-fluctuations (±1.5%) around profile baselines
-  const d = Math.max(1.0, profile.baseDelta + 1.5 * Math.sin(t * 0.35 + 0.5) + (Math.random() * 1.0 - 0.5));
-  const th = Math.max(1.0, profile.baseTheta + 1.5 * Math.sin(t * 0.45 + 1.2) + (Math.random() * 1.0 - 0.5));
-  const a = Math.max(1.0, profile.baseAlpha + 2.0 * Math.sin(t * 0.55 + 2.1) + (Math.random() * 1.0 - 0.5));
-  const b = Math.max(1.0, profile.baseBeta + 1.8 * Math.sin(t * 0.65 + 3.4) + (Math.random() * 1.0 - 0.5));
-  const g = Math.max(1.0, profile.baseGamma + 1.2 * Math.sin(t * 0.85 + 4.3) + (Math.random() * 0.8 - 0.4));
+  // Gentle biological micro-fluctuations (±1.5%) around profile baselines (deterministic functions of t)
+  const d = Math.max(1.0, profile.baseDelta + 1.5 * Math.sin(t * 0.35 + 0.5) + 0.5 * Math.sin(t * 1.3 + 0.2));
+  const th = Math.max(1.0, profile.baseTheta + 1.5 * Math.sin(t * 0.45 + 1.2) + 0.5 * Math.sin(t * 1.7 + 0.4));
+  const a = Math.max(1.0, profile.baseAlpha + 2.0 * Math.sin(t * 0.55 + 2.1) + 0.5 * Math.sin(t * 2.1 + 0.6));
+  const b = Math.max(1.0, profile.baseBeta + 1.8 * Math.sin(t * 0.65 + 3.4) + 0.5 * Math.sin(t * 2.7 + 0.8));
+  const g = Math.max(1.0, profile.baseGamma + 1.2 * Math.sin(t * 0.85 + 4.3) + 0.4 * Math.sin(t * 3.3 + 1.0));
 
   const sum = d + th + a + b + g;
   return {

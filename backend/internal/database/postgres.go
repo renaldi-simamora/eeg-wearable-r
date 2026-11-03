@@ -85,7 +85,7 @@ func (s *PostgresStore) UpdateUser(user *models.User) error {
 }
 
 func (s *PostgresStore) GetDevices() ([]models.Device, error) {
-	query := `SELECT id, device_code, name, status, battery_level, signal_quality, firmware_version, last_seen, created_at, updated_at FROM devices ORDER BY name ASC`
+	query := `SELECT id, device_code, name, status, battery_level, signal_quality, signal_quality_updated_at, firmware_version, last_seen, last_eeg_stream_at, created_at, updated_at FROM devices ORDER BY name ASC`
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -95,8 +95,21 @@ func (s *PostgresStore) GetDevices() ([]models.Device, error) {
 	var devices []models.Device
 	for rows.Next() {
 		var d models.Device
-		if err := rows.Scan(&d.ID, &d.DeviceCode, &d.Name, &d.Status, &d.BatteryLevel, &d.SignalQuality, &d.FirmwareVersion, &d.LastSeen, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		var sigQuality sql.NullInt32
+		var sigQualityUpdatedAt sql.NullTime
+		var lastStreamAt sql.NullTime
+		if err := rows.Scan(&d.ID, &d.DeviceCode, &d.Name, &d.Status, &d.BatteryLevel, &sigQuality, &sigQualityUpdatedAt, &d.FirmwareVersion, &d.LastSeen, &lastStreamAt, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if sigQuality.Valid {
+			v := int(sigQuality.Int32)
+			d.SignalQuality = &v
+		}
+		if sigQualityUpdatedAt.Valid {
+			d.SignalQualityUpdatedAt = &sigQualityUpdatedAt.Time
+		}
+		if lastStreamAt.Valid {
+			d.LastEEGStreamAt = &lastStreamAt.Time
 		}
 		devices = append(devices, d)
 	}
@@ -107,35 +120,48 @@ func (s *PostgresStore) GetDevices() ([]models.Device, error) {
 }
 
 func (s *PostgresStore) GetDeviceByID(id string) (*models.Device, error) {
-	query := `SELECT id, device_code, name, status, battery_level, signal_quality, firmware_version, last_seen, created_at, updated_at FROM devices WHERE id = $1`
+	query := `SELECT id, device_code, name, status, battery_level, signal_quality, signal_quality_updated_at, firmware_version, last_seen, last_eeg_stream_at, created_at, updated_at FROM devices WHERE id = $1`
 	row := s.db.QueryRow(query, id)
 
 	var d models.Device
-	if err := row.Scan(&d.ID, &d.DeviceCode, &d.Name, &d.Status, &d.BatteryLevel, &d.SignalQuality, &d.FirmwareVersion, &d.LastSeen, &d.CreatedAt, &d.UpdatedAt); err != nil {
+	var sigQuality sql.NullInt32
+	var sigQualityUpdatedAt sql.NullTime
+	var lastStreamAt sql.NullTime
+	if err := row.Scan(&d.ID, &d.DeviceCode, &d.Name, &d.Status, &d.BatteryLevel, &sigQuality, &sigQualityUpdatedAt, &d.FirmwareVersion, &d.LastSeen, &lastStreamAt, &d.CreatedAt, &d.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
+	}
+	if sigQuality.Valid {
+		v := int(sigQuality.Int32)
+		d.SignalQuality = &v
+	}
+	if sigQualityUpdatedAt.Valid {
+		d.SignalQualityUpdatedAt = &sigQualityUpdatedAt.Time
+	}
+	if lastStreamAt.Valid {
+		d.LastEEGStreamAt = &lastStreamAt.Time
 	}
 	return &d, nil
 }
 
 func (s *PostgresStore) CreateDevice(device *models.Device) error {
 	query := `
-		INSERT INTO devices (id, device_code, name, status, battery_level, signal_quality, firmware_version, last_seen, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO devices (id, device_code, name, status, battery_level, signal_quality, signal_quality_updated_at, firmware_version, last_seen, last_eeg_stream_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
-	_, err := s.db.Exec(query, device.ID, device.DeviceCode, device.Name, device.Status, device.BatteryLevel, device.SignalQuality, device.FirmwareVersion, device.LastSeen, device.CreatedAt, device.UpdatedAt)
+	_, err := s.db.Exec(query, device.ID, device.DeviceCode, device.Name, device.Status, device.BatteryLevel, device.SignalQuality, device.SignalQualityUpdatedAt, device.FirmwareVersion, device.LastSeen, device.LastEEGStreamAt, device.CreatedAt, device.UpdatedAt)
 	return err
 }
 
 func (s *PostgresStore) UpdateDevice(device *models.Device) error {
 	query := `
 		UPDATE devices 
-		SET name = $1, status = $2, battery_level = $3, signal_quality = $4, updated_at = $5, last_seen = $6
-		WHERE id = $7
+		SET name = $1, status = $2, battery_level = $3, signal_quality = $4, signal_quality_updated_at = $5, updated_at = $6, last_seen = $7, last_eeg_stream_at = $8
+		WHERE id = $9
 	`
-	_, err := s.db.Exec(query, device.Name, device.Status, device.BatteryLevel, device.SignalQuality, time.Now(), device.LastSeen, device.ID)
+	_, err := s.db.Exec(query, device.Name, device.Status, device.BatteryLevel, device.SignalQuality, device.SignalQualityUpdatedAt, time.Now(), device.LastSeen, device.LastEEGStreamAt, device.ID)
 	return err
 }
 
@@ -152,7 +178,9 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 
 	if userID != "" {
 		query = `
-			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+			SELECT s.id, s.user_id, s.device_id,
+			       COALESCE(s.participant_name, ''), COALESCE(s.title, ''), COALESCE(s.notes, ''), COALESCE(s.acquisition_mode, 'simulated'),
+			       s.started_at, s.ended_at, s.duration, s.status,
 			       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 			       d.name, d.device_code, d.signal_quality
 			FROM sessions s
@@ -163,7 +191,9 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 		rows, err = s.db.Query(query, userID)
 	} else {
 		query = `
-			SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+			SELECT s.id, s.user_id, s.device_id,
+			       COALESCE(s.participant_name, ''), COALESCE(s.title, ''), COALESCE(s.notes, ''), COALESCE(s.acquisition_mode, 'simulated'),
+			       s.started_at, s.ended_at, s.duration, s.status,
 			       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 			       d.name, d.device_code, d.signal_quality
 			FROM sessions s
@@ -185,7 +215,7 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 		var devName, devCode sql.NullString
 		var sigQuality sql.NullInt32
 
-		if err := rows.Scan(&s.ID, &s.UserID, &s.DeviceID, &s.StartedAt, &endedAt, &s.Duration, &s.Status, &s.TargetBand, &s.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
+		if err := rows.Scan(&s.ID, &s.UserID, &s.DeviceID, &s.ParticipantName, &s.Title, &s.Notes, &s.AcquisitionMode, &s.StartedAt, &endedAt, &s.Duration, &s.Status, &s.TargetBand, &s.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
 			return nil, err
 		}
 		if endedAt.Valid {
@@ -198,7 +228,8 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 			s.DeviceCode = devCode.String
 		}
 		if sigQuality.Valid {
-			s.SignalQuality = int(sigQuality.Int32)
+			v := int(sigQuality.Int32)
+			s.SignalQuality = &v
 		}
 		sessions = append(sessions, s)
 	}
@@ -210,7 +241,9 @@ func (s *PostgresStore) GetSessions(userID string) ([]models.Session, error) {
 
 func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 	query := `
-		SELECT s.id, s.user_id, s.device_id, s.started_at, s.ended_at, s.duration, s.status,
+		SELECT s.id, s.user_id, s.device_id,
+		       COALESCE(s.participant_name, ''), COALESCE(s.title, ''), COALESCE(s.notes, ''), COALESCE(s.acquisition_mode, 'simulated'),
+		       s.started_at, s.ended_at, s.duration, s.status,
 		       COALESCE(s.target_band, 'ALPHA'), s.created_at,
 		       d.name, d.device_code, d.signal_quality
 		FROM sessions s
@@ -224,7 +257,7 @@ func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 	var devName, devCode sql.NullString
 	var sigQuality sql.NullInt32
 
-	if err := row.Scan(&ses.ID, &ses.UserID, &ses.DeviceID, &ses.StartedAt, &endedAt, &ses.Duration, &ses.Status, &ses.TargetBand, &ses.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
+	if err := row.Scan(&ses.ID, &ses.UserID, &ses.DeviceID, &ses.ParticipantName, &ses.Title, &ses.Notes, &ses.AcquisitionMode, &ses.StartedAt, &endedAt, &ses.Duration, &ses.Status, &ses.TargetBand, &ses.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -240,7 +273,8 @@ func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 		ses.DeviceCode = devCode.String
 	}
 	if sigQuality.Valid {
-		ses.SignalQuality = int(sigQuality.Int32)
+		v := int(sigQuality.Int32)
+		ses.SignalQuality = &v
 	}
 	return &ses, nil
 }
@@ -249,11 +283,25 @@ func (s *PostgresStore) CreateSession(session *models.Session) error {
 	if session.TargetBand == "" {
 		session.TargetBand = "ALPHA"
 	}
+	if session.AcquisitionMode == "" {
+		session.AcquisitionMode = "simulated"
+	}
 	query := `
-		INSERT INTO sessions (id, user_id, device_id, started_at, duration, status, target_band, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO sessions (id, user_id, device_id, participant_name, title, notes, acquisition_mode, started_at, duration, status, target_band, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		ON CONFLICT (id) DO NOTHING
 	`
-	_, err := s.db.Exec(query, session.ID, session.UserID, session.DeviceID, session.StartedAt, session.Duration, session.Status, session.TargetBand, session.CreatedAt)
+	_, err := s.db.Exec(query, session.ID, session.UserID, session.DeviceID, session.ParticipantName, session.Title, session.Notes, session.AcquisitionMode, session.StartedAt, session.Duration, session.Status, session.TargetBand, session.CreatedAt)
+	return err
+}
+
+func (s *PostgresStore) UpdateSession(session *models.Session) error {
+	query := `
+		UPDATE sessions
+		SET participant_name = $1, title = $2, notes = $3
+		WHERE id = $4
+	`
+	_, err := s.db.Exec(query, session.ParticipantName, session.Title, session.Notes, session.ID)
 	return err
 }
 
@@ -298,7 +346,7 @@ func (s *PostgresStore) SaveEEGSamples(samples []models.EEGSample) error {
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare(`INSERT INTO eeg_samples (id, session_id, timestamp, raw_eeg, signal_quality, created_at) VALUES ($1, $2, $3, $4, $5, $6)`)
+	stmt, err := tx.Prepare(`INSERT INTO eeg_samples (id, session_id, timestamp, raw_eeg, signal_quality, created_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`)
 	if err != nil {
 		return err
 	}
@@ -339,6 +387,7 @@ func (s *PostgresStore) SaveBrainwaveFeature(feature *models.BrainwaveFeature) e
 	query := `
 		INSERT INTO brainwave_features (id, session_id, timestamp, delta, theta, alpha, beta, gamma, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO NOTHING
 	`
 	_, err := s.db.Exec(query, feature.ID, feature.SessionID, feature.Timestamp, feature.Delta, feature.Theta, feature.Alpha, feature.Beta, feature.Gamma, feature.CreatedAt)
 	return err
@@ -469,7 +518,7 @@ func (s *PostgresStore) SeedInitialData() {
 				Name:            "TGAM1 Wearable Headset Alpha",
 				Status:          "connected",
 				BatteryLevel:    88,
-				SignalQuality:   94,
+				SignalQuality:   nil,
 				FirmwareVersion: "v1.2.0-esp32",
 				LastSeen:        time.Now(),
 				CreatedAt:       time.Now().Add(-72 * time.Hour),
@@ -481,7 +530,7 @@ func (s *PostgresStore) SeedInitialData() {
 				Name:            "TGAM1 Wearable Headset Beta",
 				Status:          "disconnected",
 				BatteryLevel:    62,
-				SignalQuality:   0,
+				SignalQuality:   nil,
 				FirmwareVersion: "v1.1.4-esp32",
 				LastSeen:        time.Now().Add(-5 * time.Hour),
 				CreatedAt:       time.Now().Add(-120 * time.Hour),
@@ -493,7 +542,7 @@ func (s *PostgresStore) SeedInitialData() {
 				Name:            "TGAM1 Wearable Headset Gamma",
 				Status:          "warning",
 				BatteryLevel:    18,
-				SignalQuality:   42,
+				SignalQuality:   nil,
 				FirmwareVersion: "v1.2.0-esp32",
 				LastSeen:        time.Now().Add(-12 * time.Minute),
 				CreatedAt:       time.Now().Add(-48 * time.Hour),
@@ -505,7 +554,7 @@ func (s *PostgresStore) SeedInitialData() {
 				Name:            "TGAM1 Wearable Headset Delta",
 				Status:          "connected",
 				BatteryLevel:    91,
-				SignalQuality:   96,
+				SignalQuality:   nil,
 				FirmwareVersion: "v1.2.4-esp32",
 				LastSeen:        time.Now(),
 				CreatedAt:       time.Now().Add(-72 * time.Hour),
@@ -517,10 +566,22 @@ func (s *PostgresStore) SeedInitialData() {
 				Name:            "TGAM1 Wearable Headset Theta",
 				Status:          "connected",
 				BatteryLevel:    78,
-				SignalQuality:   92,
+				SignalQuality:   nil,
 				FirmwareVersion: "v1.2.4-esp32",
 				LastSeen:        time.Now(),
 				CreatedAt:       time.Now().Add(-48 * time.Hour),
+				UpdatedAt:       time.Now(),
+			},
+			{
+				ID:              "esp32-eeg-gateway-01",
+				DeviceCode:      "ESP32-HW-01",
+				Name:            "ESP32 TGAM1 Hardware Gateway",
+				Status:          "connected",
+				BatteryLevel:    100,
+				SignalQuality:   nil,
+				FirmwareVersion: "v1.2.0-esp32",
+				LastSeen:        time.Now(),
+				CreatedAt:       time.Now().Add(-24 * time.Hour),
 				UpdatedAt:       time.Now(),
 			},
 		}
@@ -554,69 +615,84 @@ func (s *PostgresStore) SeedInitialData() {
 
 		initialSessions := []models.Session{
 			{
-				ID:            "ses-001",
-				UserID:        "user-demo-01",
-				DeviceID:      "dev-001",
-				StartedAt:     now.Add(-45 * time.Minute),
-				EndedAt:       &s1Ended,
-				Duration:      900,
-				Status:        "completed",
-				CreatedAt:     now.Add(-45 * time.Minute),
-				DeviceName:    "TGAM1 Wearable Headset Alpha",
-				DeviceCode:    "EEG-001",
-				SignalQuality: 94,
+				ID:              "ses-001",
+				UserID:          "user-demo-01",
+				DeviceID:        "dev-001",
+				Title:           "Simulated Alpha Band Demonstration",
+				ParticipantName: "Demo Participant Alpha",
+				AcquisitionMode: "simulated",
+				StartedAt:       now.Add(-45 * time.Minute),
+				EndedAt:         &s1Ended,
+				Duration:        900,
+				Status:          "completed",
+				CreatedAt:       now.Add(-45 * time.Minute),
+				DeviceName:      "TGAM1 Wearable Headset Alpha",
+				DeviceCode:      "EEG-001",
+				SignalQuality:   nil,
 			},
 			{
-				ID:            "ses-002",
-				UserID:        "user-demo-01",
-				DeviceID:      "dev-002",
-				StartedAt:     now.Add(-140 * time.Minute),
-				EndedAt:       &s2Ended,
-				Duration:      1200,
-				Status:        "completed",
-				CreatedAt:     now.Add(-140 * time.Minute),
-				DeviceName:    "TGAM1 Wearable Headset Beta",
-				DeviceCode:    "EEG-002",
-				SignalQuality: 91,
+				ID:              "ses-002",
+				UserID:          "user-demo-01",
+				DeviceID:        "dev-002",
+				Title:           "Simulated Beta Band Demonstration",
+				ParticipantName: "Demo Participant Beta",
+				AcquisitionMode: "simulated",
+				StartedAt:       now.Add(-140 * time.Minute),
+				EndedAt:         &s2Ended,
+				Duration:        1200,
+				Status:          "completed",
+				CreatedAt:       now.Add(-140 * time.Minute),
+				DeviceName:      "TGAM1 Wearable Headset Beta",
+				DeviceCode:      "EEG-002",
+				SignalQuality:   nil,
 			},
 			{
-				ID:            "ses-003",
-				UserID:        "user-demo-01",
-				DeviceID:      "dev-003",
-				StartedAt:     now.Add(-252 * time.Minute),
-				EndedAt:       &s3Ended,
-				Duration:      720,
-				Status:        "completed",
-				CreatedAt:     now.Add(-252 * time.Minute),
-				DeviceName:    "TGAM1 Wearable Headset Gamma",
-				DeviceCode:    "EEG-003",
-				SignalQuality: 89,
+				ID:              "ses-003",
+				UserID:          "user-demo-01",
+				DeviceID:        "dev-003",
+				Title:           "Simulated Gamma Band Demonstration",
+				ParticipantName: "Demo Participant Gamma",
+				AcquisitionMode: "simulated",
+				StartedAt:       now.Add(-252 * time.Minute),
+				EndedAt:         &s3Ended,
+				Duration:        720,
+				Status:          "completed",
+				CreatedAt:       now.Add(-252 * time.Minute),
+				DeviceName:      "TGAM1 Wearable Headset Gamma",
+				DeviceCode:      "EEG-003",
+				SignalQuality:   nil,
 			},
 			{
-				ID:            "ses-004",
-				UserID:        "user-demo-01",
-				DeviceID:      "dev-004",
-				StartedAt:     now.Add(-385 * time.Minute),
-				EndedAt:       &s4Ended,
-				Duration:      1500,
-				Status:        "completed",
-				CreatedAt:     now.Add(-385 * time.Minute),
-				DeviceName:    "TGAM1 Wearable Headset Delta",
-				DeviceCode:    "EEG-004",
-				SignalQuality: 96,
+				ID:              "ses-004",
+				UserID:          "user-demo-01",
+				DeviceID:        "dev-004",
+				Title:           "Simulated Delta Band Demonstration",
+				ParticipantName: "Demo Participant Delta",
+				AcquisitionMode: "simulated",
+				StartedAt:       now.Add(-385 * time.Minute),
+				EndedAt:         &s4Ended,
+				Duration:        1500,
+				Status:          "completed",
+				CreatedAt:       now.Add(-385 * time.Minute),
+				DeviceName:      "TGAM1 Wearable Headset Delta",
+				DeviceCode:      "EEG-004",
+				SignalQuality:   nil,
 			},
 			{
-				ID:            "ses-005",
-				UserID:        "user-demo-01",
-				DeviceID:      "dev-005",
-				StartedAt:     now.Add(-498 * time.Minute),
-				EndedAt:       &s5Ended,
-				Duration:      1080,
-				Status:        "completed",
-				CreatedAt:     now.Add(-498 * time.Minute),
-				DeviceName:    "TGAM1 Wearable Headset Theta",
-				DeviceCode:    "EEG-005",
-				SignalQuality: 92,
+				ID:              "ses-005",
+				UserID:          "user-demo-01",
+				DeviceID:        "dev-005",
+				Title:           "Simulated Theta Band Demonstration",
+				ParticipantName: "Demo Participant Theta",
+				AcquisitionMode: "simulated",
+				StartedAt:       now.Add(-498 * time.Minute),
+				EndedAt:         &s5Ended,
+				Duration:        1080,
+				Status:          "completed",
+				CreatedAt:       now.Add(-498 * time.Minute),
+				DeviceName:      "TGAM1 Wearable Headset Theta",
+				DeviceCode:      "EEG-005",
+				SignalQuality:   nil,
 			},
 		}
 
@@ -716,12 +792,16 @@ func (s *PostgresStore) SeedInitialData() {
 				}
 				val += (rand.Float64()*2.0 - 1.0) * 0.8
 
+				sqVal := 0
+				if sInfo.SignalQuality != nil {
+					sqVal = *sInfo.SignalQuality
+				}
 				samples[i] = models.EEGSample{
 					ID:            fmt.Sprintf("pg-s%d-%d", sIdx+1, i),
 					SessionID:     sInfo.ID,
 					Timestamp:     sInfo.StartedAt.UnixMilli() + int64(i*20),
 					RawEEG:        math.Round(val*100) / 100,
-					SignalQuality: sInfo.SignalQuality,
+					SignalQuality: sqVal,
 					CreatedAt:     sInfo.StartedAt,
 				}
 			}

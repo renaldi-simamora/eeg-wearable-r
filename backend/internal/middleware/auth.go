@@ -83,6 +83,40 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
+// HardwareDeviceAuthMiddleware strictly requires an authentic IoT hardware device API key.
+// User JWT bearer tokens are rejected on dedicated hardware ingestion endpoints (/v1/eeg/*).
+func HardwareDeviceAuthMiddleware(deviceAPIKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("X-Device-API-Key")
+		if apiKey == "" {
+			apiKey = c.GetHeader("X-API-Key")
+		}
+
+		if apiKey == "" {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Hardware device authentication required: missing X-Device-API-Key header. User JWT cannot access hardware endpoints.",
+			})
+			c.Abort()
+			return
+		}
+
+		if deviceAPIKey == "" || apiKey != deviceAPIKey {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Invalid device API key",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("isDevice", true)
+		c.Set("authType", "device_api_key")
+		c.Set("role", "device")
+		c.Next()
+	}
+}
+
 // DeviceOrAuthMiddleware allows either Device API Key (IoT hardware) or User JWT Bearer token
 func DeviceOrAuthMiddleware(jwtSecret string, deviceAPIKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -95,6 +129,7 @@ func DeviceOrAuthMiddleware(jwtSecret string, deviceAPIKey string) gin.HandlerFu
 		if apiKey != "" {
 			if deviceAPIKey != "" && apiKey == deviceAPIKey {
 				c.Set("isDevice", true)
+				c.Set("authType", "device_api_key")
 				c.Set("role", "device")
 				c.Next()
 				return
@@ -147,6 +182,8 @@ func DeviceOrAuthMiddleware(jwtSecret string, deviceAPIKey string) gin.HandlerFu
 			return
 		}
 
+		c.Set("isDevice", false)
+		c.Set("authType", "user_jwt")
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
