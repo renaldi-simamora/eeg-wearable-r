@@ -3,23 +3,34 @@ package database
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"sync"
 	"time"
 
 	"eeg-backend/models"
+
+	"github.com/google/uuid"
 )
 
 type MemoryStore struct {
-	mu          sync.RWMutex
-	users       map[string]*models.User
-	devices     map[string]*models.Device
-	sessions    map[string]*models.Session
-	eegSamples  map[string][]models.EEGSample
-	brainwaves  map[string][]models.BrainwaveFeature
-	predictions map[string][]models.MLPrediction
-	insights    map[string][]models.AIInsight
+	mu                     sync.RWMutex
+	users                  map[string]*models.User
+	devices                map[string]*models.Device
+	sessions               map[string]*models.Session
+	eegSamples             map[string][]models.EEGSample
+	brainwaves             map[string][]models.BrainwaveFeature
+	predictions            map[string][]models.MLPrediction
+	insights               map[string][]models.AIInsight
+	mlJobs                 map[string]*models.MLClassificationJob
+	simulateJobInsertError bool
+}
+
+func (m *MemoryStore) SetSimulateJobInsertError(simulate bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.simulateJobInsertError = simulate
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -31,6 +42,7 @@ func NewMemoryStore() *MemoryStore {
 		brainwaves:  make(map[string][]models.BrainwaveFeature),
 		predictions: make(map[string][]models.MLPrediction),
 		insights:    make(map[string][]models.AIInsight),
+		mlJobs:      make(map[string]*models.MLClassificationJob),
 	}
 	ms.seed()
 	return ms
@@ -495,6 +507,29 @@ func (m *MemoryStore) GetSessionByID(id string) (*models.Session, error) {
 	return &sesCopy, nil
 }
 
+func (m *MemoryStore) GetActiveSessionByDevice(deviceID string) (*models.Session, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var latest *models.Session
+	for _, s := range m.sessions {
+		if s.DeviceID == deviceID && (s.Status == "running" || s.Status == "stop_requested") {
+			if latest == nil || s.StartedAt.After(latest.StartedAt) {
+				latest = s
+			}
+		}
+	}
+	if latest == nil {
+		return nil, nil
+	}
+	sesCopy := *latest
+	if dev, ok := m.devices[latest.DeviceID]; ok {
+		sesCopy.DeviceName = dev.Name
+		sesCopy.DeviceCode = dev.DeviceCode
+		sesCopy.SignalQuality = dev.SignalQuality
+	}
+	return &sesCopy, nil
+}
+
 func (m *MemoryStore) CreateSession(session *models.Session) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -533,20 +568,43 @@ func (m *MemoryStore) UpdateSession(session *models.Session) error {
 	return nil
 }
 
-func (m *MemoryStore) StopSession(id string) (*models.Session, error) {
+func (m *MemoryStore) RequestStopSession(id string) (*models.Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	s, ok := m.sessions[id]
 	if !ok {
 		return nil, fmt.Errorf("session not found")
 	}
+
+	// Idempotent: If already completed, keep completed
+	if s.Status == "completed" {
+		sesCopy := *s
+		if dev, ok := m.devices[s.DeviceID]; ok {
+			sesCopy.DeviceName = dev.Name
+			sesCopy.DeviceCode = dev.DeviceCode
+			sesCopy.SignalQuality = dev.SignalQuality
+		}
+		return &sesCopy, nil
+	}
+
+	// Idempotent: If already in stop_requested, preserve existing timestamp and return as-is
+	if s.Status == "stop_requested" {
+		sesCopy := *s
+		if dev, ok := m.devices[s.DeviceID]; ok {
+			sesCopy.DeviceName = dev.Name
+			sesCopy.DeviceCode = dev.DeviceCode
+			sesCopy.SignalQuality = dev.SignalQuality
+		}
+		return &sesCopy, nil
+	}
+
 	now := time.Now()
 	s.EndedAt = &now
 	s.Duration = int(now.Sub(s.StartedAt).Seconds())
 	if s.Duration < 0 {
 		s.Duration = 0
 	}
-	s.Status = "completed"
+	s.Status = "stop_requested"
 
 	sesCopy := *s
 	if dev, ok := m.devices[s.DeviceID]; ok {
@@ -555,6 +613,210 @@ func (m *MemoryStore) StopSession(id string) (*models.Session, error) {
 		sesCopy.SignalQuality = dev.SignalQuality
 	}
 	return &sesCopy, nil
+}
+
+func (m *MemoryStore) FinalizeSessionWithJob(id string) (*models.Session, *models.MLClassificationJob, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.sessions[id]
+	if !ok {
+		return nil, nil, false, fmt.Errorf("session not found")
+	}
+
+	// Idempotent: If already completed or cancelled, no state transition occurs
+	if s.Status == "completed" || s.Status == "cancelled" {
+		sesCopy := *s
+		if dev, ok := m.devices[s.DeviceID]; ok {
+			sesCopy.DeviceName = dev.Name
+			sesCopy.DeviceCode = dev.DeviceCode
+			sesCopy.SignalQuality = dev.SignalQuality
+		}
+		var existingJob *models.MLClassificationJob
+		for _, j := range m.mlJobs {
+			if j.SessionID == id {
+				existingJob = j
+				break
+			}
+		}
+		return &sesCopy, existingJob, false, nil
+	}
+
+	oldStatus := s.Status
+	oldEndedAt := s.EndedAt
+	oldDuration := s.Duration
+
+	now := time.Now()
+	if s.EndedAt == nil {
+		s.EndedAt = &now
+		s.Duration = int(now.Sub(s.StartedAt).Seconds())
+		if s.Duration < 0 {
+			s.Duration = 0
+		}
+	}
+	s.Status = "completed"
+
+	// Simulate rollback if flag is set for test
+	if m.simulateJobInsertError {
+		s.Status = oldStatus
+		s.EndedAt = oldEndedAt
+		s.Duration = oldDuration
+		return nil, nil, false, errors.New("simulated job creation failure for atomic rollback test")
+	}
+
+	// Create ML Job in the same atomic lock
+	job := &models.MLClassificationJob{
+		ID:          uuid.New().String(),
+		SessionID:   id,
+		Status:      "pending",
+		Attempts:    0,
+		MaxAttempts: 3,
+		NextRunAt:   now,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	jobCreated := true
+	for _, existing := range m.mlJobs {
+		if existing.SessionID == id {
+			job = existing
+			jobCreated = false
+			break
+		}
+	}
+	if jobCreated {
+		m.mlJobs[job.ID] = job
+	}
+
+	sesCopy := *s
+	if dev, ok := m.devices[s.DeviceID]; ok {
+		sesCopy.DeviceName = dev.Name
+		sesCopy.DeviceCode = dev.DeviceCode
+		sesCopy.SignalQuality = dev.SignalQuality
+	}
+	return &sesCopy, job, true, nil
+}
+
+func (m *MemoryStore) FinalizeSession(id string) (*models.Session, bool, error) {
+	ses, _, transitioned, err := m.FinalizeSessionWithJob(id)
+	return ses, transitioned, err
+}
+
+func (m *MemoryStore) StopSession(id string) (*models.Session, error) {
+	ses, _, err := m.FinalizeSession(id)
+	return ses, err
+}
+
+func (m *MemoryStore) RecoverStaleStopRequestedSessions(cutoffDuration time.Duration) ([]models.Session, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now()
+	cutoffTime := now.Add(-cutoffDuration)
+	var recovered []models.Session
+
+	for _, s := range m.sessions {
+		if s.Status == "stop_requested" {
+			refTime := s.StartedAt
+			if s.EndedAt != nil {
+				refTime = *s.EndedAt
+			}
+			// Strict filter: only recover sessions whose age is strictly past the cutoff threshold
+			if refTime.Before(cutoffTime) || refTime.Equal(cutoffTime) {
+				s.Status = "completed"
+				if s.EndedAt == nil {
+					s.EndedAt = &now
+					s.Duration = int(now.Sub(s.StartedAt).Seconds())
+					if s.Duration < 0 {
+						s.Duration = 0
+					}
+				}
+
+				// Enqueue ML Job in the same atomic operation
+				job := &models.MLClassificationJob{
+					ID:          uuid.New().String(),
+					SessionID:   s.ID,
+					Status:      "pending",
+					Attempts:    0,
+					MaxAttempts: 3,
+					NextRunAt:   now,
+					CreatedAt:   now,
+					UpdatedAt:   now,
+				}
+				jobExists := false
+				for _, existing := range m.mlJobs {
+					if existing.SessionID == s.ID {
+						jobExists = true
+						break
+					}
+				}
+				if !jobExists {
+					m.mlJobs[job.ID] = job
+				}
+
+				sesCopy := *s
+				if dev, ok := m.devices[s.DeviceID]; ok {
+					sesCopy.DeviceName = dev.Name
+					sesCopy.DeviceCode = dev.DeviceCode
+					sesCopy.SignalQuality = dev.SignalQuality
+				}
+				recovered = append(recovered, sesCopy)
+			}
+		}
+	}
+	return recovered, nil
+}
+
+func (m *MemoryStore) ReconcileCompletedSessionsWithoutJobs() ([]models.MLClassificationJob, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var createdJobs []models.MLClassificationJob
+	now := time.Now()
+
+	for _, ses := range m.sessions {
+		if ses.Status != "completed" {
+			continue
+		}
+
+		// Check if predictions already exist
+		if len(m.predictions[ses.ID]) > 0 {
+			continue
+		}
+
+		// Check if job already exists
+		hasJob := false
+		for _, j := range m.mlJobs {
+			if j.SessionID == ses.ID {
+				hasJob = true
+				break
+			}
+		}
+		if hasJob {
+			continue
+		}
+
+		// Check if eligible (features or samples exist)
+		hasData := len(m.brainwaves[ses.ID]) > 0 || len(m.eegSamples[ses.ID]) > 0
+		if !hasData {
+			continue
+		}
+
+		job := &models.MLClassificationJob{
+			ID:          uuid.New().String(),
+			SessionID:   ses.ID,
+			Status:      "pending",
+			Attempts:    0,
+			MaxAttempts: 3,
+			NextRunAt:   now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		m.mlJobs[job.ID] = job
+		createdJobs = append(createdJobs, *job)
+		log.Printf("[RECONCILIATION] Created missing ML job %s for completed session %s", job.ID, ses.ID)
+	}
+
+	return createdJobs, nil
 }
 
 func (m *MemoryStore) SaveEEGSamples(samples []models.EEGSample) error {
@@ -631,4 +893,103 @@ func (m *MemoryStore) GetAIInsights(sessionID string) ([]models.AIInsight, error
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.insights[sessionID], nil
+}
+
+// CreateMLJob registers a durable ML classification job (idempotent per session)
+func (m *MemoryStore) CreateMLJob(job *models.MLClassificationJob) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Unique constraint per session_id (ON CONFLICT DO NOTHING)
+	for _, existing := range m.mlJobs {
+		if existing.SessionID == job.SessionID {
+			return nil
+		}
+	}
+
+	jobCopy := *job
+	if jobCopy.Status == "" {
+		jobCopy.Status = "pending"
+	}
+	if jobCopy.MaxAttempts <= 0 {
+		jobCopy.MaxAttempts = 3
+	}
+	if jobCopy.CreatedAt.IsZero() {
+		jobCopy.CreatedAt = time.Now()
+	}
+	if jobCopy.UpdatedAt.IsZero() {
+		jobCopy.UpdatedAt = jobCopy.CreatedAt
+	}
+	if jobCopy.NextRunAt.IsZero() {
+		jobCopy.NextRunAt = jobCopy.CreatedAt
+	}
+
+	m.mlJobs[jobCopy.ID] = &jobCopy
+	return nil
+}
+
+// GetMLJobBySessionID returns the ML classification job for the given session ID
+func (m *MemoryStore) GetMLJobBySessionID(sessionID string) (*models.MLClassificationJob, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, j := range m.mlJobs {
+		if j.SessionID == sessionID {
+			copyJob := *j
+			return &copyJob, nil
+		}
+	}
+	return nil, nil
+}
+
+// ClaimNextPendingMLJobs atomically claims pending jobs for processing up to limit
+func (m *MemoryStore) ClaimNextPendingMLJobs(limit int) ([]models.MLClassificationJob, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	now := time.Now()
+	var claimed []models.MLClassificationJob
+
+	for _, j := range m.mlJobs {
+		if len(claimed) >= limit {
+			break
+		}
+
+		isPending := j.Status == "pending"
+		isStaleProcessing := j.Status == "processing" && now.Sub(j.UpdatedAt) > 5*time.Minute
+
+		if (isPending || isStaleProcessing) && (j.NextRunAt.Before(now) || j.NextRunAt.Equal(now)) && j.Attempts < j.MaxAttempts {
+			j.Status = "processing"
+			j.Attempts++
+			j.UpdatedAt = now
+			claimed = append(claimed, *j)
+		}
+	}
+
+	return claimed, nil
+}
+
+// UpdateMLJob updates an existing ML job
+func (m *MemoryStore) UpdateMLJob(job *models.MLClassificationJob) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	existing, exists := m.mlJobs[job.ID]
+	if !exists {
+		return errors.New("job not found")
+	}
+
+	jobCopy := *job
+	jobCopy.UpdatedAt = time.Now()
+	*existing = jobCopy
+	return nil
+}
+
+// Close is a no-op for in-memory store
+func (m *MemoryStore) Close() error {
+	return nil
 }

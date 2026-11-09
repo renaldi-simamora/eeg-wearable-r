@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"eeg-backend/models"
 )
 
@@ -21,9 +23,15 @@ type Store interface {
 	// Session methods
 	GetSessions(userID string) ([]models.Session, error)
 	GetSessionByID(id string) (*models.Session, error)
+	GetActiveSessionByDevice(deviceID string) (*models.Session, error)
 	CreateSession(session *models.Session) error
 	UpdateSession(session *models.Session) error
+	RequestStopSession(id string) (*models.Session, error)
 	StopSession(id string) (*models.Session, error)
+	FinalizeSession(id string) (*models.Session, bool, error)
+	FinalizeSessionWithJob(id string) (*models.Session, *models.MLClassificationJob, bool, error)
+	RecoverStaleStopRequestedSessions(cutoffDuration time.Duration) ([]models.Session, error)
+	ReconcileCompletedSessionsWithoutJobs() ([]models.MLClassificationJob, error)
 
 	// EEG & Brainwave methods
 	SaveEEGSamples(samples []models.EEGSample) error
@@ -36,4 +44,13 @@ type Store interface {
 	GetMLPredictions(sessionID string) ([]models.MLPrediction, error)
 	SaveAIInsight(insight *models.AIInsight) error
 	GetAIInsights(sessionID string) ([]models.AIInsight, error)
+
+	// Durable ML Classification Job methods
+	CreateMLJob(job *models.MLClassificationJob) error
+	GetMLJobBySessionID(sessionID string) (*models.MLClassificationJob, error)
+	ClaimNextPendingMLJobs(limit int) ([]models.MLClassificationJob, error)
+	UpdateMLJob(job *models.MLClassificationJob) error
+
+	// Lifecycle methods
+	Close() error
 }

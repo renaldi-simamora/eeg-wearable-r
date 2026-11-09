@@ -322,7 +322,7 @@ func TestSessionMetadataAndUpdates(t *testing.T) {
 		t.Errorf("Expected AcquisitionMode 'unknown', got '%s'", unknownSes.AcquisitionMode)
 	}
 
-	// 4. Verify that connected gateway WITHOUT active EEG stream is REJECTED
+	// 4. Verify that connected gateway with heartbeat CAN create live session before sending EEG (solves deadlock)
 	createReq := &models.CreateSessionRequest{
 		DeviceID:        "esp32-eeg-gateway-01",
 		ParticipantName: "Ahmad Rizky",
@@ -332,68 +332,33 @@ func TestSessionMetadataAndUpdates(t *testing.T) {
 		TargetBand:      "BETA",
 	}
 
-	// At this point, esp32-eeg-gateway-01 has heartbeat but LastEEGStreamAt is nil
-	_, err = sessionService.Create("user-test-01", createReq)
-	if err == nil {
-		t.Fatalf("Expected error when claiming 'live' on hardware device without active EEG stream, got nil")
-	}
-
-	// 5. Verify that connected gateway with STALE stream (> 30s) is REJECTED
-	staleTime := time.Now().Add(-45 * time.Second)
 	hwDev, _ := memStore.GetDeviceByID("esp32-eeg-gateway-01")
-	hwDev.LastEEGStreamAt = &staleTime
-	_ = memStore.UpdateDevice(hwDev)
-
-	_, err = sessionService.Create("user-test-01", createReq)
-	if err == nil {
-		t.Fatalf("Expected error when claiming 'live' on hardware device with stale EEG stream, got nil")
-	}
-
-	// 6. Verify that connected gateway with active stream but NIL SignalQuality is REJECTED
-	freshTime := time.Now().Add(-2 * time.Second)
-	hwDev.LastEEGStreamAt = &freshTime
-	hwDev.SignalQuality = nil // Never received from TGAM1
-	hwDev.SignalQualityUpdatedAt = nil
-	_ = memStore.UpdateDevice(hwDev)
-
-	_, err = sessionService.Create("user-test-01", createReq)
-	if err == nil {
-		t.Fatalf("Expected error when claiming 'live' with nil signal quality, got nil")
-	}
-
-	// 7. Verify that connected gateway with STALE SignalQuality (> 30s) is REJECTED
-	goodSQ := 0
-	staleSQTime := time.Now().Add(-45 * time.Second)
-	hwDev.SignalQuality = &goodSQ
-	hwDev.SignalQualityUpdatedAt = &staleSQTime
-	_ = memStore.UpdateDevice(hwDev)
-
-	_, err = sessionService.Create("user-test-01", createReq)
-	if err == nil {
-		t.Fatalf("Expected error when claiming 'live' with stale signal quality (> 30s), got nil")
-	}
-
-	// 8. Verify that connected gateway with active stream but LEAD-OFF (SignalQuality >= 200) is REJECTED
-	leadOffSQ := 200 // Total lead-off
-	freshSQTime := time.Now().Add(-2 * time.Second)
-	hwDev.SignalQuality = &leadOffSQ
-	hwDev.SignalQualityUpdatedAt = &freshSQTime
-	_ = memStore.UpdateDevice(hwDev)
-
-	_, err = sessionService.Create("user-test-01", createReq)
-	if err == nil {
-		t.Fatalf("Expected error when claiming 'live' with total lead-off signal quality (>=200), got nil")
-	}
-
-	// 9. Verify that actively streaming physical hardware gateway with valid contact SUCCEEDS
-	hwDev.SignalQuality = &goodSQ // Good electrode contact (0)
-	hwDev.SignalQualityUpdatedAt = &freshSQTime
+	hwDev.Status = "connected"
+	hwDev.LastSeen = time.Now()
+	hwDev.LastEEGStreamAt = nil // Has not started sending EEG yet
 	_ = memStore.UpdateDevice(hwDev)
 
 	ses, err := sessionService.Create("user-test-01", createReq)
 	if err != nil {
-		t.Fatalf("Failed to create session with verified streaming hardware gateway: %v", err)
+		t.Fatalf("Expected live session creation to succeed for online gateway without prior stream, got err: %v", err)
 	}
+	if ses.AcquisitionMode != models.AcquisitionModeLive {
+		t.Errorf("Expected AcquisitionMode 'live', got '%s'", ses.AcquisitionMode)
+	}
+
+	// 5. Verify that stale heartbeat (> 60s) is REJECTED
+	staleHeartbeat := time.Now().Add(-65 * time.Second)
+	hwDev.LastSeen = staleHeartbeat
+	_ = memStore.UpdateDevice(hwDev)
+
+	_, err = sessionService.Create("user-test-01", createReq)
+	if err == nil {
+		t.Fatalf("Expected error when claiming 'live' on hardware device with stale heartbeat (> 60s), got nil")
+	}
+
+	// Restore online device
+	hwDev.LastSeen = time.Now()
+	_ = memStore.UpdateDevice(hwDev)
 
 	if ses.ParticipantName != "Ahmad Rizky" {
 		t.Errorf("Expected ParticipantName 'Ahmad Rizky', got '%s'", ses.ParticipantName)

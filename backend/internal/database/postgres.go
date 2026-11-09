@@ -11,6 +11,7 @@ import (
 
 	"eeg-backend/models"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -279,6 +280,48 @@ func (s *PostgresStore) GetSessionByID(id string) (*models.Session, error) {
 	return &ses, nil
 }
 
+func (s *PostgresStore) GetActiveSessionByDevice(deviceID string) (*models.Session, error) {
+	query := `
+		SELECT s.id, s.user_id, s.device_id,
+		       COALESCE(s.participant_name, ''), COALESCE(s.title, ''), COALESCE(s.notes, ''), COALESCE(s.acquisition_mode, 'simulated'),
+		       s.started_at, s.ended_at, s.duration, s.status,
+		       COALESCE(s.target_band, 'ALPHA'), s.created_at,
+		       d.name, d.device_code, d.signal_quality
+		FROM sessions s
+		LEFT JOIN devices d ON s.device_id = d.id
+		WHERE s.device_id = $1 AND s.status IN ('running', 'stop_requested')
+		ORDER BY s.started_at DESC
+		LIMIT 1
+	`
+	row := s.db.QueryRow(query, deviceID)
+
+	var ses models.Session
+	var endedAt sql.NullTime
+	var devName, devCode sql.NullString
+	var sigQuality sql.NullInt32
+
+	if err := row.Scan(&ses.ID, &ses.UserID, &ses.DeviceID, &ses.ParticipantName, &ses.Title, &ses.Notes, &ses.AcquisitionMode, &ses.StartedAt, &endedAt, &ses.Duration, &ses.Status, &ses.TargetBand, &ses.CreatedAt, &devName, &devCode, &sigQuality); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if endedAt.Valid {
+		ses.EndedAt = &endedAt.Time
+	}
+	if devName.Valid {
+		ses.DeviceName = devName.String
+	}
+	if devCode.Valid {
+		ses.DeviceCode = devCode.String
+	}
+	if sigQuality.Valid {
+		v := int(sigQuality.Int32)
+		ses.SignalQuality = &v
+	}
+	return &ses, nil
+}
+
 func (s *PostgresStore) CreateSession(session *models.Session) error {
 	if session.TargetBand == "" {
 		session.TargetBand = "ALPHA"
@@ -305,7 +348,7 @@ func (s *PostgresStore) UpdateSession(session *models.Session) error {
 	return err
 }
 
-func (s *PostgresStore) StopSession(id string) (*models.Session, error) {
+func (s *PostgresStore) RequestStopSession(id string) (*models.Session, error) {
 	now := time.Now()
 	ses, err := s.GetSessionByID(id)
 	if err != nil {
@@ -315,25 +358,244 @@ func (s *PostgresStore) StopSession(id string) (*models.Session, error) {
 		return nil, fmt.Errorf("session not found")
 	}
 
+	// Idempotent: If already completed or stop_requested, preserve state and return as-is
+	if ses.Status == "completed" || ses.Status == "stop_requested" {
+		return ses, nil
+	}
+
 	duration := int(now.Sub(ses.StartedAt).Seconds())
 	if duration < 0 {
 		duration = 0
 	}
 
+	// Atomic conditional UPDATE: only transitions if currently 'running'
 	query := `
 		UPDATE sessions
-		SET ended_at = $1, duration = $2, status = 'completed'
-		WHERE id = $3
+		SET ended_at = $1, duration = $2, status = 'stop_requested'
+		WHERE id = $3 AND status = 'running'
 	`
 	_, err = s.db.Exec(query, now, duration, id)
 	if err != nil {
 		return nil, err
 	}
 
-	ses.EndedAt = &now
-	ses.Duration = duration
-	ses.Status = "completed"
-	return ses, nil
+	return s.GetSessionByID(id)
+}
+
+func (s *PostgresStore) FinalizeSessionWithJob(id string) (*models.Session, *models.MLClassificationJob, bool, error) {
+	now := time.Now()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 1. Atomic conditional UPDATE:
+	// Only transitions status if currently 'running' or 'stop_requested'.
+	query := `
+		UPDATE sessions
+		SET ended_at = COALESCE(ended_at, $1),
+		    duration = CASE 
+		        WHEN duration > 0 THEN duration 
+		        ELSE GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(ended_at, $1) - started_at))::integer)
+		    END,
+		    status = 'completed'
+		WHERE id = $2 AND status IN ('running', 'stop_requested')
+	`
+	res, err := tx.Exec(query, now, id)
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("failed to finalize session in tx: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	transitioned := rowsAffected > 0
+
+	var job *models.MLClassificationJob
+	if transitioned {
+		// 2. Create ML Job within the SAME transaction
+		job = &models.MLClassificationJob{
+			ID:          uuid.New().String(),
+			SessionID:   id,
+			Status:      "pending",
+			Attempts:    0,
+			MaxAttempts: 3,
+			NextRunAt:   now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+
+		insertJobQuery := `
+			INSERT INTO ml_classification_jobs (id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			ON CONFLICT (session_id) DO NOTHING
+		`
+		if _, err := tx.Exec(insertJobQuery, job.ID, job.SessionID, job.Status, job.Attempts, job.MaxAttempts, job.LastError, job.NextRunAt, job.CreatedAt, job.UpdatedAt); err != nil {
+			return nil, nil, false, fmt.Errorf("failed to create durable ML job in tx: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	ses, err := s.GetSessionByID(id)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	if ses == nil {
+		return nil, nil, false, fmt.Errorf("session not found")
+	}
+
+	if !transitioned {
+		existingJob, _ := s.GetMLJobBySessionID(id)
+		return ses, existingJob, false, nil
+	}
+
+	return ses, job, true, nil
+}
+
+func (s *PostgresStore) FinalizeSession(id string) (*models.Session, bool, error) {
+	ses, _, transitioned, err := s.FinalizeSessionWithJob(id)
+	return ses, transitioned, err
+}
+
+func (s *PostgresStore) StopSession(id string) (*models.Session, error) {
+	ses, _, err := s.FinalizeSession(id)
+	return ses, err
+}
+
+func (s *PostgresStore) RecoverStaleStopRequestedSessions(cutoffDuration time.Duration) ([]models.Session, error) {
+	now := time.Now()
+	cutoffTime := now.Add(-cutoffDuration)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// Atomic conditional query: finds and transitions only sessions in 'stop_requested' with age >= cutoffDuration
+	query := `
+		UPDATE sessions
+		SET ended_at = COALESCE(ended_at, $1),
+		    duration = CASE 
+		        WHEN duration > 0 THEN duration 
+		        ELSE GREATEST(0, EXTRACT(EPOCH FROM (COALESCE(ended_at, $1) - started_at))::integer)
+		    END,
+		    status = 'completed'
+		WHERE status = 'stop_requested'
+		  AND (ended_at <= $2 OR (ended_at IS NULL AND started_at <= $2))
+		RETURNING id
+	`
+	rows, err := tx.Query(query, now, cutoffTime)
+	if err != nil {
+		return nil, err
+	}
+
+	var recoveredIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			recoveredIDs = append(recoveredIDs, id)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// For each recovered session, insert pending ML job within the SAME transaction
+	insertJobQuery := `
+		INSERT INTO ml_classification_jobs (id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at)
+		VALUES ($1, $2, 'pending', 0, 3, '', $3, $3, $3)
+		ON CONFLICT (session_id) DO NOTHING
+	`
+	for _, id := range recoveredIDs {
+		jobID := uuid.New().String()
+		if _, err := tx.Exec(insertJobQuery, jobID, id, now); err != nil {
+			return nil, fmt.Errorf("failed to enqueue ML job for recovered session %s in tx: %w", id, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	var recovered []models.Session
+	for _, id := range recoveredIDs {
+		if ses, err := s.GetSessionByID(id); err == nil && ses != nil {
+			recovered = append(recovered, *ses)
+		}
+	}
+
+	return recovered, nil
+}
+
+func (s *PostgresStore) ReconcileCompletedSessionsWithoutJobs() ([]models.MLClassificationJob, error) {
+	query := `
+		SELECT s.id
+		FROM sessions s
+		WHERE s.status = 'completed'
+		  AND NOT EXISTS (SELECT 1 FROM ml_classification_jobs j WHERE j.session_id = s.id)
+		  AND NOT EXISTS (SELECT 1 FROM ml_predictions p WHERE p.session_id = s.id)
+		  AND (
+		      EXISTS (SELECT 1 FROM brainwave_features f WHERE f.session_id = s.id)
+		      OR EXISTS (SELECT 1 FROM eeg_samples e WHERE e.session_id = s.id)
+		  )
+		ORDER BY s.started_at ASC
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query un-reconciled sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessionIDs []string
+	for rows.Next() {
+		var sid string
+		if err := rows.Scan(&sid); err != nil {
+			return nil, err
+		}
+		sessionIDs = append(sessionIDs, sid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(sessionIDs) == 0 {
+		return nil, nil
+	}
+
+	var createdJobs []models.MLClassificationJob
+	now := time.Now()
+
+	insertQuery := `
+		INSERT INTO ml_classification_jobs (id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at)
+		VALUES ($1, $2, 'pending', 0, 3, '', $3, $3, $3)
+		ON CONFLICT (session_id) DO NOTHING
+		RETURNING id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at
+	`
+	for _, sid := range sessionIDs {
+		jobID := uuid.New().String()
+		var j models.MLClassificationJob
+		err := s.db.QueryRow(insertQuery, jobID, sid, now).Scan(&j.ID, &j.SessionID, &j.Status, &j.Attempts, &j.MaxAttempts, &j.LastError, &j.NextRunAt, &j.CreatedAt, &j.UpdatedAt)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			log.Printf("[RECONCILIATION ERROR] Failed to create job for session %s: %v", sid, err)
+			continue
+		}
+		createdJobs = append(createdJobs, j)
+		log.Printf("[RECONCILIATION] Created missing ML job %s for completed session %s", j.ID, sid)
+	}
+
+	return createdJobs, nil
 }
 
 func (s *PostgresStore) SaveEEGSamples(samples []models.EEGSample) error {
@@ -475,6 +737,122 @@ func (s *PostgresStore) SaveAIInsight(insight *models.AIInsight) error {
 	`
 	_, err := s.db.Exec(query, insight.ID, insight.SessionID, insight.Title, insight.Summary, insight.CreatedAt)
 	return err
+}
+
+func (s *PostgresStore) CreateMLJob(job *models.MLClassificationJob) error {
+	query := `
+		INSERT INTO ml_classification_jobs (id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (session_id) DO NOTHING
+	`
+	now := time.Now()
+	createdAt := job.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = now
+	}
+	updatedAt := job.UpdatedAt
+	if updatedAt.IsZero() {
+		updatedAt = createdAt
+	}
+	nextRunAt := job.NextRunAt
+	if nextRunAt.IsZero() {
+		nextRunAt = createdAt
+	}
+	status := job.Status
+	if status == "" {
+		status = "pending"
+	}
+	maxAttempts := job.MaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 3
+	}
+	_, err := s.db.Exec(query, job.ID, job.SessionID, status, job.Attempts, maxAttempts, job.LastError, nextRunAt, createdAt, updatedAt)
+	return err
+}
+
+func (s *PostgresStore) GetMLJobBySessionID(sessionID string) (*models.MLClassificationJob, error) {
+	query := `
+		SELECT id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at, completed_at
+		FROM ml_classification_jobs
+		WHERE session_id = $1
+	`
+	row := s.db.QueryRow(query, sessionID)
+	var j models.MLClassificationJob
+	var completedAt sql.NullTime
+	if err := row.Scan(&j.ID, &j.SessionID, &j.Status, &j.Attempts, &j.MaxAttempts, &j.LastError, &j.NextRunAt, &j.CreatedAt, &j.UpdatedAt, &completedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if completedAt.Valid {
+		j.CompletedAt = &completedAt.Time
+	}
+	return &j, nil
+}
+
+func (s *PostgresStore) ClaimNextPendingMLJobs(limit int) ([]models.MLClassificationJob, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	query := `
+		UPDATE ml_classification_jobs
+		SET status = 'processing', attempts = attempts + 1, updated_at = NOW()
+		WHERE id IN (
+			SELECT id FROM ml_classification_jobs
+			WHERE (status = 'pending' OR (status = 'processing' AND updated_at < NOW() - INTERVAL '5 minutes'))
+			  AND next_run_at <= NOW()
+			  AND attempts < max_attempts
+			ORDER BY created_at ASC
+			LIMIT $1
+			FOR UPDATE SKIP LOCKED
+		)
+		RETURNING id, session_id, status, attempts, max_attempts, last_error, next_run_at, created_at, updated_at, completed_at
+	`
+	rows, err := s.db.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []models.MLClassificationJob
+	for rows.Next() {
+		var j models.MLClassificationJob
+		var completedAt sql.NullTime
+		if err := rows.Scan(&j.ID, &j.SessionID, &j.Status, &j.Attempts, &j.MaxAttempts, &j.LastError, &j.NextRunAt, &j.CreatedAt, &j.UpdatedAt, &completedAt); err != nil {
+			return nil, err
+		}
+		if completedAt.Valid {
+			j.CompletedAt = &completedAt.Time
+		}
+		jobs = append(jobs, j)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+func (s *PostgresStore) UpdateMLJob(job *models.MLClassificationJob) error {
+	query := `
+		UPDATE ml_classification_jobs
+		SET status = $1, attempts = $2, max_attempts = $3, last_error = $4, next_run_at = $5, completed_at = $6, updated_at = $7
+		WHERE id = $8
+	`
+	now := time.Now()
+	var completedAt sql.NullTime
+	if job.CompletedAt != nil {
+		completedAt = sql.NullTime{Time: *job.CompletedAt, Valid: true}
+	}
+	_, err := s.db.Exec(query, job.Status, job.Attempts, job.MaxAttempts, job.LastError, job.NextRunAt, completedAt, now, job.ID)
+	return err
+}
+
+func (s *PostgresStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
 }
 
 // SeedInitialData creates standard starter records if tables are empty

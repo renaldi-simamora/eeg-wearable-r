@@ -1,0 +1,142 @@
+{
+  "audit_metadata": {
+    "title": "EEG Live System Logic Full Technical Audit Metrics",
+    "project": "NeuroPulse EEG Wearable Platform",
+    "target_hardware": "NeuroSky TGAM1 + ESP32 DevKit V1",
+    "audit_date": "2026-11-08T19:15:00+07:00",
+    "audit_type": "READ_ONLY_TECHNICAL_AUDIT",
+    "auditor_role": "Senior Embedded Systems Engineer, EEG Signal Processing Engineer & IoT System Auditor"
+  },
+  "files_audited": [
+    "firmware/esp32_tgam1/esp32_tgam1.ino",
+    "docs/hardware_tgam1_esp32.md",
+    "docs/project-spec/TRD.md",
+    "backend/internal/eeg/handler.go",
+    "backend/internal/sessions/handler.go",
+    "backend/models/models.go"
+  ],
+  "uart_configuration": {
+    "status": "FAIL",
+    "configured_baud_rate": 57600,
+    "serial_framing": "8-N-1",
+    "code_rx_pin": 16,
+    "code_tx_pin": 17,
+    "prompt_rx_pin": 26,
+    "prompt_tx_pin": 27,
+    "conflict_detected": true,
+    "psram_conflict_risk_on_wrover": true,
+    "hardware_fifo_size_bytes": 128
+  },
+  "parser_status": {
+    "status": "PASS",
+    "sync_bytes_handled": "0xAA 0xAA",
+    "checksum_formula": "expected = 0xFF - payloadSum",
+    "checksum_mathematically_valid": true,
+    "supported_packet_codes": [
+      "0x02_POOR_SIGNAL_QUALITY",
+      "0x80_RAW_WAVE_VALUE_16BIT",
+      "0x83_ASIC_EEG_POWER_24BYTE"
+    ],
+    "unsupported_ignored_codes": [
+      "0x04_ATTENTION",
+      "0x05_MEDITATION"
+    ],
+    "extended_code_0x55_handled": true,
+    "buffer_overflow_protection": true
+  },
+  "raw_eeg_status": {
+    "status": "WARNING",
+    "source": "ThinkGear packet 0x80 (16-bit 2's complement)",
+    "microvolt_conversion_status": "Theoretical uncalibrated approximation",
+    "microvolt_formula": "V = raw * (1.8 / 4096) / 2000 * 1e6",
+    "lead_off_gating_present": false,
+    "stale_data_timeout_present": false
+  },
+  "sampling_rate_status": {
+    "status": "WARNING",
+    "nominal_hz": 512,
+    "verified_by_hardware_timer": false,
+    "jitter_controlled": false,
+    "batching_interval_ms": 1000
+  },
+  "filter_status": {
+    "status": "NOT IMPLEMENTED",
+    "biquad_filters_in_firmware": false,
+    "filter_coefficients_calculated": false,
+    "bandpass_filters_present": false,
+    "notes": "Firmware ESP32 does not perform digital filtering on raw EEG. 8 spectral band powers are parsed directly from TGAM1 ASIC hardware co-processor packet 0x83."
+  },
+  "band_power_status": {
+    "status": "PASS",
+    "asic_subbands_parsed": 8,
+    "grouping_alpha": "lowAlpha + highAlpha",
+    "grouping_beta": "lowBeta + highBeta",
+    "grouping_gamma": "lowGamma + midGamma",
+    "grouping_delta": "delta",
+    "grouping_theta": "theta",
+    "relative_power_normalization": "Handled in backend / WebSocket hub",
+    "division_by_zero_protected": true
+  },
+  "waveform_status": {
+    "status": "NOT IMPLEMENTED",
+    "raw_waveform_graph_on_oled": false,
+    "five_band_waveforms_on_oled": false,
+    "oled_display_mode": "Text-only metrics (printf)",
+    "oscilloscope_rendering": false,
+    "multi_page_live_rotation": false
+  },
+  "peak_detection_status": {
+    "status": "NOT IMPLEMENTED",
+    "algorithm_present": false,
+    "rms_baseline_present": false,
+    "hysteresis_present": false,
+    "refractory_period_present": false,
+    "clinical_spike_claim_valid": false
+  },
+  "session_status": {
+    "status": "FAIL",
+    "fsm_states": [
+      "UI_BOOT",
+      "UI_READY",
+      "UI_LIVE",
+      "UI_SUMMARY",
+      "UI_ERROR"
+    ],
+    "off_state_present": false,
+    "configured_max_duration_seconds": 7200,
+    "target_max_duration_seconds": 300,
+    "auto_stop_on_5_minutes": false,
+    "start_without_sensor_prevented": false,
+    "disconnect_mid_session_handled": false
+  },
+  "serial_monitor_status": {
+    "status": "WARNING",
+    "baud_rate": 115200,
+    "lifecycle_events_logged": true,
+    "structured_periodic_telemetry_logged": false,
+    "flood_risk": false
+  },
+  "performance_status": {
+    "status": "FAIL",
+    "architecture": "Single-threaded sequential blocking",
+    "blocking_http_post_hazard": true,
+    "blocking_i2c_oled_hazard": true,
+    "uart_fifo_overflow_risk": "CRITICAL (Occurs on every batch send if latency > 31ms)",
+    "static_ram_used_bytes": 3500,
+    "ram_safety_margin": "EXCELLENT (< 2% of 520KB SRAM)",
+    "recommended_architecture": "FreeRTOS Dual-Core (Core 0: UART Polling, Core 1: Network & UI)"
+  },
+  "critical_issue_count": 2,
+  "warning_count": 4,
+  "hardware_validation_required": [
+    "Multimeter 3.3V DC rail check on ESP32 before TGAM1 connection",
+    "Decoupling capacitor (100nF || 10uF) ripple mitigation check",
+    "UART RX/TX crossover pin verification (GPIO 16/17 vs 26/27)",
+    "TGAM1 hardware solder jumper B (open for 57600 baud)",
+    "TGAM1 hardware solder jumper M (open for 50Hz notch)",
+    "Electrode lead-off detection test (SignalQuality 200 off skin vs 0 on skin)",
+    "Eye blink artifact deflection test on Fp1"
+  ],
+  "final_verdict": "2. LAYAK UNTUK PENGUJIAN AWAL (DENGAN SYARAT PERBAIKAN P0 SEBELUM PENGAMBILAN DATA)",
+  "recommended_next_action": "Selesaikan perbaikan P0 (pemisahan task UART via FreeRTOS non-blocking dan penyesuaian pin) sebelum memulai flash firmware dan pengujian elektroda pada subjek."
+}

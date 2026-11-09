@@ -292,7 +292,19 @@ func TestDeviceEndpointsHTTPRoutes(t *testing.T) {
 		t.Fatalf("Expected HTTP 200 for sample ingestion, got %d: %s", wSamples.Code, wSamples.Body.String())
 	}
 
-	// 4. Test POST /api/v1/eeg/sessions/finish with valid API key
+	// 4. Test alias routes without /api (/v1/eeg/samples) while session is active
+	reqAlias, _ := http.NewRequest(http.MethodPost, "/v1/eeg/samples", bytes.NewBuffer(sampleBody))
+	reqAlias.Header.Set("Content-Type", "application/json")
+	reqAlias.Header.Set("X-Device-API-Key", apiKey)
+
+	wAlias := httptest.NewRecorder()
+	router.ServeHTTP(wAlias, reqAlias)
+
+	if wAlias.Code != http.StatusOK {
+		t.Fatalf("Expected HTTP 200 on /v1/eeg/samples alias, got %d: %s", wAlias.Code, wAlias.Body.String())
+	}
+
+	// 5. Test POST /api/v1/eeg/sessions/finish with valid API key
 	finishBody, _ := json.Marshal(models.DeviceSessionFinishRequest{
 		SessionID:       sessionID,
 		DeviceID:        "esp32-eeg-gateway-01",
@@ -309,18 +321,6 @@ func TestDeviceEndpointsHTTPRoutes(t *testing.T) {
 
 	if wFinish.Code != http.StatusOK {
 		t.Fatalf("Expected HTTP 200 for session finish, got %d: %s", wFinish.Code, wFinish.Body.String())
-	}
-
-	// 5. Test alias routes without /api (/v1/eeg/samples)
-	reqAlias, _ := http.NewRequest(http.MethodPost, "/v1/eeg/samples", bytes.NewBuffer(sampleBody))
-	reqAlias.Header.Set("Content-Type", "application/json")
-	reqAlias.Header.Set("X-Device-API-Key", apiKey)
-
-	wAlias := httptest.NewRecorder()
-	router.ServeHTTP(wAlias, reqAlias)
-
-	if wAlias.Code != http.StatusOK {
-		t.Fatalf("Expected HTTP 200 on /v1/eeg/samples alias, got %d: %s", wAlias.Code, wAlias.Body.String())
 	}
 }
 

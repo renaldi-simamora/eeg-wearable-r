@@ -53,4 +53,3 @@ func TestDashboardGetSummary(t *testing.T) {
 		t.Errorf("expected resp.Success to be true")
 	}
 }
-

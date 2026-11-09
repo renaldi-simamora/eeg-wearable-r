@@ -2,6 +2,8 @@ package routes
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"eeg-backend/config"
 	"eeg-backend/internal/analysis"
@@ -19,13 +21,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	activeSessionsService *sessions.Service
+	activeAnalysisService *analysis.Service
+	activeSessionsMu      sync.Mutex
+)
+
+// StopServices stops all active background workers cleanly
+func StopServices() {
+	activeSessionsMu.Lock()
+	defer activeSessionsMu.Unlock()
+	if activeSessionsService != nil {
+		activeSessionsService.StopPeriodicRecovery()
+	}
+	if activeAnalysisService != nil {
+		activeAnalysisService.StopWorker()
+	}
+}
+
 func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Engine {
 	r := gin.New()
 
 	// Global middleware
 	r.Use(gin.Recovery())
 	r.Use(middleware.LoggerMiddleware())
-	r.Use(middleware.CORSMiddleware(cfg.CORSOrigin))
+	r.Use(middleware.CORSMiddleware(cfg.CORSOrigin, cfg.IsProduction()))
+
+	// Enforce CORS origin verification on WebSocket Hub as well
+	if hub != nil {
+		hub.SetOriginChecker(middleware.GetWebSocketCheckOrigin(cfg.CORSOrigin, cfg.IsProduction()))
+	}
 
 	// Health check (available at /health and /api/health)
 	healthHandler := func(c *gin.Context) {
@@ -56,10 +81,35 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 	analysisHandler := analysis.NewHandler(analysisService)
 
 	sessionsService := sessions.NewService(store, hub, analysisService)
+	if cfg.GracefulStopTimeout > 0 {
+		sessionsService.SetGracefulStopTimeout(cfg.GracefulStopTimeout)
+	}
 	sessionsHandler := sessions.NewHandler(sessionsService)
 
 	eegService := eeg.NewService(store, hub)
+	eegService.SetAnalysisService(analysisService)
 	eegHandler := eeg.NewHandler(eegService)
+
+	// Start periodic recovery worker (runs on startup and every 30s)
+	cutoff := cfg.RecoveryAgeCutoff
+	if cutoff <= 0 {
+		cutoff = 2 * time.Minute
+	}
+	sessionsService.StartPeriodicRecovery(30*time.Second, cutoff)
+
+	// Start durable ML classification worker (polls every 3s and reactive on notify)
+	analysisService.StartWorker(3 * time.Second)
+
+	activeSessionsMu.Lock()
+	if activeSessionsService != nil {
+		activeSessionsService.StopPeriodicRecovery()
+	}
+	if activeAnalysisService != nil {
+		activeAnalysisService.StopWorker()
+	}
+	activeSessionsService = sessionsService
+	activeAnalysisService = analysisService
+	activeSessionsMu.Unlock()
 
 	dashboardService := dashboard.NewService(store)
 	dashboardHandler := dashboard.NewHandler(dashboardService)
@@ -125,6 +175,7 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 			v1EEG.POST("/sessions/start", eegHandler.DeviceStartSession)
 			v1EEG.POST("/samples", eegHandler.DeviceIngestSamples)
 			v1EEG.POST("/sessions/finish", eegHandler.DeviceFinishSession)
+			v1EEG.GET("/device/status", eegHandler.DeviceGetStatus)
 		}
 	}
 
@@ -136,6 +187,7 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 		topV1.POST("/sessions/start", eegHandler.DeviceStartSession)
 		topV1.POST("/samples", eegHandler.DeviceIngestSamples)
 		topV1.POST("/sessions/finish", eegHandler.DeviceFinishSession)
+		topV1.GET("/device/status", eegHandler.DeviceGetStatus)
 	}
 
 	// 404 handler with standard API response

@@ -3,8 +3,11 @@ package analysis
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"eeg-backend/internal/database"
@@ -15,9 +18,14 @@ import (
 )
 
 type Service struct {
-	store  database.Store
-	mlURL  string
-	client *http.Client
+	store         database.Store
+	mlURL         string
+	client        *http.Client
+	mu            sync.RWMutex
+	workerRunning bool
+	workerStopCh  chan struct{}
+	workerDoneCh  chan struct{}
+	workerNotify  chan struct{}
 }
 
 func NewService(store database.Store, mlURL string) *Service {
@@ -30,7 +38,186 @@ func NewService(store database.Store, mlURL string) *Service {
 		client: &http.Client{
 			Timeout: 4 * time.Second,
 		},
+		workerNotify: make(chan struct{}, 100),
 	}
+}
+
+func (s *Service) SetClient(client *http.Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if client != nil {
+		s.client = client
+	}
+}
+
+// NotifyWorker signals the worker to wake up and process pending jobs
+func (s *Service) NotifyWorker() {
+	select {
+	case s.workerNotify <- struct{}{}:
+	default:
+	}
+}
+
+// ReconcileJobs audits completed sessions that lack ML jobs and enqueues them
+func (s *Service) ReconcileJobs() (int, error) {
+	jobs, err := s.store.ReconcileCompletedSessionsWithoutJobs()
+	if err != nil {
+		log.Printf("[RECONCILIATION ERROR] Failed to reconcile completed sessions: %v", err)
+		return 0, err
+	}
+	if len(jobs) > 0 {
+		log.Printf("[RECONCILIATION] Reconciled %d completed sessions into durable ML jobs", len(jobs))
+		s.NotifyWorker()
+	}
+	return len(jobs), nil
+}
+
+// EnqueueClassificationJob creates a persistent ML classification job for a session if not already present
+func (s *Service) EnqueueClassificationJob(sessionID string) (*models.MLClassificationJob, error) {
+	if sessionID == "" {
+		return nil, errors.New("sessionId is required")
+	}
+
+	// 1. Check if job already exists for this session (idempotency check)
+	existing, err := s.store.GetMLJobBySessionID(sessionID)
+	if err == nil && existing != nil {
+		return existing, nil
+	}
+
+	now := time.Now()
+	job := &models.MLClassificationJob{
+		ID:          uuid.New().String(),
+		SessionID:   sessionID,
+		Status:      "pending",
+		Attempts:    0,
+		MaxAttempts: 3,
+		NextRunAt:   now,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	if err := s.store.CreateMLJob(job); err != nil {
+		log.Printf("[ML JOB ERROR] Failed to create durable ML job for session %s: %v", sessionID, err)
+		return nil, fmt.Errorf("failed to create durable ML job: %w", err)
+	}
+
+	s.NotifyWorker()
+	return job, nil
+}
+
+// ProcessPendingJobs claims and executes batch of pending ML classification jobs
+func (s *Service) ProcessPendingJobs() (int, error) {
+	jobs, err := s.store.ClaimNextPendingMLJobs(5)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(jobs) == 0 {
+		return 0, nil
+	}
+
+	processed := 0
+	for _, job := range jobs {
+		pred, err := s.ClassifySession(job.SessionID)
+		now := time.Now()
+		if err == nil && pred != nil {
+			job.Status = "completed"
+			job.CompletedAt = &now
+			job.LastError = ""
+			_ = s.store.UpdateMLJob(&job)
+			log.Printf("[ML WORKER] Job %s (Session %s) completed successfully", job.ID, job.SessionID)
+		} else {
+			errMsg := "unknown ML classification error"
+			if err != nil {
+				errMsg = err.Error()
+			}
+			if job.Attempts >= job.MaxAttempts {
+				job.Status = "failed"
+				job.LastError = errMsg
+				_ = s.store.UpdateMLJob(&job)
+				log.Printf("[ML WORKER] Job %s (Session %s) failed after %d attempts: %s", job.ID, job.SessionID, job.Attempts, errMsg)
+			} else {
+				// Retry with backoff: 3s, 6s, 9s...
+				backoff := time.Duration(job.Attempts) * 3 * time.Second
+				job.Status = "pending"
+				job.NextRunAt = now.Add(backoff)
+				job.LastError = errMsg
+				_ = s.store.UpdateMLJob(&job)
+				log.Printf("[ML WORKER] Job %s (Session %s) attempt %d/%d failed (%s); scheduled retry in %v", job.ID, job.SessionID, job.Attempts, job.MaxAttempts, errMsg, backoff)
+			}
+		}
+		processed++
+	}
+
+	return processed, nil
+}
+
+// StartWorker starts the background durable ML job processor
+func (s *Service) StartWorker(interval time.Duration) {
+	s.mu.Lock()
+	if s.workerRunning {
+		s.mu.Unlock()
+		return
+	}
+	s.workerRunning = true
+	s.workerStopCh = make(chan struct{})
+	s.workerDoneCh = make(chan struct{})
+	s.mu.Unlock()
+
+	if interval <= 0 {
+		interval = 3 * time.Second
+	}
+
+	// 1. Reconcile any completed sessions that were left without jobs on startup
+	_, _ = s.ReconcileJobs()
+
+	// 2. Process pending jobs from prior runs/restarts immediately
+	_, _ = s.ProcessPendingJobs()
+
+	// 3. Run background loop
+	go func() {
+		defer close(s.workerDoneCh)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		reconcileTicker := time.NewTicker(30 * time.Second)
+		defer reconcileTicker.Stop()
+
+		for {
+			select {
+			case <-s.workerStopCh:
+				log.Println("[ML WORKER] Durable ML classification worker stopped gracefully")
+				return
+			case <-s.workerNotify:
+				_, _ = s.ProcessPendingJobs()
+			case <-ticker.C:
+				_, _ = s.ProcessPendingJobs()
+			case <-reconcileTicker.C:
+				_, _ = s.ReconcileJobs()
+			}
+		}
+	}()
+}
+
+// StopWorker cleanly terminates the background ML job processor
+func (s *Service) StopWorker() {
+	s.mu.Lock()
+	if !s.workerRunning {
+		s.mu.Unlock()
+		return
+	}
+	close(s.workerStopCh)
+	s.workerRunning = false
+	done := s.workerDoneCh
+	s.mu.Unlock()
+
+	<-done
+}
+
+// IsWorkerRunning reports if the worker is active
+func (s *Service) IsWorkerRunning() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.workerRunning
 }
 
 type MLPredictRequest struct {
@@ -105,7 +292,8 @@ func (s *Service) ClassifySession(sessionID string) (*models.MLPrediction, error
 	}
 
 	if err := s.store.SaveMLPrediction(pred); err != nil {
-		return nil, err
+		log.Printf("[ANALYSIS ERROR] Failed to persist ML prediction for session %s: %v", sessionID, err)
+		return nil, fmt.Errorf("failed to save ML prediction: %w", err)
 	}
 
 	// Generate structured academic insight
@@ -120,7 +308,9 @@ func (s *Service) ClassifySession(sessionID string) (*models.MLPrediction, error
 		),
 		CreatedAt: time.Now(),
 	}
-	_ = s.store.SaveAIInsight(insight)
+	if err := s.store.SaveAIInsight(insight); err != nil {
+		log.Printf("[ANALYSIS WARNING] Failed to persist AI insight for session %s: %v", sessionID, err)
+	}
 
 	return pred, nil
 }
@@ -240,8 +430,48 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// authorizeSessionAccess retrieves the session and verifies that it is owned by the authenticated user,
+// or that the user has verified admin role. If not found or not owned, it returns 404 to prevent session enumeration.
+func (h *Handler) authorizeSessionAccess(c *gin.Context, sessionID string) (*models.Session, bool) {
+	rawUserID, exists := c.Get("userID")
+	if !exists || rawUserID == nil {
+		c.JSON(http.StatusUnauthorized, models.APIResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+		return nil, false
+	}
+	userID, _ := rawUserID.(string)
+	rawRole, _ := c.Get("role")
+	role, _ := rawRole.(string)
+
+	ses, err := h.service.store.GetSessionByID(sessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return nil, false
+	}
+
+	// Mask non-ownership as 404 Not Found to prevent session ID enumeration
+	if ses == nil || (ses.UserID != userID && role != "admin") {
+		c.JSON(http.StatusNotFound, models.APIResponse{
+			Success: false,
+			Error:   "Session not found",
+		})
+		return nil, false
+	}
+
+	return ses, true
+}
+
 func (h *Handler) GetAnalysis(c *gin.Context) {
 	sessionID := c.Param("sessionId")
+	if _, ok := h.authorizeSessionAccess(c, sessionID); !ok {
+		return
+	}
+
 	res, err := h.service.GetAnalysisBySession(sessionID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
@@ -259,6 +489,11 @@ func (h *Handler) GetAnalysis(c *gin.Context) {
 
 func (h *Handler) Classify(c *gin.Context) {
 	sessionID := c.Param("sessionId")
+	// Ownership verification MUST happen before any ML prediction or microservice call
+	if _, ok := h.authorizeSessionAccess(c, sessionID); !ok {
+		return
+	}
+
 	pred, err := h.service.ClassifySession(sessionID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{

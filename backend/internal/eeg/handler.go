@@ -7,9 +7,12 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"eeg-backend/internal/analysis"
 	"eeg-backend/internal/database"
 	ws "eeg-backend/internal/websocket"
 	"eeg-backend/models"
@@ -19,12 +22,26 @@ import (
 )
 
 type Service struct {
-	store database.Store
-	hub   *ws.Hub
+	store       database.Store
+	hub         *ws.Hub
+	analysisSvc *analysis.Service
+	mu          sync.RWMutex
 }
 
 func NewService(store database.Store, hub *ws.Hub) *Service {
 	return &Service{store: store, hub: hub}
+}
+
+func (s *Service) SetAnalysisService(analysisSvc *analysis.Service) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.analysisSvc = analysisSvc
+}
+
+func (s *Service) getAnalysisService() *analysis.Service {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.analysisSvc
 }
 
 func generatePhysiologicalEEGData(sessionID, devName, devCode string) ([]models.EEGSample, models.BrainwaveFeature) {
@@ -313,6 +330,14 @@ func (s *Service) StartDeviceSession(req *models.DeviceSessionStartRequest) (*mo
 		return existing, nil
 	}
 
+	// 3. If device already has an active running session (e.g. initiated by web), reuse that active session to prevent duplicates
+	if activeSes, _ := s.store.GetActiveSessionByDevice(req.DeviceID); activeSes != nil {
+		if s.hub != nil {
+			s.hub.StartAcquisitionWithDeviceAndTarget(activeSes.ID, false, activeSes.DeviceID, dev.Name, activeSes.TargetBand)
+		}
+		return activeSes, nil
+	}
+
 	targetBand := "ALPHA"
 	if req.TargetBand != "" {
 		if norm, ok := models.NormalizeTargetBand(req.TargetBand); ok {
@@ -353,6 +378,9 @@ func (s *Service) IngestDeviceBatch(req *models.DeviceBatchSamplesRequest) (int,
 	}
 
 	sampleCount := len(req.Samples)
+	if sampleCount > 2048 {
+		return 0, fmt.Errorf("batch sample count exceeds maximum allowed limit (got %d, max 2048)", sampleCount)
+	}
 	hasValidSamples := sampleCount > 0
 	hasValidBandPower := req.BandPower != nil && req.BandPower.IsValid()
 
@@ -364,20 +392,18 @@ func (s *Service) IngestDeviceBatch(req *models.DeviceBatchSamplesRequest) (int,
 	now := time.Now()
 	batchEndTime := now.UnixMilli()
 
-	// 2. Ensure session exists (handle out-of-order ingestion packets)
+	// 2. Validate that session exists, is running or stop_requested, and is bound to this device
 	existingSession, err := s.store.GetSessionByID(req.SessionID)
 	if err != nil || existingSession == nil {
-		autoSession := &models.Session{
-			ID:              req.SessionID,
-			UserID:          "user-demo-01",
-			DeviceID:        req.DeviceID,
-			AcquisitionMode: models.AcquisitionModeSimulated,
-			StartedAt:       now,
-			Status:          "running",
-			TargetBand:      "ALPHA",
-			CreatedAt:       now,
-		}
-		_ = s.store.CreateSession(autoSession)
+		return 0, errors.New("session not found")
+	}
+
+	if existingSession.Status != "running" && existingSession.Status != "stop_requested" {
+		return 0, fmt.Errorf("session is not running (status: %s)", existingSession.Status)
+	}
+
+	if existingSession.DeviceID != req.DeviceID {
+		return 0, fmt.Errorf("device '%s' is not authorized to send samples to session owned by device '%s'", req.DeviceID, existingSession.DeviceID)
 	}
 
 	// 3. Convert raw 16-bit ADC samples to microvolts (uV) and persist to database FIRST
@@ -493,18 +519,36 @@ func (s *Service) FinishDeviceSession(req *models.DeviceSessionFinishRequest) (*
 	if req.SessionID == "" {
 		return nil, errors.New("session_id is required")
 	}
+	if req.DeviceID == "" {
+		return nil, errors.New("device_id is required")
+	}
 
-	ses, err := s.store.StopSession(req.SessionID)
+	existing, err := s.store.GetSessionByID(req.SessionID)
+	if err != nil || existing == nil {
+		return nil, errors.New("session not found")
+	}
+
+	if existing.DeviceID != req.DeviceID {
+		return nil, fmt.Errorf("device '%s' is not authorized to finish session owned by device '%s'", req.DeviceID, existing.DeviceID)
+	}
+
+	ses, job, transitioned, err := s.store.FinalizeSessionWithJob(req.SessionID)
 	if err != nil {
-		ses, _ = s.store.GetSessionByID(req.SessionID)
+		log.Printf("[DEVICE FINISH ERROR] FinalizeSessionWithJob failed for session %s: %v", req.SessionID, err)
+		return nil, fmt.Errorf("failed to finalize session with durable job: %w", err)
 	}
 
 	if ses != nil && req.DurationSeconds > 0 {
 		ses.Duration = req.DurationSeconds
 	}
 
-	if s.hub != nil {
-		s.hub.StopAcquisition()
+	if transitioned {
+		if s.hub != nil {
+			s.hub.StopAcquisition()
+		}
+		if aSvc := s.getAnalysisService(); aSvc != nil && job != nil {
+			aSvc.NotifyWorker()
+		}
 	}
 
 	if req.DeviceID != "" {
@@ -517,6 +561,106 @@ func (s *Service) FinishDeviceSession(req *models.DeviceSessionFinishRequest) (*
 	return ses, nil
 }
 
+// GetDeviceStatus handles device polling and updates device heartbeat
+func (s *Service) GetDeviceStatus(deviceID string, signalQuality *int, batteryLevel *int, currentSessionID string) (*models.DevicePollResponse, error) {
+	if deviceID == "" {
+		deviceID = "esp32-eeg-gateway-01"
+	}
+
+	now := time.Now()
+
+	// 1. Update device heartbeat and connectivity status
+	dev, err := s.store.GetDeviceByID(deviceID)
+	if err != nil || dev == nil {
+		newDev := models.Device{
+			ID:           deviceID,
+			DeviceCode:   deviceID,
+			Name:         "ESP32 TGAM1 Hardware Gateway",
+			Status:       "connected",
+			BatteryLevel: 100,
+			LastSeen:     now,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		if batteryLevel != nil {
+			newDev.BatteryLevel = *batteryLevel
+		}
+		if signalQuality != nil {
+			newDev.SignalQuality = signalQuality
+			newDev.SignalQualityUpdatedAt = &now
+		}
+		_ = s.store.CreateDevice(&newDev)
+		dev = &newDev
+	} else {
+		dev.Status = "connected"
+		dev.LastSeen = now
+		if batteryLevel != nil {
+			dev.BatteryLevel = *batteryLevel
+		}
+		if signalQuality != nil {
+			dev.SignalQuality = signalQuality
+			dev.SignalQualityUpdatedAt = &now
+		}
+		_ = s.store.UpdateDevice(dev)
+	}
+
+	// 2. Query active session for this device
+	activeSes, err := s.store.GetActiveSessionByDevice(deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no active session exists
+	if activeSes == nil {
+		cmd := "IDLE"
+		sessID := ""
+		if currentSessionID != "" {
+			cmd = "STOP"
+			sessID = currentSessionID
+		}
+		return &models.DevicePollResponse{
+			DeviceID:         deviceID,
+			Command:          cmd,
+			HasActiveSession: false,
+			SessionID:        sessID,
+		}, nil
+	}
+
+	// If active session is in stop_requested state, instruct device to STOP
+	if activeSes.Status == "stop_requested" {
+		return &models.DevicePollResponse{
+			DeviceID:         deviceID,
+			Command:          "STOP",
+			HasActiveSession: false,
+			SessionID:        activeSes.ID,
+			TargetBand:       activeSes.TargetBand,
+			AcquisitionMode:  activeSes.AcquisitionMode,
+			SamplingRateHz:   512,
+		}, nil
+	}
+
+	// If device reported it is running a DIFFERENT session than the current active one, command STOP
+	if currentSessionID != "" && currentSessionID != activeSes.ID {
+		return &models.DevicePollResponse{
+			DeviceID:         deviceID,
+			Command:          "STOP",
+			HasActiveSession: true,
+			SessionID:        activeSes.ID,
+		}, nil
+	}
+
+	// Active running session exists
+	return &models.DevicePollResponse{
+		DeviceID:         deviceID,
+		Command:          "START",
+		HasActiveSession: true,
+		SessionID:        activeSes.ID,
+		TargetBand:       activeSes.TargetBand,
+		AcquisitionMode:  activeSes.AcquisitionMode,
+		SamplingRateHz:   512,
+	}, nil
+}
+
 type Handler struct {
 	service *Service
 }
@@ -527,6 +671,38 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) GetEEGData(c *gin.Context) {
 	sessionID := c.Param("sessionId")
+
+	rawUserID, exists := c.Get("userID")
+	if !exists || rawUserID == nil {
+		c.JSON(http.StatusUnauthorized, models.APIResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+		return
+	}
+	userID, _ := rawUserID.(string)
+
+	rawRole, _ := c.Get("role")
+	role, _ := rawRole.(string)
+
+	ses, err := h.service.store.GetSessionByID(sessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Mask non-ownership as 404 Not Found to prevent session ID enumeration
+	if ses == nil || (ses.UserID != userID && role != "admin") {
+		c.JSON(http.StatusNotFound, models.APIResponse{
+			Success: false,
+			Error:   "Session not found",
+		})
+		return
+	}
+
 	data, err := h.service.GetEEGBySession(sessionID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
@@ -550,6 +726,30 @@ func (h *Handler) PostEEGData(c *gin.Context) {
 			Error:   err.Error(),
 		})
 		return
+	}
+
+	// If submitted via User JWT (not IoT hardware device key), enforce session ownership
+	if isDevice, _ := c.Get("isDevice"); isDevice != true {
+		rawUserID, exists := c.Get("userID")
+		if !exists || rawUserID == nil {
+			c.JSON(http.StatusUnauthorized, models.APIResponse{
+				Success: false,
+				Error:   "Unauthorized",
+			})
+			return
+		}
+		userID, _ := rawUserID.(string)
+		rawRole, _ := c.Get("role")
+		role, _ := rawRole.(string)
+
+		ses, _ := h.service.store.GetSessionByID(req.SessionID)
+		if ses == nil || (ses.UserID != userID && role != "admin") {
+			c.JSON(http.StatusNotFound, models.APIResponse{
+				Success: false,
+				Error:   "Session not found",
+			})
+			return
+		}
 	}
 
 	if err := h.service.SaveEEGData(&req); err != nil {
@@ -592,6 +792,57 @@ func (h *Handler) DeviceStartSession(c *gin.Context) {
 	})
 }
 
+func (h *Handler) DeviceGetStatus(c *gin.Context) {
+	deviceID := c.GetHeader("X-Device-ID")
+	if deviceID == "" {
+		deviceID = c.Query("device_id")
+	}
+	if deviceID == "" {
+		deviceID = "esp32-eeg-gateway-01"
+	}
+
+	currentSessionID := c.GetHeader("X-Current-Session-ID")
+	if currentSessionID == "" {
+		currentSessionID = c.Query("current_session_id")
+	}
+
+	var signalQuality *int
+	if sqStr := c.GetHeader("X-Signal-Quality"); sqStr != "" {
+		if sq, err := strconv.Atoi(sqStr); err == nil {
+			signalQuality = &sq
+		}
+	} else if sqStr := c.Query("signal_quality"); sqStr != "" {
+		if sq, err := strconv.Atoi(sqStr); err == nil {
+			signalQuality = &sq
+		}
+	}
+
+	var batteryLevel *int
+	if batStr := c.GetHeader("X-Battery-Level"); batStr != "" {
+		if bat, err := strconv.Atoi(batStr); err == nil {
+			batteryLevel = &bat
+		}
+	} else if batStr := c.Query("battery_level"); batStr != "" {
+		if bat, err := strconv.Atoi(batStr); err == nil {
+			batteryLevel = &bat
+		}
+	}
+
+	resp, err := h.service.GetDeviceStatus(deviceID, signalQuality, batteryLevel, currentSessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Data:    resp,
+	})
+}
+
 func (h *Handler) DeviceIngestSamples(c *gin.Context) {
 	var req models.DeviceBatchSamplesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -604,9 +855,16 @@ func (h *Handler) DeviceIngestSamples(c *gin.Context) {
 
 	count, err := h.service.IngestDeviceBatch(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
+		status := http.StatusInternalServerError
+		errMsg := err.Error()
+		if errMsg == "session not found" {
+			status = http.StatusNotFound
+		} else if strings.Contains(errMsg, "not running") || strings.Contains(errMsg, "not authorized") || strings.Contains(errMsg, "required") || strings.Contains(errMsg, "invalid payload") {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, models.APIResponse{
 			Success: false,
-			Error:   err.Error(),
+			Error:   errMsg,
 		})
 		return
 	}
@@ -634,9 +892,16 @@ func (h *Handler) DeviceFinishSession(c *gin.Context) {
 
 	ses, err := h.service.FinishDeviceSession(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
+		status := http.StatusInternalServerError
+		errMsg := err.Error()
+		if errMsg == "session not found" {
+			status = http.StatusNotFound
+		} else if strings.Contains(errMsg, "not authorized") || strings.Contains(errMsg, "required") {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, models.APIResponse{
 			Success: false,
-			Error:   err.Error(),
+			Error:   errMsg,
 		})
 		return
 	}

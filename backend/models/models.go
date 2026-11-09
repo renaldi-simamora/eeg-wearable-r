@@ -33,6 +33,14 @@ type Device struct {
 	UpdatedAt              time.Time  `json:"updatedAt" db:"updated_at"`
 }
 
+// Session statuses
+const (
+	SessionStatusRunning       = "running"
+	SessionStatusStopRequested = "stop_requested"
+	SessionStatusCompleted     = "completed"
+	SessionStatusCancelled     = "cancelled"
+)
+
 // Session domain model
 type Session struct {
 	ID              string     `json:"id" db:"id"`
@@ -45,7 +53,7 @@ type Session struct {
 	StartedAt       time.Time  `json:"startedAt" db:"started_at"`
 	EndedAt         *time.Time `json:"endedAt,omitempty" db:"ended_at"`
 	Duration        int        `json:"duration" db:"duration"`      // in seconds
-	Status          string     `json:"status" db:"status"`          // 'running' | 'completed' | 'cancelled'
+	Status          string     `json:"status" db:"status"`          // 'running' | 'stop_requested' | 'completed' | 'cancelled'
 	TargetBand      string     `json:"targetBand" db:"target_band"` // 'DELTA' | 'THETA' | 'ALPHA' | 'BETA' | 'GAMMA'
 	CreatedAt       time.Time  `json:"createdAt" db:"created_at"`
 
@@ -206,11 +214,11 @@ type UpdateSessionRequest struct {
 }
 
 type SignalStatistics struct {
-	Mean           float64 `json:"mean"`
-	Min            float64 `json:"min"`
-	Max            float64 `json:"max"`
-	StdDev         float64 `json:"stdDev"`
-	Unit           string  `json:"unit"` // e.g. "µV (estimated)" or "raw_adc"
+	Mean   float64 `json:"mean"`
+	Min    float64 `json:"min"`
+	Max    float64 `json:"max"`
+	StdDev float64 `json:"stdDev"`
+	Unit   string  `json:"unit"` // e.g. "µV (estimated)" or "raw_adc"
 
 	// Deprecated: Backwards-compatibility aliases only.
 	// NOTICE: These fields reflect mathematical estimations from nominal ADC scaling (RawADC * 0.22 µV)
@@ -223,41 +231,41 @@ type SignalStatistics struct {
 
 // SessionAnalysisReport represents a comprehensive, academic EEG session report
 type SessionAnalysisReport struct {
-	SessionID          string             `json:"sessionId"`
-	ParticipantName    string             `json:"participantName"`
-	Title              string             `json:"title"`
-	Notes              string             `json:"notes"`
-	AcquisitionMode    string             `json:"acquisitionMode"` // 'live' | 'simulated' | 'unknown'
-	Status             string             `json:"status"`          // 'running' | 'completed'
-	TargetBand         string             `json:"targetBand"`
-	StartedAt          time.Time          `json:"startedAt"`
-	EndedAt            *time.Time         `json:"endedAt,omitempty"`
-	DurationSeconds    int                `json:"durationSeconds"`
-	FormattedDuration  string             `json:"formattedDuration"`
+	SessionID         string     `json:"sessionId"`
+	ParticipantName   string     `json:"participantName"`
+	Title             string     `json:"title"`
+	Notes             string     `json:"notes"`
+	AcquisitionMode   string     `json:"acquisitionMode"` // 'live' | 'simulated' | 'unknown'
+	Status            string     `json:"status"`          // 'running' | 'completed'
+	TargetBand        string     `json:"targetBand"`
+	StartedAt         time.Time  `json:"startedAt"`
+	EndedAt           *time.Time `json:"endedAt,omitempty"`
+	DurationSeconds   int        `json:"durationSeconds"`
+	FormattedDuration string     `json:"formattedDuration"`
 
-	DeviceID           string             `json:"deviceId"`
-	DeviceName         string             `json:"deviceName"`
-	DeviceCode         string             `json:"deviceCode"`
-	SignalQuality      *int               `json:"signalQuality"`      // nil = Not Available; 0 = Good; 1-199 = Noise level; 200 = Lead-off
-	SignalQualityLabel string             `json:"signalQualityLabel"` // "Good Contact", "Poor Signal / Noise Level (X/200)", "Lead-off (Electrode Disconnected)", "Not Available"
-	SamplingRateHz     int                `json:"samplingRateHz"`     // Nominal 512 Hz (datasheet specification; unverified on lab hardware)
-	SamplingRateStatus string             `json:"samplingRateStatus"` // "nominal_unverified" or "empirically_measured"
-	ChannelCount       int                `json:"channelCount"`       // 1 (Single channel)
-	LeadLocation       string             `json:"leadLocation"`       // "FP1 (Pre-frontal dry electrode)"
+	DeviceID           string `json:"deviceId"`
+	DeviceName         string `json:"deviceName"`
+	DeviceCode         string `json:"deviceCode"`
+	SignalQuality      *int   `json:"signalQuality"`      // nil = Not Available; 0 = Good; 1-199 = Noise level; 200 = Lead-off
+	SignalQualityLabel string `json:"signalQualityLabel"` // "Good Contact", "Poor Signal / Noise Level (X/200)", "Lead-off (Electrode Disconnected)", "Not Available"
+	SamplingRateHz     int    `json:"samplingRateHz"`     // Nominal 512 Hz (datasheet specification; unverified on lab hardware)
+	SamplingRateStatus string `json:"samplingRateStatus"` // "nominal_unverified" or "empirically_measured"
+	ChannelCount       int    `json:"channelCount"`       // 1 (Single channel)
+	LeadLocation       string `json:"leadLocation"`       // "FP1 (Pre-frontal dry electrode)"
 
-	TotalSamples       int                `json:"totalSamples"`
-	SignalStats        SignalStatistics   `json:"signalStats"`
+	TotalSamples int              `json:"totalSamples"`
+	SignalStats  SignalStatistics `json:"signalStats"`
 
-	AverageBandPower   BrainwaveFeature   `json:"averageBandPower"`
-	DominantBand       string             `json:"dominantBand"`    // Measured dominant frequency band
-	DominantBandPct    float64            `json:"dominantBandPct"` // Relative percentage (%)
+	AverageBandPower BrainwaveFeature `json:"averageBandPower"`
+	DominantBand     string           `json:"dominantBand"`    // Measured dominant frequency band
+	DominantBandPct  float64          `json:"dominantBandPct"` // Relative percentage (%)
 
-	MLStatus           string             `json:"mlStatus"`        // "available" | "unavailable"
-	MLPrediction       *MLPrediction      `json:"mlPrediction,omitempty"`
-	MLNote             string             `json:"mlNote"`
+	MLStatus     string        `json:"mlStatus"` // "available" | "unavailable"
+	MLPrediction *MLPrediction `json:"mlPrediction,omitempty"`
+	MLNote       string        `json:"mlNote"`
 
-	Samples            []EEGSample        `json:"samples"`
-	Features           []BrainwaveFeature `json:"features"`
+	Samples  []EEGSample        `json:"samples"`
+	Features []BrainwaveFeature `json:"features"`
 }
 
 type PostEEGDataRequest struct {
@@ -327,6 +335,17 @@ type DeviceSessionFinishRequest struct {
 	Reason          string `json:"reason"`
 }
 
+// DevicePollResponse represents device status and command payload for polling
+type DevicePollResponse struct {
+	DeviceID         string `json:"device_id"`
+	Command          string `json:"command"` // "IDLE" | "START" | "STOP"
+	HasActiveSession bool   `json:"has_active_session"`
+	SessionID        string `json:"session_id,omitempty"`
+	TargetBand       string `json:"target_band,omitempty"`
+	AcquisitionMode  string `json:"acquisition_mode,omitempty"`
+	SamplingRateHz   int    `json:"sampling_rate_hz,omitempty"`
+}
+
 type APIResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
@@ -365,4 +384,18 @@ type ModelCardInfo struct {
 	Status     string                 `json:"status"` // 'Not connected'
 	Metrics    map[string]interface{} `json:"metrics"`
 	FutureNote string                 `json:"futureNote"`
+}
+
+// MLClassificationJob represents a durable background classification task
+type MLClassificationJob struct {
+	ID          string     `json:"id" db:"id"`
+	SessionID   string     `json:"sessionId" db:"session_id"`
+	Status      string     `json:"status" db:"status"` // "pending" | "processing" | "completed" | "failed"
+	Attempts    int        `json:"attempts" db:"attempts"`
+	MaxAttempts int        `json:"maxAttempts" db:"max_attempts"`
+	LastError   string     `json:"lastError,omitempty" db:"last_error"`
+	NextRunAt   time.Time  `json:"nextRunAt" db:"next_run_at"`
+	CreatedAt   time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updatedAt" db:"updated_at"`
+	CompletedAt *time.Time `json:"completedAt,omitempty" db:"completed_at"`
 }

@@ -2,7 +2,6 @@ package database
 
 import (
 	"log"
-	"os"
 )
 
 func InitDatabase(dbURL string) Store {
@@ -12,20 +11,15 @@ func InitDatabase(dbURL string) Store {
 	if err == nil {
 		log.Println("[DATABASE] Successfully connected to PostgreSQL database.")
 
-		// Read migration SQL file if present
-		migrationBytes, err := os.ReadFile("migrations/000001_init_schema.sql")
+		migrationsDir, err := FindMigrationsDir()
 		if err != nil {
-			// Fallback path if run from cmd/server
-			migrationBytes, err = os.ReadFile("../../migrations/000001_init_schema.sql")
+			log.Fatalf("[DATABASE FATAL] Could not find migrations directory: %v", err)
 		}
 
-		if err == nil {
-			if migErr := pgStore.RunMigrations(string(migrationBytes)); migErr != nil {
-				log.Printf("[DATABASE] Migration warning: %v", migErr)
-			} else {
-				log.Println("[DATABASE] Schema migrations applied successfully.")
-			}
+		if migErr := pgStore.RunAllMigrations(migrationsDir); migErr != nil {
+			log.Fatalf("[DATABASE FATAL] Database migration failed: %v", migErr)
 		}
+		log.Println("[DATABASE] All schema migrations verified and applied successfully.")
 
 		pgStore.SeedInitialData()
 		return pgStore

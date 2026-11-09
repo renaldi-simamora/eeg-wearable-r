@@ -3,9 +3,11 @@ package sessions
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"eeg-backend/internal/analysis"
@@ -18,17 +20,110 @@ import (
 )
 
 type Service struct {
-	store       database.Store
-	hub         *ws.Hub
-	analysisSvc *analysis.Service
+	store               database.Store
+	hub                 *ws.Hub
+	analysisSvc         *analysis.Service
+	mu                  sync.RWMutex
+	gracefulStopTimeout time.Duration
+
+	// Periodic recovery worker controls
+	recoveryRunning bool
+	recoveryStopCh  chan struct{}
+	recoveryDoneCh  chan struct{}
 }
 
 func NewService(store database.Store, hub *ws.Hub, analysisSvc *analysis.Service) *Service {
 	return &Service{
-		store:       store,
-		hub:         hub,
-		analysisSvc: analysisSvc,
+		store:               store,
+		hub:                 hub,
+		analysisSvc:         analysisSvc,
+		gracefulStopTimeout: 60 * time.Second, // Default 60 seconds
 	}
+}
+
+// StartPeriodicRecovery starts the background periodic recovery worker.
+// It executes an initial recovery run on startup, then polls every interval (default 30s).
+// It is protected against duplicate launches and catches transient database errors without terminating.
+func (s *Service) StartPeriodicRecovery(interval time.Duration, cutoffDuration time.Duration) {
+	s.mu.Lock()
+	if s.recoveryRunning {
+		s.mu.Unlock()
+		return
+	}
+	s.recoveryRunning = true
+	s.recoveryStopCh = make(chan struct{})
+	s.recoveryDoneCh = make(chan struct{})
+	s.mu.Unlock()
+
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	if cutoffDuration <= 0 {
+		cutoffDuration = 2 * time.Minute
+	}
+
+	// 1. Initial recovery on startup
+	_, _ = s.RecoverStaleSessions(cutoffDuration)
+
+	// 2. Periodic background worker
+	go func() {
+		defer close(s.recoveryDoneCh)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-s.recoveryStopCh:
+				log.Println("[RECOVERY WORKER] Periodic recovery worker stopped gracefully")
+				return
+			case <-ticker.C:
+				// Transient database error is logged without killing the background worker
+				if _, err := s.RecoverStaleSessions(cutoffDuration); err != nil {
+					log.Printf("[RECOVERY WORKER] Transient error during periodic recovery run: %v", err)
+				}
+			}
+		}
+	}()
+}
+
+// StopPeriodicRecovery signals the worker to exit and blocks until the worker goroutine terminates,
+// ensuring clean shutdown and zero goroutine leaks.
+func (s *Service) StopPeriodicRecovery() {
+	s.mu.Lock()
+	if !s.recoveryRunning {
+		s.mu.Unlock()
+		return
+	}
+	close(s.recoveryStopCh)
+	s.recoveryRunning = false
+	done := s.recoveryDoneCh
+	s.mu.Unlock()
+
+	<-done
+}
+
+// IsRecoveryRunning reports whether the periodic recovery worker is actively running
+func (s *Service) IsRecoveryRunning() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.recoveryRunning
+}
+
+func (s *Service) SetGracefulStopTimeout(d time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if d > 0 {
+		s.gracefulStopTimeout = d
+	}
+}
+
+func (s *Service) GetGracefulStopTimeout() time.Duration {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.gracefulStopTimeout <= 0 {
+		return 60 * time.Second
+	}
+	return s.gracefulStopTimeout
 }
 
 func (s *Service) GetAll(userID string) ([]models.Session, error) {
@@ -88,25 +183,9 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 			if isMockDevice {
 				return nil, fmt.Errorf("device '%s' is a simulated device and cannot claim 'live' acquisition mode; please use physical hardware (esp32-eeg-gateway-01) or set acquisitionMode to 'simulated'", dev.ID)
 			}
-			// 1. Gateway connectivity & telemetry heartbeat verification (<= 60s)
+			// Gateway connectivity & telemetry heartbeat verification (<= 60s)
 			if dev.Status != "connected" || dev.LastSeen.IsZero() || time.Since(dev.LastSeen) > 60*time.Second {
 				return nil, fmt.Errorf("device '%s' is not actively online (status: %s); live acquisition requires an active, connected physical hardware gateway", dev.ID, dev.Status)
-			}
-			// 2. Active TGAM1 biopotential sample stream verification (<= 30s)
-			if dev.LastEEGStreamAt == nil || dev.LastEEGStreamAt.IsZero() || time.Since(*dev.LastEEGStreamAt) > 30*time.Second {
-				return nil, fmt.Errorf("device '%s' connected but no active EEG stream received from TGAM1; verify sensor contact and TGAM1 power", dev.ID)
-			}
-			// 3. Verified Signal Quality availability (must not be uninitialized/nil)
-			if dev.SignalQuality == nil {
-				return nil, fmt.Errorf("device '%s' has not received any signal quality telemetry from TGAM1; live acquisition requires verified electrode contact", dev.ID)
-			}
-			// 4. Signal Quality freshness check (must be fresh within 30s)
-			if dev.SignalQualityUpdatedAt == nil || dev.SignalQualityUpdatedAt.IsZero() || time.Since(*dev.SignalQualityUpdatedAt) > 30*time.Second {
-				return nil, fmt.Errorf("device '%s' signal quality data is stale (> 30s); live acquisition requires fresh electrode contact telemetries", dev.ID)
-			}
-			// 5. Lead contact check (TGAM1 poor quality 200 = total lead-off)
-			if *dev.SignalQuality >= 200 {
-				return nil, fmt.Errorf("device '%s' reports total electrode lead-off (poor signal quality %d >= 200); ensure dry electrodes have solid skin contact before starting live session", dev.ID, *dev.SignalQuality)
 			}
 			acqMode = models.AcquisitionModeLive
 			isSim = false
@@ -123,6 +202,11 @@ func (s *Service) Create(userID string, req *models.CreateSessionRequest) (*mode
 		// Zero automatic promotion from default to live.
 		acqMode = models.AcquisitionModeSimulated
 		isSim = true
+	}
+
+	// Ensure no duplicate/orphan running session exists for this device: stop previous running session if any
+	if activeSes, _ := s.store.GetActiveSessionByDevice(req.DeviceID); activeSes != nil {
+		_, _ = s.store.StopSession(activeSes.ID)
 	}
 
 	now := time.Now()
@@ -364,23 +448,117 @@ func (s *Service) GetReport(sessionID string) (*models.SessionAnalysisReport, er
 }
 
 func (s *Service) Stop(id string) (*models.Session, error) {
-	ses, err := s.store.StopSession(id)
+	ses, err := s.store.GetSessionByID(id)
 	if err != nil {
 		return nil, err
 	}
-
-	if s.hub != nil {
-		s.hub.StopAcquisition()
+	if ses == nil {
+		return nil, fmt.Errorf("session not found")
 	}
 
-	// Trigger automated ML analysis if analysis service is configured
-	if s.analysisSvc != nil {
-		go func(sessID string) {
-			_, _ = s.analysisSvc.ClassifySession(sessID)
-		}(id)
+	// Idempotent: If already completed, return as-is
+	if ses.Status == "completed" {
+		return ses, nil
 	}
 
-	return ses, nil
+	// Requirement 2: Repeated Stop when status is already stop_requested.
+	// Must remain in stop_requested and be strictly idempotent!
+	// Do NOT force-stop to completed. Do NOT launch a second watchdog.
+	if ses.Status == "stop_requested" {
+		return ses, nil
+	}
+
+	// Check if this is a live hardware session with an online device
+	isLiveHardware := (ses.AcquisitionMode == models.AcquisitionModeLive || ses.DeviceID == "esp32-eeg-gateway-01")
+	var isDeviceOnline bool
+	if ses.DeviceID != "" {
+		dev, devErr := s.store.GetDeviceByID(ses.DeviceID)
+		if devErr == nil && dev != nil && dev.Status == "connected" && time.Since(dev.LastSeen) <= 60*time.Second {
+			isDeviceOnline = true
+		}
+	}
+
+	// If hardware session AND device is online: initiate graceful stop handshake
+	if isLiveHardware && isDeviceOnline {
+		reqSes, reqErr := s.store.RequestStopSession(id)
+		if reqErr != nil {
+			return nil, reqErr
+		}
+
+		if s.hub != nil {
+			s.hub.BroadcastState("STOPPING", id)
+		}
+
+		timeout := s.GetGracefulStopTimeout()
+
+		// Watchdog timer: if ESP32 does not finish session in time
+		// (e.g. WiFi dropped during stop handshake), finalize session automatically.
+		go func(sessID string, store database.Store, hub *ws.Hub, analysisSvc *analysis.Service, timeoutDuration time.Duration) {
+			time.Sleep(timeoutDuration)
+
+			// Check current session state first
+			current, err := store.GetSessionByID(sessID)
+			if err != nil || current == nil || current.Status != "stop_requested" {
+				return // Sesi sudah completed atau tidak ditemukan, no-op!
+			}
+
+			// Atomic finalization with durable ML job in single transaction
+			_, job, transitioned, finalizeErr := store.FinalizeSessionWithJob(sessID)
+			if finalizeErr != nil {
+				log.Printf("[SESSION WATCHDOG ERROR] FinalizeSessionWithJob failed for session %s: %v", sessID, finalizeErr)
+			} else if transitioned {
+				log.Printf("[SESSION WATCHDOG] Session %s in stop_requested timed out (%v); auto-finalized to completed with ML job", sessID, timeoutDuration)
+				if hub != nil {
+					hub.StopAcquisition()
+				}
+				if analysisSvc != nil && job != nil {
+					analysisSvc.NotifyWorker()
+				}
+			}
+		}(id, s.store, s.hub, s.analysisSvc, timeout)
+
+		return reqSes, nil
+	}
+
+	// Device offline or simulated session: finalize immediately with durable ML job in single transaction
+	finalSes, job, transitioned, stopErr := s.store.FinalizeSessionWithJob(id)
+	if stopErr != nil {
+		log.Printf("[SESSION STOP ERROR] FinalizeSessionWithJob failed for session %s: %v", id, stopErr)
+		return nil, stopErr
+	}
+
+	if transitioned {
+		if s.hub != nil {
+			s.hub.StopAcquisition()
+		}
+		if s.analysisSvc != nil && job != nil {
+			s.analysisSvc.NotifyWorker()
+		}
+	}
+
+	return finalSes, nil
+}
+
+// RecoverStaleSessions recovers and finalizes any orphaned stop_requested sessions on startup
+func (s *Service) RecoverStaleSessions(cutoffDuration time.Duration) ([]models.Session, error) {
+	if cutoffDuration <= 0 {
+		cutoffDuration = 2 * time.Minute
+	}
+
+	recovered, err := s.store.RecoverStaleStopRequestedSessions(cutoffDuration)
+	if err != nil {
+		log.Printf("[STARTUP RECOVERY] Error querying stale stop_requested sessions: %v", err)
+		return nil, err
+	}
+
+	if len(recovered) > 0 {
+		log.Printf("[STARTUP RECOVERY] Successfully recovered %d stale stop_requested sessions (auto-finalized to completed with ML jobs)", len(recovered))
+		if s.analysisSvc != nil {
+			s.analysisSvc.NotifyWorker()
+		}
+	}
+
+	return recovered, nil
 }
 
 type Handler struct {
@@ -417,21 +595,47 @@ func (h *Handler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	ses, err := h.service.GetByID(id)
+// authorizeSessionAccess retrieves the session and verifies that it is owned by the authenticated user,
+// or that the user has verified admin role. If not found or not owned, it returns 404 to prevent session enumeration.
+func (h *Handler) authorizeSessionAccess(c *gin.Context, sessionID string) (*models.Session, bool) {
+	rawUserID, exists := c.Get("userID")
+	if !exists || rawUserID == nil {
+		c.JSON(http.StatusUnauthorized, models.APIResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+		return nil, false
+	}
+	userID, _ := rawUserID.(string)
+
+	rawRole, _ := c.Get("role")
+	role, _ := rawRole.(string)
+
+	ses, err := h.service.GetByID(sessionID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
-		return
+		return nil, false
 	}
-	if ses == nil {
+
+	// Mask non-ownership as 404 Not Found to prevent session ID enumeration
+	if ses == nil || (ses.UserID != userID && role != "admin") {
 		c.JSON(http.StatusNotFound, models.APIResponse{
 			Success: false,
 			Error:   "Session not found",
 		})
+		return nil, false
+	}
+
+	return ses, true
+}
+
+func (h *Handler) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	ses, ok := h.authorizeSessionAccess(c, id)
+	if !ok {
 		return
 	}
 
@@ -478,6 +682,11 @@ func (h *Handler) Create(c *gin.Context) {
 
 func (h *Handler) Stop(c *gin.Context) {
 	id := c.Param("id")
+	_, ok := h.authorizeSessionAccess(c, id)
+	if !ok {
+		return
+	}
+
 	ses, err := h.service.Stop(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
@@ -496,6 +705,11 @@ func (h *Handler) Stop(c *gin.Context) {
 
 func (h *Handler) Update(c *gin.Context) {
 	id := c.Param("id")
+	_, ok := h.authorizeSessionAccess(c, id)
+	if !ok {
+		return
+	}
+
 	var req models.UpdateSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
@@ -523,6 +737,11 @@ func (h *Handler) Update(c *gin.Context) {
 
 func (h *Handler) GetReport(c *gin.Context) {
 	id := c.Param("id")
+	_, ok := h.authorizeSessionAccess(c, id)
+	if !ok {
+		return
+	}
+
 	report, err := h.service.GetReport(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.APIResponse{

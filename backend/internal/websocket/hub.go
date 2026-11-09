@@ -23,12 +23,12 @@ var upgrader = websocket.Upgrader{
 }
 
 type StreamPacket struct {
-	Type          string  `json:"type"`          // "eeg_sample" | "device_status" | "heartbeat" | "session_state"
+	Type          string  `json:"type"` // "eeg_sample" | "device_status" | "heartbeat" | "session_state"
 	SessionID     string  `json:"sessionId,omitempty"`
-	TargetBand    string  `json:"targetBand,omitempty"`  // Session immutable target band
-	Timestamp     int64   `json:"timestamp"`     // Epoch ms
-	RawEEG        float64 `json:"rawEEG"`        // Microvolts (uV)
-	SignalQuality int     `json:"signalQuality"` // ThinkGear byte 0x02: 0 = Good contact, 1-199 = Noise level, 200 = Lead-off
+	TargetBand    string  `json:"targetBand,omitempty"` // Session immutable target band
+	Timestamp     int64   `json:"timestamp"`            // Epoch ms
+	RawEEG        float64 `json:"rawEEG"`               // Microvolts (uV)
+	SignalQuality int     `json:"signalQuality"`        // ThinkGear byte 0x02: 0 = Good contact, 1-199 = Noise level, 200 = Lead-off
 	Delta         float64 `json:"delta"`
 	Theta         float64 `json:"theta"`
 	Alpha         float64 `json:"alpha"`
@@ -63,6 +63,7 @@ type Hub struct {
 	simTime          float64
 	sampleCounter    int64
 	currentProfile   SimProfile
+	upgrader         websocket.Upgrader
 }
 
 func NewHub() *Hub {
@@ -78,10 +79,23 @@ func NewHub() *Hub {
 		activeTargetBand: "ALPHA",
 		simTime:          0.0,
 		currentProfile:   simProfiles[0],
+		upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
 	}
 	go h.run()
 	go h.startSimulationGenerator()
 	return h
+}
+
+func (h *Hub) SetOriginChecker(checker func(r *http.Request) bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.upgrader.CheckOrigin = checker
 }
 
 func (h *Hub) run() {
@@ -451,7 +465,11 @@ func (h *Hub) startSimulationGenerator() {
 }
 
 func (h *Hub) HandleWebSocket(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	h.mu.RLock()
+	upg := h.upgrader
+	h.mu.RUnlock()
+
+	conn, err := upg.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("[WebSocket] Upgrade error: %v", err)
 		return
