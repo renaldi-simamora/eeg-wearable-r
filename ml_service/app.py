@@ -112,17 +112,32 @@ def get_models():
             "definition": (
                 "Supervised RBF kernel SVM with calibrated probability output for single-channel FP1 EEG spectral power vectors."
                 if key == "svm" else
-                "Ensemble learning method constructing 100 decision trees to classify non-linear EEG spectral features."
-                if key == "rf" else
+                "Supervised linear SVM with balanced class weights for linear decision boundary benchmark."
+                if key == "svm_linear" else
                 "L2-regularized multinomial logistic regression classifier for linear baseline comparison."
             ),
             "status": "Connected & Operational",
             "version": info["version"],
             "trainingDatasetVersion": info["training_dataset_version"],
             "metrics": info["metrics"],
-            "futureNote": f"Evaluated via 5-fold Stratified Cross-Validation on {info['total_samples']} normative EEG spectral patterns."
+            "futureNote": f"Evaluated via 5-fold Subject-Independent GroupKFold on {info['total_samples']} normative clean EEG samples (51 subjects, zero subject overlap)."
         })
     return {"success": True, "data": cards}
+
+@app.get("/experiments/features")
+def get_feature_experiments():
+    exp_file = os.path.join(BASE_DIR, "reports", "feature_combinations_evaluation.json")
+    if not os.path.exists(exp_file):
+        raise HTTPException(
+            status_code=404,
+            detail="Hasil eksperimen kombinasi fitur belum tersedia. Silakan jalankan run_feature_experiments.py."
+        )
+    try:
+        with open(exp_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal membaca data eksperimen: {str(e)}")
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(req: PredictionRequest):

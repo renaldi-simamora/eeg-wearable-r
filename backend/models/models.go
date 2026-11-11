@@ -399,3 +399,23 @@ type MLClassificationJob struct {
 	UpdatedAt   time.Time  `json:"updatedAt" db:"updated_at"`
 	CompletedAt *time.Time `json:"completedAt,omitempty" db:"completed_at"`
 }
+
+// FeatureExperimentDTO models the EEG feature combination evaluation result
+type FeatureExperimentDTO struct {
+	ID                   string                   `json:"id"`
+	Name                 string                   `json:"name"`
+	Features             []string                 `json:"features"`
+	FeatureColumns       []string                 `json:"feature_columns"`
+	FeatureCount         int                      `json:"feature_count"`
+	Description          string                   `json:"description"`
+	Metrics              map[string]interface{}   `json:"metrics"`
+	TotalConfusionMatrix map[string]interface{}   `json:"total_confusion_matrix"`
+	FoldMetrics          []map[string]interface{} `json:"fold_metrics,omitempty"`
+}
+
+// FeatureExperimentReportDTO represents the complete empirical feature combination report
+type FeatureExperimentReportDTO struct {
+	Metadata    map[string]interface{} `json:"metadata"`
+	Experiments []FeatureExperimentDTO `json:"experiments"`
+	Conclusion  map[string]interface{} `json:"conclusion"`
+}

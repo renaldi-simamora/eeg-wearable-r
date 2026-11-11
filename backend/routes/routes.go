@@ -126,8 +126,9 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 			authGroup.POST("/logout", authHandler.Logout)
 		}
 
-		// Public Models list
+		// Public Models & Experiment Analysis list
 		api.GET("/models", analysisHandler.GetModels)
+		api.GET("/analysis/features", analysisHandler.GetFeatureExperiments)
 
 		// Protected Routes
 		protected := api.Group("")

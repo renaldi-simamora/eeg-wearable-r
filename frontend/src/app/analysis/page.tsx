@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useQuery } from "@tanstack/react-query";
 import { analysisService } from "@/services/analysis.service";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Layers, AlertCircle } from "lucide-react";
+import { Layers, AlertCircle, ArrowRight, Activity } from "lucide-react";
 
 export default function AnalysisPage() {
   const { data: models } = useQuery({
@@ -34,7 +35,30 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* Informative Architecture Alert */}
+        {/* Primary Research Focus Banner */}
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-[#FAFBF8] to-[#F1F4ED] border border-[#DEE5D6] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#5B6D49] animate-pulse" />
+              <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#5B6D49]">
+                Fokus Utama Tugas Akhir
+              </span>
+            </div>
+            <h3 className="text-base sm:text-lg font-serif font-bold text-[#1C1E1A]">
+              Analisis Kombinasi Fitur Gelombang Otak (SVM RBF)
+            </h3>
+            <p className="text-xs text-[#5E6659] leading-relaxed">
+              Uji komparasi 4 subset fitur (E1, E2, E3, E4) menggunakan Support Vector Machine dengan 5-Fold Subject-Independent GroupKFold pada 7.439 rekaman biosinyal bersih.
+            </p>
+          </div>
+          <Link
+            href="/analysis/features"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#5B6D49] hover:bg-[#4A5B39] text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+          >
+            <span>Buka Analisis Kombinasi Fitur</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
         <div className="p-4 rounded-2xl bg-[#EDF1E7] border border-[#DEE5D6] text-xs flex items-start gap-3.5 shadow-xs">
           <AlertCircle className="w-5 h-5 text-[#5B6D49] shrink-0 mt-0.5" />
           <div className="space-y-1">

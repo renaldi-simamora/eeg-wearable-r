@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import { ModelCardInfo, MLPrediction, AIInsight } from "@/types";
+import { ModelCardInfo, MLPrediction, AIInsight, FeatureExperimentReport } from "@/types";
 import { mockModelCards } from "@/lib/mock/analysis";
 
 export interface SessionAnalysisData {
@@ -17,6 +17,10 @@ export const analysisService = {
     } catch {
       return mockModelCards;
     }
+  },
+
+  async getFeatureExperiments(): Promise<FeatureExperimentReport> {
+    return await apiClient<FeatureExperimentReport>("/analysis/features");
   },
 
   async getAnalysisBySession(sessionId: string): Promise<SessionAnalysisData> {

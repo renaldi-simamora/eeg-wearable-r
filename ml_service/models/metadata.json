@@ -1,10 +1,10 @@
 {
   "svm": {
     "id": "svm-classifier",
-    "name": "Support Vector Machine (SVM)",
+    "name": "Support Vector Machine (SVM RBF)",
     "version": "v1.0.0",
-    "training_dataset_version": "EEG-Normative-v1",
-    "total_samples": 1200,
+    "training_dataset_version": "Mendeley-CUET-50sub-v1",
+    "total_samples": 7439,
     "features": [
       "Delta",
       "Theta",
@@ -13,24 +13,23 @@
       "Gamma"
     ],
     "classes": [
-      "Relaxed / High Alpha",
-      "Focused / High Beta",
-      "Drowsy / High Theta",
-      "Baseline / Mixed Rhythms"
+      "Closed-Eye Resting Baseline",
+      "Active Mathematical Tasks"
     ],
     "metrics": {
-      "accuracy": 0.9992,
-      "precision": 0.9992,
-      "recall": 0.9992,
-      "macroF1": 0.9992
+      "accuracy": 0.4968,
+      "balanced_accuracy": 0.5061,
+      "precision": 0.5053,
+      "recall": 0.5061,
+      "macroF1": 0.4878
     }
   },
-  "rf": {
-    "id": "rf-classifier",
-    "name": "Random Forest",
+  "svm_linear": {
+    "id": "svm-linear-classifier",
+    "name": "Support Vector Machine (Linear Kernel)",
     "version": "v1.0.0",
-    "training_dataset_version": "EEG-Normative-v1",
-    "total_samples": 1200,
+    "training_dataset_version": "Mendeley-CUET-50sub-v1",
+    "total_samples": 7439,
     "features": [
       "Delta",
       "Theta",
@@ -39,24 +38,23 @@
       "Gamma"
     ],
     "classes": [
-      "Relaxed / High Alpha",
-      "Focused / High Beta",
-      "Drowsy / High Theta",
-      "Baseline / Mixed Rhythms"
+      "Closed-Eye Resting Baseline",
+      "Active Mathematical Tasks"
     ],
     "metrics": {
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "macroF1": 1.0
+      "accuracy": 0.5072,
+      "balanced_accuracy": 0.4918,
+      "precision": 0.4910,
+      "recall": 0.4918,
+      "macroF1": 0.4718
     }
   },
   "lr": {
     "id": "lr-classifier",
-    "name": "Logistic Regression",
+    "name": "Logistic Regression (L2 Balanced)",
     "version": "v1.0.0",
-    "training_dataset_version": "EEG-Normative-v1",
-    "total_samples": 1200,
+    "training_dataset_version": "Mendeley-CUET-50sub-v1",
+    "total_samples": 7439,
     "features": [
       "Delta",
       "Theta",
@@ -65,16 +63,15 @@
       "Gamma"
     ],
     "classes": [
-      "Relaxed / High Alpha",
-      "Focused / High Beta",
-      "Drowsy / High Theta",
-      "Baseline / Mixed Rhythms"
+      "Closed-Eye Resting Baseline",
+      "Active Mathematical Tasks"
     ],
     "metrics": {
-      "accuracy": 0.9992,
-      "precision": 0.9992,
-      "recall": 0.9992,
-      "macroF1": 0.9992
+      "accuracy": 0.4927,
+      "balanced_accuracy": 0.4897,
+      "precision": 0.4906,
+      "recall": 0.4897,
+      "macroF1": 0.4778
     }
   }
 }

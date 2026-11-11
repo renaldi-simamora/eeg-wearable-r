@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -378,48 +379,90 @@ func (s *Service) GetModels() []models.ModelCardInfo {
 		}
 	}
 
-	// Fallback documented model definitions when ML service is offline
+	// Fallback documented model definitions when ML service is offline (validated empirical metrics)
 	return []models.ModelCardInfo{
 		{
 			ID:         "svm-classifier",
-			Name:       "Support Vector Machine (SVM)",
-			Definition: "Supervised classification using RBF kernel with calibrated probabilities on 5 relative spectral power features (Delta, Theta, Alpha, Beta, Gamma).",
-			Status:     "Standby • Service offline (start ml_service/app.py on :5000)",
+			Name:       "Support Vector Machine (SVM RBF)",
+			Definition: "Supervised classification using RBF kernel (C=1.0, gamma='scale', class_weight='balanced') on relative spectral power features.",
+			Status:     "Standby • Service offline",
 			Metrics: map[string]interface{}{
-				"accuracy":  0.9992,
-				"precision": 0.9992,
-				"recall":    0.9992,
-				"macroF1":   0.9992,
+				"accuracy":          0.4968,
+				"balanced_accuracy": 0.5061,
+				"precision":         0.5053,
+				"recall":            0.5061,
+				"macroF1":           0.4878,
 			},
-			FutureNote: "Evaluated with 5-fold Stratified Cross-Validation on normative EEG spectral dataset (1,200 samples).",
+			FutureNote: "Evaluated with 5-fold Subject-Independent GroupKFold on 7,439 clean samples (51 subjects, zero subject overlap).",
 		},
 		{
-			ID:         "rf-classifier",
-			Name:       "Random Forest",
-			Definition: "Ensemble learning method constructing 100 decision trees to classify non-linear EEG spectral features.",
-			Status:     "Standby • Service offline (start ml_service/app.py on :5000)",
+			ID:         "svm-linear-classifier",
+			Name:       "Support Vector Machine (Linear Kernel)",
+			Definition: "Supervised linear classification with balanced class weights for linear decision boundary benchmark.",
+			Status:     "Standby • Service offline",
 			Metrics: map[string]interface{}{
-				"accuracy":  1.0000,
-				"precision": 1.0000,
-				"recall":    1.0000,
-				"macroF1":   1.0000,
+				"accuracy":          0.5072,
+				"balanced_accuracy": 0.4918,
+				"precision":         0.4910,
+				"recall":            0.4918,
+				"macroF1":           0.4718,
 			},
-			FutureNote: "Evaluated with 5-fold Stratified Cross-Validation on normative EEG spectral dataset (1,200 samples).",
+			FutureNote: "Evaluated with 5-fold Subject-Independent GroupKFold on 7,439 clean samples (51 subjects, zero subject overlap).",
 		},
 		{
 			ID:         "lr-classifier",
 			Name:       "Logistic Regression",
 			Definition: "L2-regularized multinomial logistic regression classifier for linear baseline comparison.",
-			Status:     "Standby • Service offline (start ml_service/app.py on :5000)",
+			Status:     "Standby • Service offline",
 			Metrics: map[string]interface{}{
-				"accuracy":  0.9992,
-				"precision": 0.9992,
-				"recall":    0.9992,
-				"macroF1":   0.9992,
+				"accuracy":          0.4927,
+				"balanced_accuracy": 0.4897,
+				"precision":         0.4906,
+				"recall":            0.4897,
+				"macroF1":           0.4778,
 			},
-			FutureNote: "Evaluated with 5-fold Stratified Cross-Validation on normative EEG spectral dataset (1,200 samples).",
+			FutureNote: "Evaluated with 5-fold Subject-Independent GroupKFold on 7,439 clean samples (51 subjects, zero subject overlap).",
 		},
 	}
+}
+
+// GetFeatureExperiments retrieves empirical feature combination results from Python ML service or local report file
+func (s *Service) GetFeatureExperiments() (*models.FeatureExperimentReportDTO, error) {
+	// 1. Attempt to fetch from active Python ML service
+	resp, err := s.client.Get(s.mlURL + "/experiments/features")
+	if err == nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		var res struct {
+			Success bool                             `json:"success"`
+			Data    models.FeatureExperimentReportDTO `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&res); err == nil && len(res.Data.Experiments) > 0 {
+			return &res.Data, nil
+		}
+	}
+
+	// 2. Fallback: Read validated local report file (zero fake data)
+	reportPaths := []string{
+		"data/feature_combinations_evaluation.json",
+		"backend/data/feature_combinations_evaluation.json",
+		"../data/feature_combinations_evaluation.json",
+		"../../data/feature_combinations_evaluation.json",
+		"../ml_service/reports/feature_combinations_evaluation.json",
+		"../../ml_service/reports/feature_combinations_evaluation.json",
+		"../../../ml_service/reports/feature_combinations_evaluation.json",
+		"ml_service/reports/feature_combinations_evaluation.json",
+	}
+
+	for _, p := range reportPaths {
+		if fileBytes, err := os.ReadFile(p); err == nil {
+			var report models.FeatureExperimentReportDTO
+			if err := json.Unmarshal(fileBytes, &report); err == nil && len(report.Experiments) > 0 {
+				return &report, nil
+			}
+		}
+	}
+
+	return nil, errors.New("hasil eksperimen kombinasi fitur belum tersedia")
 }
 
 type Handler struct {
@@ -515,5 +558,21 @@ func (h *Handler) GetModels(c *gin.Context) {
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Data:    modelsList,
+	})
+}
+
+func (h *Handler) GetFeatureExperiments(c *gin.Context) {
+	report, err := h.service.GetFeatureExperiments()
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.APIResponse{
+			Success: false,
+			Error:   "Data eksperimen kombinasi fitur EEG belum tersedia. Silakan jalankan pipeline eksperimen.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Data:    report,
 	})
 }

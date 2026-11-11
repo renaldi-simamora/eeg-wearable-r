@@ -64,4 +64,24 @@ func TestAnalysisService(t *testing.T) {
 	if resAfter["status"] != "completed" {
 		t.Errorf("Expected status 'completed', got %v", resAfter["status"])
 	}
+
+	// 4. Test GetFeatureExperiments
+	expReport, err := analysisService.GetFeatureExperiments()
+	if err != nil {
+		t.Fatalf("GetFeatureExperiments failed: %v", err)
+	}
+
+	if len(expReport.Experiments) != 4 {
+		t.Errorf("Expected 4 feature experiments (E1, E2, E3, E4), got %d", len(expReport.Experiments))
+	}
+
+	expectedIDs := []string{"E1", "E2", "E3", "E4"}
+	for i, exp := range expReport.Experiments {
+		if exp.ID != expectedIDs[i] {
+			t.Errorf("Expected experiment index %d to be %s, got %s", i, expectedIDs[i], exp.ID)
+		}
+		if exp.FeatureCount <= 0 {
+			t.Errorf("Expected feature count > 0 for %s", exp.ID)
+		}
+	}
 }
