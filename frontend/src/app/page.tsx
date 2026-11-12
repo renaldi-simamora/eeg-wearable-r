@@ -619,6 +619,7 @@ export default function LandingPage() {
               {/* Mobile Hamburger Button */}
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle navigation menu"
                 className="w-9 h-9 rounded-full border border-[rgba(40,40,30,0.1)] bg-white/80 flex lg:hidden items-center justify-center text-[#1E201D] cursor-pointer"
@@ -705,6 +706,8 @@ export default function LandingPage() {
                 </Link>
 
                 <button
+                  type="button"
+                  suppressHydrationWarning
                   onClick={() => setConsultModalOpen(true)}
                   className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white hover:bg-stone-50 text-[#262622] text-sm font-medium border border-[rgba(40,40,30,0.12)] hover:border-[#5F6E52]/40 transition-all shadow-xs cursor-pointer"
                 >
@@ -782,6 +785,8 @@ export default function LandingPage() {
 
                       <div className="flex items-center gap-1.5">
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setHeroViewMode("oscilloscope")}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white backdrop-blur-md border border-[rgba(40,40,30,0.1)] text-[11px] font-mono text-[#58684C] font-semibold transition-all shadow-xs cursor-pointer"
                         >
@@ -789,6 +794,8 @@ export default function LandingPage() {
                           <span>Live Waveform</span>
                         </button>
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setHeroViewMode("workbench")}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-white backdrop-blur-md border border-[rgba(40,40,30,0.1)] text-[11px] font-mono text-[#262622] transition-all shadow-xs cursor-pointer"
                         >
@@ -834,12 +841,16 @@ export default function LandingPage() {
 
                       <div className="flex items-center gap-1.5">
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setHeroViewMode("arch")}
                           className="px-3 py-1.5 rounded-full bg-white/90 hover:bg-white backdrop-blur-md border border-[rgba(40,40,30,0.1)] text-[11px] font-mono text-[#262622] transition-all shadow-xs cursor-pointer"
                         >
                           Resonansi Neural
                         </button>
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setHeroViewMode("oscilloscope")}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#5F6E52] text-white text-[11px] font-mono hover:bg-[#4E5C43] transition-all shadow-xs cursor-pointer"
                         >
@@ -877,6 +888,8 @@ export default function LandingPage() {
 
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setIsStreaming(!isStreaming)}
                           className="px-2.5 py-1 rounded-full bg-white border border-[rgba(40,40,30,0.1)] text-[10px] font-mono text-[#262622] hover:bg-stone-50 cursor-pointer flex items-center gap-1"
                         >
@@ -884,6 +897,8 @@ export default function LandingPage() {
                           <span>{isStreaming ? "Jeda" : "Lanjut"}</span>
                         </button>
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={handleCalibrate}
                           disabled={calibrating}
                           className="px-2.5 py-1 rounded-full bg-white border border-[rgba(40,40,30,0.1)] text-[10px] font-mono text-[#262622] hover:bg-stone-50 cursor-pointer flex items-center gap-1"
@@ -892,6 +907,8 @@ export default function LandingPage() {
                           <span>{calibrating ? "Kalibrasi..." : calibrateSuccess ? "Terverifikasi ✓" : "Kalibrasi"}</span>
                         </button>
                         <button
+                          type="button"
+                          suppressHydrationWarning
                           onClick={() => setHeroViewMode("arch")}
                           className="px-2.5 py-1 rounded-full bg-[#5F6E52] text-white text-[10px] font-mono hover:bg-[#4E5C43] cursor-pointer"
                         >
@@ -1209,6 +1226,8 @@ export default function LandingPage() {
             {[0, 1, 2].map((idx) => (
               <button
                 key={idx}
+                type="button"
+                suppressHydrationWarning
                 onClick={() => setActivePaginationDot(idx)}
                 aria-label={`Pilih slide ${idx + 1}`}
                 className={`h-2.5 rounded-full transition-all cursor-pointer ${activePaginationDot === idx ? "bg-[#5F6E52] w-6" : "bg-[#77776E]/25 w-2.5"
@@ -1242,6 +1261,8 @@ export default function LandingPage() {
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
+                suppressHydrationWarning
                 onClick={handleCopyCalcConfig}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[rgba(40,40,30,0.12)] text-xs font-mono font-medium text-[#1E201D] hover:bg-stone-50 transition-all shadow-2xs cursor-pointer"
               >
@@ -1275,6 +1296,8 @@ export default function LandingPage() {
                   {EXPERIMENT_CONDITIONS.map((item) => (
                     <button
                       key={item.id}
+                      type="button"
+                      suppressHydrationWarning
                       onClick={() => setCalcFocus(item.id)}
                       className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${calcFocus === item.id
                         ? "bg-[#E8ECDF]/50 border-[#5F6E52] shadow-2xs"
@@ -1304,16 +1327,16 @@ export default function LandingPage() {
                       <button
                         key={item.ch}
                         type="button"
+                        suppressHydrationWarning
                         disabled={!item.supported}
                         title={!item.supported ? item.disabledReason : undefined}
                         onClick={() => item.supported && setCalcChannels(item.ch)}
-                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${
-                          !item.supported
+                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${!item.supported
                             ? "bg-stone-100/80 border-stone-200/60 text-[#77776E]/60 cursor-not-allowed opacity-60"
                             : calcChannels === item.ch
-                            ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
-                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
-                        }`}
+                              ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
+                              : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
+                          }`}
                       >
                         <span className="block">{item.label}</span>
                         {!item.supported && (
@@ -1339,16 +1362,16 @@ export default function LandingPage() {
                       <button
                         key={item.rate}
                         type="button"
+                        suppressHydrationWarning
                         disabled={!item.supported}
                         title={!item.supported ? item.disabledReason : undefined}
                         onClick={() => item.supported && setCalcSamplingRate(item.rate)}
-                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${
-                          !item.supported
+                        className={`py-2 px-1 text-center rounded-xl text-xs font-mono font-medium border transition-all ${!item.supported
                             ? "bg-stone-100/80 border-stone-200/60 text-[#77776E]/60 cursor-not-allowed opacity-60"
                             : calcSamplingRate === item.rate
-                            ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
-                            : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
-                        }`}
+                              ? "bg-[#5F6E52] text-white border-[#5F6E52] cursor-pointer"
+                              : "bg-stone-50 border-stone-200 text-[#262622] hover:bg-stone-100 cursor-pointer"
+                          }`}
                       >
                         <span className="block">{item.label}</span>
                         {!item.supported && (
@@ -1373,6 +1396,7 @@ export default function LandingPage() {
                 </div>
                 <input
                   type="range"
+                  suppressHydrationWarning
                   min={15}
                   max={120}
                   step={15}
@@ -1406,6 +1430,7 @@ export default function LandingPage() {
                     </span>
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={() => setFlowchartModalOpen(true)}
                       className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer border border-stone-200"
                       title="Lihat Diagram Arsitektur Alur Sistem (Flowchart)"
@@ -1447,6 +1472,7 @@ export default function LandingPage() {
                     </div>
                     <button
                       type="button"
+                      suppressHydrationWarning
                       onClick={(e) => {
                         e.stopPropagation();
                         setSchematicModalOpen(true);
@@ -1554,6 +1580,8 @@ export default function LandingPage() {
               {/* Bottom Apply Action */}
               <div className="pt-2 flex items-center gap-2">
                 <button
+                  type="button"
+                  suppressHydrationWarning
                   onClick={handleCopyCalcConfig}
                   className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-medium transition-all text-center cursor-pointer border border-white/15"
                 >
@@ -1597,6 +1625,7 @@ export default function LandingPage() {
               <div className="pt-1">
                 <button
                   type="button"
+                  suppressHydrationWarning
                   onClick={() => setFlowchartModalOpen(true)}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[rgba(40,40,30,0.12)] text-[11px] font-mono font-medium text-[#1E201D] hover:bg-stone-50 transition-all shadow-2xs cursor-pointer group"
                 >
@@ -1727,6 +1756,8 @@ export default function LandingPage() {
             {/* Filter 50Hz Notch Toggle Button */}
             <div className="flex items-center gap-2">
               <button
+                type="button"
+                suppressHydrationWarning
                 onClick={() => setNotchFilterActive(!notchFilterActive)}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-mono font-medium transition-all cursor-pointer ${notchFilterActive
                   ? "bg-[#E8ECDF] border-[#5F6E52]/40 text-[#3D4C32]"
@@ -1894,6 +1925,8 @@ export default function LandingPage() {
                 {/* Subtle Consultation Option */}
                 <div className="pt-1">
                   <button
+                    type="button"
+                    suppressHydrationWarning
                     onClick={() => setConsultModalOpen(true)}
                     className="inline-flex items-center gap-1.5 text-xs text-[#58684C] hover:text-[#3D4C32] font-semibold underline underline-offset-4 cursor-pointer"
                   >
@@ -2139,6 +2172,7 @@ export default function LandingPage() {
               <label className="text-xs font-semibold text-[#1E201D] block">Nama Lengkap</label>
               <input
                 type="text"
+                suppressHydrationWarning
                 required
                 placeholder="cth. Dr. Budi Santoso"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#5F6E52]/40 bg-stone-50"
@@ -2149,6 +2183,7 @@ export default function LandingPage() {
               <label className="text-xs font-semibold text-[#1E201D] block">Email Institusi / Pribadi</label>
               <input
                 type="email"
+                suppressHydrationWarning
                 required
                 placeholder="budi@universitas.ac.id"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#5F6E52]/40 bg-stone-50"
@@ -2157,7 +2192,10 @@ export default function LandingPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-[#1E201D] block">Bidang Riset / Topik Minat</label>
-              <select className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#5F6E52]/40 bg-stone-50">
+              <select
+                suppressHydrationWarning
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#5F6E52]/40 bg-stone-50"
+              >
                 <option value="bci">Brain-Computer Interface (BCI)</option>
                 <option value="cognitive">Klasifikasi Pola Kognitif & Fokus</option>
                 <option value="sleep">Analisis Gelombang Tidur & Relaksasi</option>
@@ -2170,6 +2208,7 @@ export default function LandingPage() {
               <label className="text-xs font-semibold text-[#1E201D] block">Pesan atau Pertanyaan</label>
               <textarea
                 rows={3}
+                suppressHydrationWarning
                 required
                 placeholder="Jelaskan kebutuhan eksperimen atau pertanyaan teknis Anda..."
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#5F6E52]/40 bg-stone-50"
@@ -2179,6 +2218,7 @@ export default function LandingPage() {
             <div className="pt-2 flex items-center justify-end gap-2">
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => setConsultModalOpen(false)}
                 className="px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:bg-stone-100 transition-colors"
               >
@@ -2186,6 +2226,7 @@ export default function LandingPage() {
               </button>
               <button
                 type="submit"
+                suppressHydrationWarning
                 className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#5F6E52] hover:bg-[#4E5C43] text-white text-xs font-medium transition-colors shadow-xs"
               >
                 <span>Kirim Permintaan</span>

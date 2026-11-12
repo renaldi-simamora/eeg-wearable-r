@@ -74,6 +74,8 @@ export function Device3DGallery() {
           </span>
           <div className="flex items-center gap-1">
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={handlePrev}
               aria-label="Gambar Sebelumnya"
               className="p-2 rounded-full bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 transition-colors cursor-pointer shadow-2xs"
@@ -81,6 +83,8 @@ export function Device3DGallery() {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={handleNext}
               aria-label="Gambar Berikutnya"
               className="p-2 rounded-full bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 transition-colors cursor-pointer shadow-2xs"
@@ -131,6 +135,8 @@ export function Device3DGallery() {
             </div>
 
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => setLightboxOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#E8ECDF] hover:bg-[#D9DEC8] text-[#58684C] text-xs font-semibold font-mono transition-colors cursor-pointer self-start sm:self-auto shrink-0"
             >
@@ -221,6 +227,8 @@ export function Device3DGallery() {
 
             {/* Close Button */}
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => setLightboxOpen(false)}
               className="absolute top-4 right-4 p-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer backdrop-blur-xs"
               aria-label="Tutup Tampilan Penuh"
@@ -230,6 +238,8 @@ export function Device3DGallery() {
 
             {/* Prev & Next Floating Buttons */}
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={handlePrev}
               className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer border border-white/10"
               aria-label="Sebelumnya"
@@ -238,6 +248,8 @@ export function Device3DGallery() {
             </button>
 
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={handleNext}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer border border-white/10"
               aria-label="Berikutnya"
