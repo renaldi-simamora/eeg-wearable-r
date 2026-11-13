@@ -34,9 +34,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = typeof window !== "undefined" ? localStorage.getItem("eeg_auth_token") : null;
 
     if (storedUser && storedToken) {
+      // Ensure admin role is updated for virzasiutaa@gmail.com / superadmin for admin@gmail.com in existing local sessions
+      if (storedUser.email?.toLowerCase() === "virzasiutaa@gmail.com" && storedUser.role !== "admin") {
+        storedUser.role = "admin";
+        localStorage.setItem("eeg_user", JSON.stringify(storedUser));
+      } else if (storedUser.email?.toLowerCase() === "admin@gmail.com" && storedUser.role !== "superadmin") {
+        storedUser.role = "superadmin";
+        localStorage.setItem("eeg_user", JSON.stringify(storedUser));
+      }
       setUser(storedUser);
       // Synchronize cookie for server-side Next.js route protection
       document.cookie = `eeg_auth_token=${encodeURIComponent(storedToken)}; path=/; max-age=604800; SameSite=Lax`;
+
+      // Synchronize fresh role & profile from backend
+      authService
+        .getMe()
+        .then((freshUser) => {
+          if (freshUser && freshUser.id) {
+            setUser(freshUser);
+            localStorage.setItem("eeg_user", JSON.stringify(freshUser));
+          }
+        })
+        .catch(() => {
+          // Ignore background sync errors if offline
+        });
     } else {
       setUser(null);
       if (typeof document !== "undefined") {

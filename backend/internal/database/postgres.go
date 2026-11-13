@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"eeg-backend/models"
@@ -43,45 +44,178 @@ func (s *PostgresStore) RunMigrations(migrationSQL string) error {
 }
 
 func (s *PostgresStore) CreateUser(user *models.User) error {
+	if user.Status == "" {
+		user.Status = "active"
+	}
+	if user.Division == "" {
+		user.Division = "Biomedical & AI Lab"
+	}
+	if user.Position == "" {
+		user.Position = "Researcher"
+	}
+	if user.Username == "" {
+		parts := strings.Split(user.Email, "@")
+		user.Username = parts[0]
+	}
+
 	query := `
-		INSERT INTO users (id, name, email, password_hash, role, institution, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO users (id, username, name, email, password_hash, role, division, position, status, last_login, institution, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
-	_, err := s.db.Exec(query, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.Institution, user.CreatedAt, user.UpdatedAt)
-	return err
+	_, err := s.db.Exec(query, user.ID, user.Username, user.Name, user.Email, user.PasswordHash, user.Role, user.Division, user.Position, user.Status, user.LastLogin, user.Institution, user.CreatedAt, user.UpdatedAt)
+	if err != nil {
+		// Fallback for older schema before migration 000007
+		fallbackQuery := `
+			INSERT INTO users (id, name, email, password_hash, role, institution, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`
+		_, fallbackErr := s.db.Exec(fallbackQuery, user.ID, user.Name, user.Email, user.PasswordHash, user.Role, user.Institution, user.CreatedAt, user.UpdatedAt)
+		return fallbackErr
+	}
+	return nil
 }
 
 func (s *PostgresStore) GetUserByEmail(email string) (*models.User, error) {
-	query := `SELECT id, name, email, password_hash, role, institution, created_at, updated_at FROM users WHERE email = $1`
+	query := `
+		SELECT id, COALESCE(username, ''), name, email, password_hash, role, 
+		       COALESCE(division, 'Biomedical & AI Lab'), COALESCE(position, 'Researcher'), 
+		       COALESCE(status, 'active'), last_login, institution, created_at, updated_at 
+		FROM users WHERE email = $1
+	`
 	row := s.db.QueryRow(query, email)
 
 	var u models.User
-	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Division, &u.Position, &u.Status, &u.LastLogin, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, err
+		// Fallback for older schema
+		oldQuery := `SELECT id, name, email, password_hash, role, institution, created_at, updated_at FROM users WHERE email = $1`
+		oldRow := s.db.QueryRow(oldQuery, email)
+		if oldErr := oldRow.Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Institution, &u.CreatedAt, &u.UpdatedAt); oldErr != nil {
+			if errors.Is(oldErr, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, oldErr
+		}
+		u.Status = "active"
+		u.Division = "Biomedical & AI Lab"
+		u.Position = "Researcher"
+		parts := strings.Split(u.Email, "@")
+		u.Username = parts[0]
 	}
 	return &u, nil
 }
 
 func (s *PostgresStore) GetUserByID(id string) (*models.User, error) {
-	query := `SELECT id, name, email, password_hash, role, institution, created_at, updated_at FROM users WHERE id = $1`
+	query := `
+		SELECT id, COALESCE(username, ''), name, email, password_hash, role, 
+		       COALESCE(division, 'Biomedical & AI Lab'), COALESCE(position, 'Researcher'), 
+		       COALESCE(status, 'active'), last_login, institution, created_at, updated_at 
+		FROM users WHERE id = $1
+	`
 	row := s.db.QueryRow(query, id)
 
 	var u models.User
-	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Division, &u.Position, &u.Status, &u.LastLogin, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, err
+		// Fallback for older schema
+		oldQuery := `SELECT id, name, email, password_hash, role, institution, created_at, updated_at FROM users WHERE id = $1`
+		oldRow := s.db.QueryRow(oldQuery, id)
+		if oldErr := oldRow.Scan(&u.ID, &u.Name, &u.Email, &u.PasswordHash, &u.Role, &u.Institution, &u.CreatedAt, &u.UpdatedAt); oldErr != nil {
+			if errors.Is(oldErr, sql.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, oldErr
+		}
+		u.Status = "active"
+		u.Division = "Biomedical & AI Lab"
+		u.Position = "Researcher"
+		parts := strings.Split(u.Email, "@")
+		u.Username = parts[0]
 	}
 	return &u, nil
+}
+
+func (s *PostgresStore) GetUsers() ([]models.User, error) {
+	query := `
+		SELECT id, COALESCE(username, ''), name, email, role, 
+		       COALESCE(division, 'Biomedical & AI Lab'), COALESCE(position, 'Researcher'), 
+		       COALESCE(status, 'active'), last_login, institution, created_at, updated_at 
+		FROM users 
+		ORDER BY created_at ASC
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		// Fallback for older schema
+		oldQuery := `SELECT id, name, email, role, institution, created_at, updated_at FROM users ORDER BY created_at ASC`
+		oldRows, oldErr := s.db.Query(oldQuery)
+		if oldErr != nil {
+			return nil, oldErr
+		}
+		defer oldRows.Close()
+
+		var usersList []models.User
+		for oldRows.Next() {
+			var u models.User
+			if err := oldRows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
+				return nil, err
+			}
+			u.Status = "active"
+			u.Division = "Biomedical & AI Lab"
+			u.Position = "Researcher"
+			parts := strings.Split(u.Email, "@")
+			u.Username = parts[0]
+			usersList = append(usersList, u)
+		}
+		if err := oldRows.Err(); err != nil {
+			return nil, err
+		}
+		return usersList, nil
+	}
+	defer rows.Close()
+
+	var usersList []models.User
+	for rows.Next() {
+		var u models.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.Role, &u.Division, &u.Position, &u.Status, &u.LastLogin, &u.Institution, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if u.Username == "" {
+			parts := strings.Split(u.Email, "@")
+			u.Username = parts[0]
+		}
+		usersList = append(usersList, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return usersList, nil
 }
 
 func (s *PostgresStore) UpdateUser(user *models.User) error {
 	query := `UPDATE users SET name = $1, institution = $2, updated_at = $3 WHERE id = $4`
 	_, err := s.db.Exec(query, user.Name, user.Institution, time.Now(), user.ID)
+	return err
+}
+
+func (s *PostgresStore) UpdateUserStatus(id string, status string) error {
+	query := `UPDATE users SET status = $1, updated_at = $2 WHERE id = $3`
+	_, err := s.db.Exec(query, status, time.Now(), id)
+	return err
+}
+
+func (s *PostgresStore) ResetUserPassword(id string, passwordHash string) error {
+	query := `UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3`
+	_, err := s.db.Exec(query, passwordHash, time.Now(), id)
+	return err
+}
+
+func (s *PostgresStore) UpdateUserLastLogin(id string, lastLogin time.Time) error {
+	query := `UPDATE users SET last_login = $1 WHERE id = $2`
+	_, err := s.db.Exec(query, lastLogin, id)
 	return err
 }
 
@@ -864,7 +998,7 @@ func (s *PostgresStore) SeedInitialData() {
 	var existingUserId string
 	err := s.db.QueryRow("SELECT id FROM users WHERE email = 'admin@gmail.com'").Scan(&existingUserId)
 	if err == nil {
-		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'researcher', name = 'Super Admin NeuroPulse', institution = 'IPB University' WHERE email = 'admin@gmail.com'", adminHash)
+		_, _ = s.db.Exec("UPDATE users SET password_hash = $1, role = 'superadmin', name = 'Super Admin NeuroPulse', username = 'superadmin', division = 'IT & Telemetry', position = 'Head of Platform & IT', status = 'active', institution = 'IPB University' WHERE email = 'admin@gmail.com'", adminHash)
 		_, _ = s.db.Exec("UPDATE sessions SET user_id = $1 WHERE user_id = 'user-demo-01'", existingUserId)
 	} else {
 		adminId := "user-demo-01"
@@ -875,14 +1009,150 @@ func (s *PostgresStore) SeedInitialData() {
 		}
 		_ = s.CreateUser(&models.User{
 			ID:           adminId,
+			Username:     "superadmin",
 			Name:         "Super Admin NeuroPulse",
 			Email:        "admin@gmail.com",
 			PasswordHash: adminHash,
-			Role:         "researcher",
+			Role:         "superadmin",
+			Division:     "IT & Telemetry",
+			Position:     "Head of Platform & IT",
+			Status:       "active",
 			Institution:  "IPB University",
-			CreatedAt:    time.Now(),
+			CreatedAt:    time.Now().Add(-120 * 24 * time.Hour),
 			UpdatedAt:    time.Now(),
 		})
+	}
+
+	// Ensure virzasiutaa@gmail.com is configured as Admin
+	var virzaId string
+	err = s.db.QueryRow("SELECT id FROM users WHERE email = 'virzasiutaa@gmail.com'").Scan(&virzaId)
+	if err == nil {
+		_, _ = s.db.Exec("UPDATE users SET role = 'admin', position = 'Administrator', status = 'active', password_hash = CASE WHEN password_hash LIKE 'oauth2_%' THEN $1 ELSE password_hash END WHERE email = 'virzasiutaa@gmail.com'", adminHash)
+	} else {
+		virzaId = "user-admin-virza"
+		_ = s.CreateUser(&models.User{
+			ID:           virzaId,
+			Username:     "virzasiutaa",
+			Name:         "Virza Siuta",
+			Email:        "virzasiutaa@gmail.com",
+			PasswordHash: adminHash,
+			Role:         "admin",
+			Division:     "Biomedical & Hardware",
+			Position:     "Administrator",
+			Status:       "active",
+			Institution:  "IPB University",
+			CreatedAt:    time.Now().Add(-30 * 24 * time.Hour),
+			UpdatedAt:    time.Now(),
+		})
+	}
+
+	// Seed team members across laboratory divisions if users count is low
+	var userCount int
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
+	if userCount < 4 {
+		log.Println("[Postgres] Seeding team laboratory users...")
+		now := time.Now()
+		t1 := now.Add(-2 * time.Hour)
+		t2 := now.Add(-18 * time.Hour)
+		t3 := now.Add(-36 * time.Hour)
+		t4 := now.Add(-5 * 24 * time.Hour)
+
+		seedUsers := []models.User{
+			{
+				ID:           "user-lab-02",
+				Username:     "septi.a",
+				Name:         "Septi Anggraini",
+				Email:        "septi.tax@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "head",
+				Division:     "Clinical Research",
+				Position:     "Head of Clinical Protocol",
+				Status:       "active",
+				LastLogin:    &t1,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-60 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+			{
+				ID:           "user-lab-03",
+				Username:     "renaldi.s",
+				Name:         "Renaldi Simamora",
+				Email:        "renaldi.s@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "engineer",
+				Division:     "Biomedical & Hardware",
+				Position:     "Lead Biomedical Engineer",
+				Status:       "active",
+				LastLogin:    &t2,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-45 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+			{
+				ID:           "user-lab-04",
+				Username:     "budi.s",
+				Name:         "Dr. Budi Santoso",
+				Email:        "budi.santoso@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "researcher",
+				Division:     "AI & Signal Processing",
+				Position:     "Lead Machine Learning Researcher",
+				Status:       "active",
+				LastLogin:    &t3,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-30 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+			{
+				ID:           "user-lab-05",
+				Username:     "dina.p",
+				Name:         "Dina Permatasari",
+				Email:        "dina.p@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "staff",
+				Division:     "Clinical Research",
+				Position:     "EEG Lab Technician",
+				Status:       "active",
+				LastLogin:    &t4,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-20 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+			{
+				ID:           "user-lab-06",
+				Username:     "faisal.h",
+				Name:         "Faisal Hakim",
+				Email:        "faisal.h@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "engineer",
+				Division:     "Biomedical & Hardware",
+				Position:     "Junior Hardware Associate",
+				Status:       "inactive", // Sample inactive user
+				LastLogin:    nil,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-10 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+			{
+				ID:           "user-lab-07",
+				Username:     "tari.w",
+				Name:         "Tari Wulandari",
+				Email:        "tari.w@neuropulse.id",
+				PasswordHash: adminHash,
+				Role:         "staff",
+				Division:     "GA & Laboratory Operations",
+				Position:     "Lab Ethics & Compliance Officer",
+				Status:       "active",
+				LastLogin:    &t2,
+				Institution:  "IPB University",
+				CreatedAt:    now.Add(-15 * 24 * time.Hour),
+				UpdatedAt:    now,
+			},
+		}
+
+		for _, u := range seedUsers {
+			_ = s.CreateUser(&u)
+		}
 	}
 
 	var count int

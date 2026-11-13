@@ -11,6 +11,7 @@ import {
   Clock,
   Cpu,
   Settings,
+  Users,
   Brain,
   Layers,
   Menu,
@@ -45,6 +46,8 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
   const { user, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
 
   const navGroups: NavGroup[] = [
     {
@@ -91,6 +94,16 @@ export function AppShell({ children, title, subtitle, action }: AppShellProps) {
     {
       group: "SYSTEM",
       items: [
+        ...(isAdmin
+          ? [
+              {
+                label: "User Management",
+                href: "/users",
+                icon: Users,
+                badge: "Admin",
+              },
+            ]
+          : []),
         {
           label: "Devices",
           href: "/devices",

@@ -82,11 +82,17 @@ export const authService = {
       return res;
     } catch (err: any) {
       if (err.message.includes("Network connection failed") || err.message.includes("Failed to fetch")) {
+        let fallbackRole: import("@/types").UserRole = "researcher";
+        if (payload.email.toLowerCase() === "admin@gmail.com") {
+          fallbackRole = "superadmin";
+        } else if (payload.email.toLowerCase() === "virzasiutaa@gmail.com") {
+          fallbackRole = "admin";
+        }
         const mockUser: User = {
-          id: "user-demo-01",
-          name: "Super Admin NeuroPulse",
+          id: payload.email.toLowerCase() === "virzasiutaa@gmail.com" ? "2c0a80f7-64e5-48f7-a4b7-c1adfe1cae74" : "user-demo-01",
+          name: payload.email.toLowerCase() === "virzasiutaa@gmail.com" ? "Virza Siuta" : "Super Admin NeuroPulse",
           email: payload.email,
-          role: "researcher",
+          role: fallbackRole,
           institution: "IPB University",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

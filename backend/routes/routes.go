@@ -134,10 +134,13 @@ func SetupRouter(cfg *config.Config, store database.Store, hub *ws.Hub) *gin.Eng
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
-			// Current user
+			// Current user & User Management
 			protected.GET("/auth/me", authHandler.GetMe)
 			protected.GET("/users/me", usersHandler.GetMe)
 			protected.PUT("/users/me", usersHandler.UpdateMe)
+			protected.GET("/users", usersHandler.GetAllUsers)
+			protected.PUT("/users/:id/status", usersHandler.UpdateStatus)
+			protected.PUT("/users/:id/password", usersHandler.ResetPassword)
 
 			// Devices
 			protected.GET("/devices", devicesHandler.GetAll)

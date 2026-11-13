@@ -7,14 +7,29 @@ import (
 
 // User domain model
 type User struct {
-	ID           string    `json:"id" db:"id"`
-	Name         string    `json:"name" db:"name"`
-	Email        string    `json:"email" db:"email"`
-	PasswordHash string    `json:"-" db:"password_hash"`
-	Role         string    `json:"role" db:"role"`
-	Institution  string    `json:"institution" db:"institution"`
-	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
+	ID           string     `json:"id" db:"id"`
+	Username     string     `json:"username" db:"username"`
+	Name         string     `json:"name" db:"name"`
+	Email        string     `json:"email" db:"email"`
+	PasswordHash string     `json:"-" db:"password_hash"`
+	Role         string     `json:"role" db:"role"`
+	Division     string     `json:"division" db:"division"`
+	Position     string     `json:"position" db:"position"`
+	Status       string     `json:"status" db:"status"` // 'active' | 'inactive'
+	LastLogin    *time.Time `json:"lastLogin,omitempty" db:"last_login"`
+	Institution  string     `json:"institution" db:"institution"`
+	CreatedAt    time.Time  `json:"createdAt" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updatedAt" db:"updated_at"`
+}
+
+// User management requests
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=active inactive"`
+}
+
+type AdminResetPasswordRequest struct {
+	NewPassword     string `json:"newPassword" binding:"required,min=8"`
+	ConfirmPassword string `json:"confirmPassword" binding:"required,min=8"`
 }
 
 // Device domain model

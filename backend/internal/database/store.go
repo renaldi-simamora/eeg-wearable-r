@@ -11,7 +11,11 @@ type Store interface {
 	CreateUser(user *models.User) error
 	GetUserByEmail(email string) (*models.User, error)
 	GetUserByID(id string) (*models.User, error)
+	GetUsers() ([]models.User, error)
 	UpdateUser(user *models.User) error
+	UpdateUserStatus(id string, status string) error
+	ResetUserPassword(id string, passwordHash string) error
+	UpdateUserLastLogin(id string, lastLogin time.Time) error
 
 	// Device methods
 	GetDevices() ([]models.Device, error)

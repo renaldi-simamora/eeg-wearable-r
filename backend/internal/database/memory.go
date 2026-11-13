@@ -6,6 +6,8 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,18 +53,138 @@ func NewMemoryStore() *MemoryStore {
 func (m *MemoryStore) seed() {
 	now := time.Now()
 
-	// Seed Admin Researcher User (admin@gmail.com / admin123)
-	adminUser := &models.User{
-		ID:           "user-demo-01",
-		Name:         "Super Admin NeuroPulse",
-		Email:        "admin@gmail.com",
-		PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
-		Role:         "researcher",
-		Institution:  "IPB University",
-		CreatedAt:    now.Add(-72 * time.Hour),
-		UpdatedAt:    now,
+	// Seed Laboratory Team Users across divisions
+	t1 := now.Add(-2 * time.Hour)
+	t2 := now.Add(-18 * time.Hour)
+	t3 := now.Add(-36 * time.Hour)
+	t4 := now.Add(-5 * 24 * time.Hour)
+
+	initialUsers := []*models.User{
+		{
+			ID:           "user-demo-01",
+			Username:     "superadmin",
+			Name:         "Super Admin NeuroPulse",
+			Email:        "admin@gmail.com",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li", // admin123
+			Role:         "superadmin",
+			Division:     "IT & Telemetry",
+			Position:     "Head of Platform & IT",
+			Status:       "active",
+			LastLogin:    &t1,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-120 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-admin-virza",
+			Username:     "virzasiutaa",
+			Name:         "Virza Siuta",
+			Email:        "virzasiutaa@gmail.com",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li", // admin123
+			Role:         "admin",
+			Division:     "Biomedical & Hardware",
+			Position:     "Administrator",
+			Status:       "active",
+			LastLogin:    &t1,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-30 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-02",
+			Username:     "septi.a",
+			Name:         "Septi Anggraini",
+			Email:        "septi.tax@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "head",
+			Division:     "Clinical Research",
+			Position:     "Head of Clinical Protocol",
+			Status:       "active",
+			LastLogin:    &t1,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-60 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-03",
+			Username:     "renaldi.s",
+			Name:         "Renaldi Simamora",
+			Email:        "renaldi.s@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "engineer",
+			Division:     "Biomedical & Hardware",
+			Position:     "Lead Biomedical Engineer",
+			Status:       "active",
+			LastLogin:    &t2,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-45 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-04",
+			Username:     "budi.s",
+			Name:         "Dr. Budi Santoso",
+			Email:        "budi.santoso@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "researcher",
+			Division:     "AI & Signal Processing",
+			Position:     "Lead Machine Learning Researcher",
+			Status:       "active",
+			LastLogin:    &t3,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-30 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-05",
+			Username:     "dina.p",
+			Name:         "Dina Permatasari",
+			Email:        "dina.p@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "staff",
+			Division:     "Clinical Research",
+			Position:     "EEG Lab Technician",
+			Status:       "active",
+			LastLogin:    &t4,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-20 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-06",
+			Username:     "faisal.h",
+			Name:         "Faisal Hakim",
+			Email:        "faisal.h@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "engineer",
+			Division:     "Biomedical & Hardware",
+			Position:     "Junior Hardware Associate",
+			Status:       "inactive", // Sample inactive user
+			LastLogin:    nil,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-10 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "user-lab-07",
+			Username:     "tari.w",
+			Name:         "Tari Wulandari",
+			Email:        "tari.w@neuropulse.id",
+			PasswordHash: "$2b$12$v8Ub2IyTcwHCrvKT79hWAOJcT.sZhlsBS5h60UqkkRE7yATnN16li",
+			Role:         "staff",
+			Division:     "GA & Laboratory Operations",
+			Position:     "Lab Ethics & Compliance Officer",
+			Status:       "active",
+			LastLogin:    &t2,
+			Institution:  "IPB University",
+			CreatedAt:    now.Add(-15 * 24 * time.Hour),
+			UpdatedAt:    now,
+		},
 	}
-	m.users[adminUser.ID] = adminUser
+
+	for _, u := range initialUsers {
+		m.users[u.ID] = u
+	}
 
 	// Seed Devices (5 devices representing 5 primary EEG band protocols)
 	devices := []models.Device{
@@ -400,13 +522,79 @@ func (m *MemoryStore) GetUserByID(id string) (*models.User, error) {
 	return &userCopy, nil
 }
 
+func (m *MemoryStore) GetUsers() ([]models.User, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var list []models.User
+	for _, u := range m.users {
+		userCopy := *u
+		if userCopy.Status == "" {
+			userCopy.Status = "active"
+		}
+		if userCopy.Division == "" {
+			userCopy.Division = "Biomedical & AI Lab"
+		}
+		if userCopy.Position == "" {
+			userCopy.Position = "Researcher"
+		}
+		if userCopy.Username == "" {
+			parts := strings.Split(userCopy.Email, "@")
+			userCopy.Username = parts[0]
+		}
+		list = append(list, userCopy)
+	}
+	// Sort by creation time
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].CreatedAt.Before(list[j].CreatedAt)
+	})
+	return list, nil
+}
+
 func (m *MemoryStore) UpdateUser(user *models.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if existing, ok := m.users[user.ID]; ok {
 		existing.Name = user.Name
 		existing.Institution = user.Institution
+		if user.Division != "" {
+			existing.Division = user.Division
+		}
+		if user.Position != "" {
+			existing.Position = user.Position
+		}
 		existing.UpdatedAt = time.Now()
+		return nil
+	}
+	return errors.New("user not found")
+}
+
+func (m *MemoryStore) UpdateUserStatus(id string, status string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.users[id]; ok {
+		existing.Status = status
+		existing.UpdatedAt = time.Now()
+		return nil
+	}
+	return errors.New("user not found")
+}
+
+func (m *MemoryStore) ResetUserPassword(id string, passwordHash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.users[id]; ok {
+		existing.PasswordHash = passwordHash
+		existing.UpdatedAt = time.Now()
+		return nil
+	}
+	return errors.New("user not found")
+}
+
+func (m *MemoryStore) UpdateUserLastLogin(id string, lastLogin time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if existing, ok := m.users[id]; ok {
+		existing.LastLogin = &lastLogin
 		return nil
 	}
 	return errors.New("user not found")

@@ -1,12 +1,18 @@
 // Centralized TypeScript Type Definitions for EEG Wearable Platform
 
-export type UserRole = "researcher" | "admin" | "engineer";
+export type UserRole = "researcher" | "admin" | "engineer" | "superadmin" | "head" | "staff";
+export type UserStatus = "active" | "inactive";
 
 export interface User {
   id: string;
+  username?: string;
   name: string;
   email: string;
   role: UserRole;
+  division?: string;
+  position?: string;
+  status?: UserStatus;
+  lastLogin?: string | null;
   institution?: string;
   createdAt: string;
   updatedAt: string;

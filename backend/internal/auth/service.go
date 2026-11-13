@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"eeg-backend/internal/database"
@@ -83,6 +84,14 @@ func (s *Service) Login(req *models.LoginRequest) (*models.AuthResponse, error) 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return nil, errors.New("invalid email or password")
 	}
+
+	if user.Status == "inactive" {
+		return nil, errors.New("Akun Anda berstatus non-aktif. Silakan hubungi administrator.")
+	}
+
+	now := time.Now()
+	_ = s.store.UpdateUserLastLogin(user.ID, now)
+	user.LastLogin = &now
 
 	token, err := middleware.GenerateToken(user, s.jwtSecret)
 	if err != nil {
@@ -171,7 +180,19 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 	if user == nil {
 		name := info.Name
 		if name == "" {
-			name = "Google Researcher"
+			name = "Google User"
+		}
+		role := "researcher"
+		position := "Researcher"
+		division := "Biomedical & AI Lab"
+		if strings.EqualFold(info.Email, "virzasiutaa@gmail.com") {
+			role = "admin"
+			position = "Administrator"
+			division = "Biomedical & Hardware"
+		} else if strings.EqualFold(info.Email, "admin@gmail.com") {
+			role = "superadmin"
+			position = "Head of Platform & IT"
+			division = "IT & Telemetry"
 		}
 		now := time.Now()
 		user = &models.User{
@@ -179,7 +200,10 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 			Name:         name,
 			Email:        info.Email,
 			PasswordHash: "oauth2_google_" + uuid.New().String(),
-			Role:         "researcher",
+			Role:         role,
+			Division:     division,
+			Position:     position,
+			Status:       "active",
 			Institution:  "IPB University",
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -187,10 +211,24 @@ func (s *Service) LoginWithGoogle(credential string) (*models.AuthResponse, erro
 		if err := s.store.CreateUser(user); err != nil {
 			return nil, fmt.Errorf("failed to create user: %w", err)
 		}
-	} else if info.Name != "" && user.Name != info.Name {
-		user.Name = info.Name
-		user.UpdatedAt = time.Now()
-		_ = s.store.UpdateUser(user)
+	} else {
+		userUpdated := false
+		if strings.EqualFold(info.Email, "virzasiutaa@gmail.com") && user.Role != "admin" {
+			user.Role = "admin"
+			user.Position = "Administrator"
+			userUpdated = true
+		} else if strings.EqualFold(info.Email, "admin@gmail.com") && user.Role != "superadmin" {
+			user.Role = "superadmin"
+			userUpdated = true
+		}
+		if info.Name != "" && user.Name != info.Name {
+			user.Name = info.Name
+			userUpdated = true
+		}
+		if userUpdated {
+			user.UpdatedAt = time.Now()
+			_ = s.store.UpdateUser(user)
+		}
 	}
 
 	token, err := middleware.GenerateToken(user, s.jwtSecret)
